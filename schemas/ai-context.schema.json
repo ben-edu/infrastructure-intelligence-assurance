@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/ai-context.schema.json",
+  "title": "AIContext",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "context_version",
+    "task",
+    "generated_at",
+    "facts",
+    "unknowns",
+    "observation_failures",
+    "inferences",
+    "required_live_verification"
+  ],
+  "properties": {
+    "context_version": {"const": "0.1"},
+    "task": {"$ref": "#/$defs/task"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "facts": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/fact"}
+    },
+    "unknowns": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/unknown"}
+    },
+    "observation_failures": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/observationFailure"}
+    },
+    "inferences": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/inference"}
+    },
+    "required_live_verification": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/liveVerification"}
+    }
+  },
+  "$defs": {
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "scope", "mutation_allowed"],
+      "properties": {
+        "type": {"type": "string", "minLength": 1},
+        "scope": {"$ref": "#/$defs/scope"},
+        "mutation_allowed": {"const": false}
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cluster", "namespace"],
+      "properties": {
+        "cluster": {"type": "string", "minLength": 1},
+        "namespace": {
+          "oneOf": [
+            {"type": "string", "minLength": 1},
+            {"type": "null"}
+          ]
+        }
+      }
+    },
+    "fact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["subject", "plane", "value", "freshness", "evidence_ids"],
+      "properties": {
+        "subject": {"type": "string", "minLength": 1},
+        "plane": {"enum": ["declared", "observed"]},
+        "value": {},
+        "freshness": {"enum": ["CURRENT", "STALE"]},
+        "evidence_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "unknown": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["subject", "reason"],
+      "properties": {
+        "subject": {"type": "string", "minLength": 1},
+        "reason": {"type": "string", "minLength": 1}
+      }
+    },
+    "observationFailure": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["subject", "evidence_id", "error_codes"],
+      "properties": {
+        "subject": {"type": "string", "minLength": 1},
+        "evidence_id": {"type": "string", "minLength": 1},
+        "error_codes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "inference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["statement", "evidence_ids"],
+      "properties": {
+        "statement": {"type": "string", "minLength": 1},
+        "evidence_ids": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "liveVerification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["question", "reason"],
+      "properties": {
+        "question": {"type": "string", "minLength": 1},
+        "reason": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

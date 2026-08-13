@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/observation-envelope.schema.json",
+  "title": "ObservationEnvelope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "evidence_id",
+    "plane",
+    "subject",
+    "existence",
+    "observation_status",
+    "attempted_at",
+    "observed_at",
+    "expires_at",
+    "data",
+    "provenance",
+    "errors"
+  ],
+  "properties": {
+    "schema_version": {"const": "0.1"},
+    "evidence_id": {"type": "string", "minLength": 1},
+    "plane": {"enum": ["declared", "observed"]},
+    "subject": {"$ref": "#/$defs/kubernetesSubject"},
+    "existence": {"enum": ["PRESENT", "ABSENT", "UNKNOWN"]},
+    "observation_status": {"enum": ["COMPLETE", "PARTIAL", "FAILED_TO_OBSERVE"]},
+    "attempted_at": {"type": "string", "format": "date-time"},
+    "observed_at": {
+      "oneOf": [
+        {"type": "string", "format": "date-time"},
+        {"type": "null"}
+      ]
+    },
+    "expires_at": {
+      "oneOf": [
+        {"type": "string", "format": "date-time"},
+        {"type": "null"}
+      ]
+    },
+    "data": {"type": "object"},
+    "provenance": {"$ref": "#/$defs/provenance"},
+    "errors": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/observationError"}
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "observation_status": {"enum": ["COMPLETE", "PARTIAL"]}
+        },
+        "required": ["observation_status"]
+      },
+      "then": {
+        "properties": {
+          "observed_at": {"type": "string", "format": "date-time"},
+          "expires_at": {"type": "string", "format": "date-time"}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "observation_status": {"const": "FAILED_TO_OBSERVE"}
+        },
+        "required": ["observation_status"]
+      },
+      "then": {
+        "properties": {
+          "existence": {"const": "UNKNOWN"},
+          "observed_at": {"type": "null"},
+          "expires_at": {"type": "null"},
+          "errors": {"minItems": 1}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "existence": {"const": "ABSENT"}
+        },
+        "required": ["existence"]
+      },
+      "then": {
+        "properties": {
+          "observation_status": {"const": "COMPLETE"}
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "kubernetesSubject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["system", "cluster", "api_group", "kind", "namespace", "name"],
+      "properties": {
+        "system": {"const": "kubernetes"},
+        "cluster": {"type": "string", "minLength": 1},
+        "api_group": {"type": "string"},
+        "kind": {"type": "string", "minLength": 1},
+        "namespace": {
+          "oneOf": [
+            {"type": "string", "minLength": 1},
+            {"type": "null"}
+          ]
+        },
+        "name": {"type": "string", "minLength": 1}
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_type", "source_id", "collector", "collector_version", "operation"],
+      "properties": {
+        "source_type": {"enum": ["kubernetes_api", "git"]},
+        "source_id": {"type": "string", "minLength": 1},
+        "collector": {"type": "string", "minLength": 1},
+        "collector_version": {"type": "string", "minLength": 1},
+        "operation": {"type": "string", "minLength": 1},
+        "revision": {"type": "string", "minLength": 1}
+      }
+    },
+    "observationError": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "summary"],
+      "properties": {
+        "code": {"type": "string", "minLength": 1},
+        "summary": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

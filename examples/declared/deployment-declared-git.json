@@ -1,0 +1,31 @@
+{
+  "schema_version": "0.1",
+  "evidence_id": "ev-declared-deployment-git",
+  "plane": "declared",
+  "subject": {
+    "system": "kubernetes",
+    "cluster": "lab-k3s",
+    "api_group": "apps",
+    "kind": "Deployment",
+    "namespace": "soria",
+    "name": "api"
+  },
+  "existence": "PRESENT",
+  "observation_status": "COMPLETE",
+  "attempted_at": "2026-08-13T14:59:00Z",
+  "observed_at": "2026-08-13T14:59:00Z",
+  "expires_at": "2026-08-14T14:59:00Z",
+  "data": {
+    "desired_replicas": 3,
+    "image": "ghcr.io/example/soria-api@sha256:def456"
+  },
+  "provenance": {
+    "source_type": "git",
+    "source_id": "github.com/example/platform-config",
+    "collector": "git-observer",
+    "collector_version": "0.1.0",
+    "operation": "read manifests/soria/deployment.yaml",
+    "revision": "8d09c56"
+  },
+  "errors": []
+}

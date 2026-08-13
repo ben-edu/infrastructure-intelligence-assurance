@@ -1,0 +1,57 @@
+{
+  "context_version": "0.1",
+  "task": {
+    "type": "plan_kubernetes_deployment",
+    "scope": {
+      "cluster": "lab-k3s",
+      "namespace": "soria"
+    },
+    "mutation_allowed": false
+  },
+  "generated_at": "2026-08-13T15:02:00Z",
+  "facts": [
+    {
+      "subject": "Deployment/soria/api desired replicas",
+      "plane": "observed",
+      "value": 2,
+      "freshness": "CURRENT",
+      "evidence_ids": ["ev-observed-deployment-present"]
+    },
+    {
+      "subject": "Deployment/soria/api ready replicas",
+      "plane": "observed",
+      "value": 2,
+      "freshness": "CURRENT",
+      "evidence_ids": ["ev-observed-deployment-present"]
+    },
+    {
+      "subject": "Deployment/soria/api declared replicas",
+      "plane": "declared",
+      "value": 3,
+      "freshness": "CURRENT",
+      "evidence_ids": ["ev-declared-deployment-git"]
+    }
+  ],
+  "unknowns": [
+    {
+      "subject": "Namespace/soria current resource quota headroom",
+      "reason": "No quota evidence is included in this task context."
+    }
+  ],
+  "observation_failures": [],
+  "inferences": [
+    {
+      "statement": "Declared and observed replica counts differ; this is a drift candidate, not a proven drift classification in Milestone 0.",
+      "evidence_ids": [
+        "ev-observed-deployment-present",
+        "ev-declared-deployment-git"
+      ]
+    }
+  ],
+  "required_live_verification": [
+    {
+      "question": "What are the current deployment readiness and namespace capacity immediately before any future deployment action?",
+      "reason": "Runtime readiness and capacity are time-sensitive and any future mutating operation requires fresh live verification."
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "schema_version": "0.1",
+  "evidence_id": "ev-observed-deployment-failed",
+  "plane": "observed",
+  "subject": {
+    "system": "kubernetes",
+    "cluster": "lab-k3s",
+    "api_group": "apps",
+    "kind": "Deployment",
+    "namespace": "soria",
+    "name": "api"
+  },
+  "existence": "UNKNOWN",
+  "observation_status": "FAILED_TO_OBSERVE",
+  "attempted_at": "2026-08-13T15:10:00Z",
+  "observed_at": null,
+  "expires_at": null,
+  "data": {},
+  "provenance": {
+    "source_type": "kubernetes_api",
+    "source_id": "lab-k3s",
+    "collector": "kubernetes-observer",
+    "collector_version": "0.1.0",
+    "operation": "GET Deployment/soria/api"
+  },
+  "errors": [
+    {
+      "code": "API_TIMEOUT",
+      "summary": "The Kubernetes API did not respond within the observation deadline."
+    }
+  ]
+}
