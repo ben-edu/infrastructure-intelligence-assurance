@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "infrastructure-intelligence-assurance"
+version = "0.0.1"
+description = "Milestone 0 evidence contract for the Infrastructure Intelligence & Assurance Platform"
+requires-python = ">=3.11"
+
+[project.optional-dependencies]
+test = [
+  "jsonschema>=4.20,<5",
+  "pytest>=8,<9",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

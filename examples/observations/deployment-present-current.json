@@ -1,0 +1,31 @@
+{
+  "schema_version": "0.1",
+  "evidence_id": "ev-observed-deployment-present",
+  "plane": "observed",
+  "subject": {
+    "system": "kubernetes",
+    "cluster": "lab-k3s",
+    "api_group": "apps",
+    "kind": "Deployment",
+    "namespace": "soria",
+    "name": "api"
+  },
+  "existence": "PRESENT",
+  "observation_status": "COMPLETE",
+  "attempted_at": "2026-08-13T15:00:00Z",
+  "observed_at": "2026-08-13T15:00:00Z",
+  "expires_at": "2026-08-13T15:05:00Z",
+  "data": {
+    "desired_replicas": 2,
+    "ready_replicas": 2,
+    "images": ["ghcr.io/example/soria-api@sha256:abc123"]
+  },
+  "provenance": {
+    "source_type": "kubernetes_api",
+    "source_id": "lab-k3s",
+    "collector": "kubernetes-observer",
+    "collector_version": "0.1.0",
+    "operation": "GET Deployment/soria/api"
+  },
+  "errors": []
+}

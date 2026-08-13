@@ -1,0 +1,27 @@
+{
+  "schema_version": "0.1",
+  "evidence_id": "ev-observed-deployment-absent",
+  "plane": "observed",
+  "subject": {
+    "system": "kubernetes",
+    "cluster": "lab-k3s",
+    "api_group": "apps",
+    "kind": "Deployment",
+    "namespace": "soria",
+    "name": "api-canary"
+  },
+  "existence": "ABSENT",
+  "observation_status": "COMPLETE",
+  "attempted_at": "2026-08-13T15:00:00Z",
+  "observed_at": "2026-08-13T15:00:00Z",
+  "expires_at": "2026-08-13T15:05:00Z",
+  "data": {},
+  "provenance": {
+    "source_type": "kubernetes_api",
+    "source_id": "lab-k3s",
+    "collector": "kubernetes-observer",
+    "collector_version": "0.1.0",
+    "operation": "GET Deployment/soria/api-canary"
+  },
+  "errors": []
+}
