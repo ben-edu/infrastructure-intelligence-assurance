@@ -1,0 +1,27 @@
+{
+  "request_version": "0.1",
+  "type": "hypothetical_kubernetes_application_deployment",
+  "cluster_id": "k3s-main",
+  "namespace": "validation",
+  "application": "assurance-demo",
+  "deployment": {
+    "name": "assurance-demo",
+    "replicas": 2,
+    "image": "registry.example.invalid/assurance-demo:1.0"
+  },
+  "service": {
+    "name": "assurance-demo",
+    "port": 80,
+    "target_port": 8080
+  },
+  "ingress": {
+    "name": "assurance-demo",
+    "host": "assurance-demo.example.invalid",
+    "path": "/"
+  },
+  "pvc": {
+    "name": "assurance-demo-data",
+    "size": "1Gi",
+    "storage_class": null
+  }
+}

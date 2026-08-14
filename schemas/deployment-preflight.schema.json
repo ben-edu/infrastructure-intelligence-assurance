@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/deployment-preflight.schema.json",
+  "title": "Kubernetes Deployment Planning Preflight",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "preflight_version",
+    "generated_at",
+    "cluster_id",
+    "request",
+    "mutation_allowed",
+    "readiness",
+    "facts",
+    "conflicts",
+    "inferences",
+    "unknowns",
+    "required_live_verification",
+    "candidate_plan",
+    "post_change_verification"
+  ],
+  "properties": {
+    "preflight_version": {"const": "0.1"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "cluster_id": {"type": "string", "minLength": 1},
+    "request": {"type": "object"},
+    "mutation_allowed": {"const": false},
+    "readiness": {
+      "enum": [
+        "INSUFFICIENT_EVIDENCE",
+        "BLOCKED_BY_CURRENT_CONFLICT",
+        "PLAN_WITH_LIVE_VERIFICATION"
+      ]
+    },
+    "facts": {"type": "array", "items": {"$ref": "#/$defs/item"}},
+    "conflicts": {"type": "array", "items": {"$ref": "#/$defs/item"}},
+    "inferences": {"type": "array", "items": {"$ref": "#/$defs/item"}},
+    "unknowns": {"type": "array", "items": {"$ref": "#/$defs/item"}},
+    "required_live_verification": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/verification"}
+    },
+    "candidate_plan": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/planStep"}
+    },
+    "post_change_verification": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/item"}
+    }
+  },
+  "$defs": {
+    "evidenceIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "item": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "statement", "evidence_ids"],
+      "properties": {
+        "code": {"type": "string", "minLength": 1},
+        "statement": {"type": "string", "minLength": 1},
+        "evidence_ids": {"$ref": "#/$defs/evidenceIds"}
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "check", "reason", "evidence_ids"],
+      "properties": {
+        "code": {"type": "string", "minLength": 1},
+        "check": {"type": "string", "minLength": 1},
+        "reason": {"type": "string", "minLength": 1},
+        "evidence_ids": {"$ref": "#/$defs/evidenceIds"}
+      }
+    },
+    "planStep": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["order", "action", "state", "evidence_ids"],
+      "properties": {
+        "order": {"type": "integer", "minimum": 1},
+        "action": {"type": "string", "minLength": 1},
+        "state": {
+          "enum": ["OBSERVED_PRESENT", "WOULD_REQUIRE_CREATION", "PLAN_ONLY"]
+        },
+        "evidence_ids": {"$ref": "#/$defs/evidenceIds"}
+      }
+    }
+  }
+}
