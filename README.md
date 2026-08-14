@@ -1,33 +1,60 @@
 # Infrastructure Intelligence & Assurance Platform
 
-This repository starts with **Milestone 0 — Evidence Contract**.
+Evidence-first infrastructure context and assurance platform.
 
-The milestone defines the smallest evidence and AI-context contract needed to support a later Kubernetes-only vertical slice. It does **not** collect from live infrastructure and does not choose a final CMDB, database, queue, UI, observability pipeline, or deployment architecture.
+## Current status
 
-## Milestone 0 scope
+Milestone 0 — Evidence Contract is complete.
 
-- normalized observation envelope;
-- provenance metadata;
-- freshness and expiration semantics;
-- explicit absence, unknown, stale, failed-observation, and partial-observation semantics;
-- separation of declared Git state and observed live state;
-- security exclusions;
-- minimal task-oriented AI context;
-- executable schema and semantic tests.
+Milestone 1 now implements a durable read-only Kubernetes inventory slice for:
 
-## Safety boundary
+- namespaces;
+- nodes;
+- deployments;
+- statefulsets;
+- daemonsets;
+- services;
+- ingresses;
+- persistent volume claims.
 
-Milestone 0 is offline and read-only. No live infrastructure access is required.
+Each collection is normalized into `ObservationEnvelope` evidence with provenance, expiry, explicit collection failures, and compact AI context. Raw Secret values are never collected and the observer RBAC has no Secret access or mutating verbs.
 
-Evidence, examples, tests, prompts, and AI context must exclude credential material, private cryptographic material, Kubernetes Secret payload values, sensitive Terraform state payloads, and complete sensitive connection strings.
+## Runtime model
 
-## Validate the contract
+The initial collector runs on the management host, not inside Kubernetes:
 
-```bash
-python -m pip install -e '.[test]'
-pytest
+```text
+Kubernetes API
+  -> dedicated read-only observer identity
+  -> Kubernetes inventory collector
+  -> normalized evidence
+  -> freshness evaluation
+  -> context.json
 ```
 
-## Repository status
+A systemd timer refreshes the snapshot every five minutes. The bootstrap creates a dedicated OS service account, restricted kubeconfig, output directory, and Kubernetes RBAC identity.
 
-The contract is intentionally narrow. Collectors and runtime integrations are deferred until the evidence model has been validated.
+## Install on the management host
+
+From the Milestone 1 branch/repository checkout:
+
+```bash
+sudo CLUSTER_ID=k3s-main ./scripts/bootstrap-observer.sh
+```
+
+The bootstrap verifies that the observer can read required inventory and cannot read Secrets or create Deployments.
+
+Outputs:
+
+```text
+/var/lib/infra-assurance/evidence/kubernetes.json
+/var/lib/infra-assurance/evidence/context.json
+```
+
+## Validate locally
+
+```bash
+PYTHONPATH=src pytest
+```
+
+See `docs/milestone-1-first-slice.md` for scope, trust boundaries, credential rationale, and deferred items.
