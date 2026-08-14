@@ -90,7 +90,12 @@ def test_declared_and_observed_examples_keep_separate_planes():
     assert observed["data"]["desired_replicas"] != declared["data"]["desired_replicas"]
 
 
-def test_example_keys_are_explicitly_allowlisted():
+def test_evidence_and_context_example_keys_are_explicitly_allowlisted():
+    """Protect evidence/context examples with their original field allowlist.
+
+    Task request examples are a separate contract and are validated against their
+    own additionalProperties=false JSON schema in test_request_examples.py.
+    """
     allowed_keys = {
         "schema_version", "evidence_id", "plane", "subject", "system", "cluster",
         "api_group", "kind", "namespace", "name", "existence",
@@ -112,7 +117,11 @@ def test_example_keys_are_explicitly_allowlisted():
             for child in value:
                 walk(child)
 
-    files = list((ROOT / "examples").rglob("*.json"))
+    files = [
+        path
+        for path in (ROOT / "examples").rglob("*.json")
+        if "requests" not in path.relative_to(ROOT / "examples").parts
+    ]
     assert files
     for path in files:
         walk(json.loads(path.read_text(encoding="utf-8")))
