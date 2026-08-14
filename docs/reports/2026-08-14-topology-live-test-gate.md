@@ -2,26 +2,56 @@
 
 ## Status
 
-Pending rerun after test-runner path correction.
+Accepted after management-host test and live-cluster verification.
 
-## Observed issue
+## Test result
 
-The first live topology validation attempt reached the management host successfully and the observer bootstrap completed, but the repository-level pytest command failed during test collection because the project uses a `src/` layout and the pytest configuration did not add `src` to the import path.
+The repository-level test suite passed directly from the management-host checkout with:
 
-Observed failure class:
+```bash
+python3 -m pytest -q
+```
 
-- `ModuleNotFoundError: No module named 'infra_assurance'`
+Observed result:
 
-This was a test-runner configuration failure, not a Kubernetes observation failure and not evidence that the topology runtime failed.
+- 31 tests passed;
+- no test collection errors;
+- no import-path override or editable install was required.
 
-## Correction
+The earlier `ModuleNotFoundError: No module named 'infra_assurance'` was confirmed to be a repository test-runner configuration issue. Adding `pythonpath = ["src"]` to pytest configuration corrected it.
 
-The repository pytest configuration now includes `pythonpath = ["src"]`, so `python3 -m pytest -q` is expected to work directly from the repository root without requiring an editable install or an external `PYTHONPATH` override.
+## Live evidence result
 
-## Acceptance requirement
+The existing observer continued to produce a complete current Kubernetes snapshot:
 
-PR #4 remains unmerged until:
+- raw evidence records: 240;
+- compact operational facts: 22;
+- unknown observations: 0;
+- observation failures: 0.
 
-1. repository tests pass from the management-host checkout with `python3 -m pytest -q`;
-2. the existing observer runtime produces `topology.json` and `topology.md` successfully on the live cluster;
-3. the resulting relationship counts and unresolved issues are reviewed without exposing credentials.
+## Live topology result
+
+The derived topology reported:
+
+- total relationships: 121;
+- Ingress -> Service observed references: 26;
+- Service -> workload selector-match inferences: 77;
+- workload -> PVC observed references: 18;
+- topology issues: 1;
+- issues requiring verification: 1.
+
+The single unresolved issue was:
+
+- `Service/monitoring/loki-headless` matched two observed workload controllers through its selector;
+- classification: `AMBIGUOUS`;
+- required verification: EndpointSlice and Pod ownership evidence before attributing traffic to one controller.
+
+This ambiguity is accepted evidence behavior, not a topology failure. The projection correctly avoided converting selector ambiguity into a false ownership claim.
+
+## Trust statement
+
+No credential, kubeconfig content, Kubernetes Secret value, or other sensitive connection material is recorded in this report. Direct references remain distinguishable from selector-based inferences, and unresolved controller attribution remains explicitly ambiguous.
+
+## Acceptance conclusion
+
+PR #4 meets its acceptance gate. The topology projection is suitable for read-only operational reasoning and planning while remaining a derived projection rather than a replacement for source evidence.
