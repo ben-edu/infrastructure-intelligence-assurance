@@ -95,6 +95,9 @@ assert_can_i no list secrets --all-namespaces
 assert_can_i no create deployments.apps -n default
 
 echo "Observer installed."
-echo "Evidence: ${STATE_DIR}/evidence/kubernetes.json"
-echo "Context:  ${STATE_DIR}/evidence/context.json"
+echo "Evidence:         ${STATE_DIR}/evidence/kubernetes.json"
+echo "Context:          ${STATE_DIR}/evidence/context.json"
+echo "Operator context: ${STATE_DIR}/evidence/context.md"
+echo "Topology:         ${STATE_DIR}/evidence/topology.json"
+echo "Topology summary: ${STATE_DIR}/evidence/topology.md"
 systemctl --no-pager --full status infra-assurance-kubernetes.service || true
