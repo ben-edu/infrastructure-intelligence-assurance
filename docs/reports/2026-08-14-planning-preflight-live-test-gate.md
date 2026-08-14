@@ -2,13 +2,37 @@
 
 ## Status
 
-Pending live management-host acceptance.
+Pending rerun after request-example test-contract correction.
 
 ## Scope
 
 Final Milestone 1 acceptance test for task-scoped AI planning consumption.
 
 The test uses the installed read-only observer evidence and the repository's non-production hypothetical deployment request. It does not mutate Kubernetes resources.
+
+## First management-host result
+
+The first run reached the management host and executed the repository test suite. Result:
+
+- 41 tests passed;
+- 1 test failed;
+- the failure was `test_example_keys_are_explicitly_allowlisted`;
+- the unexpected field was `request_version` from the newly added planning request example.
+
+The failure was a test-contract mismatch, not a Kubernetes observer, topology, credential, or preflight runtime failure. The legacy evidence/context example allowlist had been applied indiscriminately to the new task-request example contract.
+
+Because the interactive command block enabled `set -euo pipefail`, the failed pytest command terminated the command sequence and the SSH terminal session stopped before bootstrap/preflight execution.
+
+## Correction
+
+The contracts are now tested separately:
+
+- evidence/context examples continue to use the existing explicit key allowlist;
+- `examples/requests/*.json` are excluded from that legacy allowlist;
+- planning request examples are validated against `hypothetical-deployment-request.schema.json`, whose objects use `additionalProperties: false`;
+- planning request examples are also passed through `validate_request()` so unsupported fields such as environment or Secret payload fields remain rejected.
+
+The rerun must not enable shell-wide `set -e` in the interactive SSH session.
 
 ## Required acceptance evidence
 
