@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "infrastructure-intelligence-assurance"
-version = "0.3.0"
-description = "Evidence-first Kubernetes inventory, operational context, and topology reasoning"
+version = "0.4.0"
+description = "Evidence-first Kubernetes context, topology, and read-only deployment planning preflight"
 requires-python = ">=3.11"
 
 [project.optional-dependencies]
@@ -16,6 +16,7 @@ test = [
 
 [project.scripts]
 iia-k8s-inventory = "infra_assurance.kubernetes_runtime:main"
+iia-k8s-preflight = "infra_assurance.planning_preflight:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

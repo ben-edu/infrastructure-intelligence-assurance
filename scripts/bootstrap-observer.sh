@@ -15,6 +15,8 @@ CONFIG_DIR="/etc/infra-assurance"
 STATE_DIR="/var/lib/infra-assurance"
 SERVICE_USER="infra-assurance"
 OBSERVER_KUBECONFIG="${CONFIG_DIR}/kubeconfig"
+PREFLIGHT_BIN="/usr/local/bin/iia-k8s-preflight"
+PREFLIGHT_EXAMPLE="${CONFIG_DIR}/examples/hypothetical-app-deployment.json"
 
 command -v kubectl >/dev/null
 command -v python3 >/dev/null
@@ -23,6 +25,7 @@ if ! id "${SERVICE_USER}" >/dev/null 2>&1; then
   useradd --system --home-dir "${STATE_DIR}" --create-home --shell /usr/sbin/nologin "${SERVICE_USER}"
 fi
 install -d -o root -g "${SERVICE_USER}" -m 0750 "${CONFIG_DIR}"
+install -d -o root -g "${SERVICE_USER}" -m 0750 "${CONFIG_DIR}/examples"
 install -d -o "${SERVICE_USER}" -g "${SERVICE_USER}" -m 0750 "${STATE_DIR}/evidence"
 install -d -o root -g root -m 0755 "${INSTALL_ROOT}"
 
@@ -64,6 +67,18 @@ unset TOKEN TOKEN_B64 CA_DATA
 rm -rf "${INSTALL_ROOT}/src"
 cp -a "${REPO_ROOT}/src" "${INSTALL_ROOT}/src"
 chown -R root:root "${INSTALL_ROOT}/src"
+install -o root -g "${SERVICE_USER}" -m 0640 \
+  "${REPO_ROOT}/examples/requests/hypothetical-app-deployment.json" \
+  "${PREFLIGHT_EXAMPLE}"
+
+cat > "${PREFLIGHT_BIN}" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+export PYTHONPATH=/opt/infra-assurance/src
+exec /usr/bin/python3 -m infra_assurance.planning_preflight "$@"
+EOF
+chown root:root "${PREFLIGHT_BIN}"
+chmod 0755 "${PREFLIGHT_BIN}"
 
 cat > "${CONFIG_DIR}/collector.env" <<EOF
 IIA_CLUSTER_ID=${CLUSTER_ID}
@@ -100,4 +115,6 @@ echo "Context:          ${STATE_DIR}/evidence/context.json"
 echo "Operator context: ${STATE_DIR}/evidence/context.md"
 echo "Topology:         ${STATE_DIR}/evidence/topology.json"
 echo "Topology summary: ${STATE_DIR}/evidence/topology.md"
+echo "Preflight CLI:    ${PREFLIGHT_BIN}"
+echo "Example request:  ${PREFLIGHT_EXAMPLE}"
 systemctl --no-pager --full status infra-assurance-kubernetes.service || true
