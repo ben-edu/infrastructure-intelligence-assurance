@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/kubernetes-topology.schema.json",
+  "title": "KubernetesTopology",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "topology_version",
+    "cluster_id",
+    "generated_at",
+    "summary",
+    "relations",
+    "issues"
+  ],
+  "properties": {
+    "topology_version": {"const": "0.1"},
+    "cluster_id": {"type": "string", "minLength": 1},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "relations_total",
+        "ingress_service_references",
+        "service_workload_selector_matches",
+        "workload_pvc_references",
+        "issues_total",
+        "issues_requiring_verification"
+      ],
+      "properties": {
+        "relations_total": {"type": "integer", "minimum": 0},
+        "ingress_service_references": {"type": "integer", "minimum": 0},
+        "service_workload_selector_matches": {"type": "integer", "minimum": 0},
+        "workload_pvc_references": {"type": "integer", "minimum": 0},
+        "issues_total": {"type": "integer", "minimum": 0},
+        "issues_requiring_verification": {"type": "integer", "minimum": 0}
+      }
+    },
+    "relations": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/relation"}
+    },
+    "issues": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/issue"}
+    }
+  },
+  "$defs": {
+    "evidenceIds": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": {"type": "string", "minLength": 1}
+    },
+    "relation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "source", "target", "basis", "evidence_ids"],
+      "properties": {
+        "type": {
+          "enum": [
+            "INGRESS_REFERENCES_SERVICE",
+            "SERVICE_SELECTOR_MATCHES_WORKLOAD",
+            "WORKLOAD_REFERENCES_PVC"
+          ]
+        },
+        "source": {"type": "string", "minLength": 1},
+        "target": {"type": "string", "minLength": 1},
+        "basis": {
+          "enum": ["OBSERVED_REFERENCE", "SELECTOR_MATCH_INFERENCE"]
+        },
+        "evidence_ids": {"$ref": "#/$defs/evidenceIds"},
+        "details": {"type": "object"}
+      }
+    },
+    "issue": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "severity",
+        "subject",
+        "statement",
+        "evidence_ids",
+        "required_live_verification"
+      ],
+      "properties": {
+        "code": {
+          "enum": [
+            "INGRESS_SERVICE_NOT_OBSERVED",
+            "INGRESS_SERVICE_TARGET_UNKNOWN",
+            "SERVICE_SELECTOR_NO_CONTROLLER_MATCH",
+            "SERVICE_SELECTOR_MULTIPLE_CONTROLLER_MATCHES",
+            "SERVICE_SELECTOR_CONTROLLER_SCOPE_INCOMPLETE",
+            "WORKLOAD_PVC_NOT_OBSERVED",
+            "WORKLOAD_PVC_TARGET_UNKNOWN"
+          ]
+        },
+        "severity": {
+          "enum": ["REQUIRES_VERIFICATION", "UNKNOWN_WITH_CURRENT_SCOPE", "AMBIGUOUS"]
+        },
+        "subject": {"type": "string", "minLength": 1},
+        "target": {"type": "string", "minLength": 1},
+        "statement": {"type": "string", "minLength": 1},
+        "evidence_ids": {"$ref": "#/$defs/evidenceIds"},
+        "required_live_verification": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "infrastructure-intelligence-assurance"
-version = "0.2.0"
-description = "Evidence-first Kubernetes inventory and compact operational context"
+version = "0.3.0"
+description = "Evidence-first Kubernetes inventory, operational context, and topology reasoning"
 requires-python = ">=3.11"
 
 [project.optional-dependencies]

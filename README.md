@@ -6,7 +6,7 @@ Evidence-first infrastructure context and assurance platform.
 
 Milestone 0 — Evidence Contract is complete.
 
-Milestone 1 implements a durable read-only Kubernetes inventory slice for:
+Milestone 1 implements a durable read-only Kubernetes evidence loop for:
 
 - namespaces;
 - nodes;
@@ -26,12 +26,31 @@ Kubernetes API
   -> dedicated read-only observer identity
   -> complete normalized evidence
   -> freshness and trust evaluation
-  -> compact operational projection
-       -> context.json for AI reasoning
-       -> context.md for operator review
+  -> compact operational context
+  -> derived topology relationships
 ```
 
-Raw normalized evidence is retained separately from the compact context. Healthy resources are not repeated individually in the AI context. The projection keeps collection coverage, explicit failures, stale evidence requiring verification, observed exceptional conditions, and deterministic operational inferences such as ready replicas below desired replicas.
+Runtime artifacts are deliberately separated by trust role:
+
+```text
+kubernetes.json  complete normalized evidence
+context.json     compact AI operational context
+context.md       operator operational summary
+topology.json    structured derived relationships
+topology.md      operator relationship summary
+```
+
+`kubernetes.json` remains the evidence source. The context and topology files are derived projections and must never replace source evidence.
+
+The topology slice derives only relationships currently supported by observed evidence:
+
+- Ingress -> Service from backend references;
+- Service -> workload-controller candidates from selector matching;
+- workload -> PVC from explicit PVC references in pod templates.
+
+Service-to-controller relationships are explicitly marked as inference because Kubernetes Services select Pods/Endpoints rather than Deployment, StatefulSet, or DaemonSet objects directly.
+
+A Service selector with no observed controller match remains unknown with the current scope; it is not automatically classified as broken.
 
 A workload observed with desired replicas equal to zero is retained as an observed condition and is not automatically classified as degraded.
 
@@ -51,9 +70,9 @@ Runtime outputs:
 /var/lib/infra-assurance/evidence/kubernetes.json
 /var/lib/infra-assurance/evidence/context.json
 /var/lib/infra-assurance/evidence/context.md
+/var/lib/infra-assurance/evidence/topology.json
+/var/lib/infra-assurance/evidence/topology.md
 ```
-
-`kubernetes.json` is the evidence source. `context.json` and `context.md` are derived operational projections and must never be treated as a replacement for the source evidence.
 
 ## Validate locally
 
@@ -61,4 +80,8 @@ Runtime outputs:
 PYTHONPATH=src pytest
 ```
 
-See `docs/milestone-1-first-slice.md` for the collector trust boundary and `docs/decisions/0002-compact-operational-context.md` for the context-compaction decision.
+See:
+
+- `docs/milestone-1-first-slice.md` for the collector trust boundary;
+- `docs/decisions/0002-compact-operational-context.md` for context compaction;
+- `docs/decisions/0003-kubernetes-topology-projection.md` for relationship trust semantics.
