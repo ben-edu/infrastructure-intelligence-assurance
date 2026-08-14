@@ -78,10 +78,21 @@ systemctl daemon-reload
 systemctl enable --now infra-assurance-kubernetes.timer >/dev/null
 systemctl start infra-assurance-kubernetes.service
 
-KUBECONFIG="${OBSERVER_KUBECONFIG}" kubectl auth can-i list nodes | grep -qx yes
-KUBECONFIG="${OBSERVER_KUBECONFIG}" kubectl auth can-i list deployments.apps --all-namespaces | grep -qx yes
-KUBECONFIG="${OBSERVER_KUBECONFIG}" kubectl auth can-i list secrets --all-namespaces | grep -qx no
-KUBECONFIG="${OBSERVER_KUBECONFIG}" kubectl auth can-i create deployments.apps -n default | grep -qx no
+assert_can_i() {
+  local expected="$1"
+  shift
+  local actual
+  actual="$(KUBECONFIG="${OBSERVER_KUBECONFIG}" kubectl auth can-i "$@" 2>/dev/null || true)"
+  if [[ "${actual}" != "${expected}" ]]; then
+    echo "RBAC verification failed: expected '${expected}' for: kubectl auth can-i $*; got '${actual}'" >&2
+    exit 1
+  fi
+}
+
+assert_can_i yes list nodes
+assert_can_i yes list deployments.apps --all-namespaces
+assert_can_i no list secrets --all-namespaces
+assert_can_i no create deployments.apps -n default
 
 echo "Observer installed."
 echo "Evidence: ${STATE_DIR}/evidence/kubernetes.json"
