@@ -4,15 +4,21 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "infrastructure-intelligence-assurance"
-version = "0.0.1"
-description = "Milestone 0 evidence contract for the Infrastructure Intelligence & Assurance Platform"
+version = "0.1.0"
+description = "Evidence contract and Kubernetes read-only inventory vertical slice"
 requires-python = ">=3.11"
 
 [project.optional-dependencies]
 test = [
   "jsonschema>=4.20,<5",
-  "pytest>=8,<9",
+  "pytest>=8,<10",
 ]
+
+[project.scripts]
+iia-k8s-inventory = "infra_assurance.kubernetes_inventory:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

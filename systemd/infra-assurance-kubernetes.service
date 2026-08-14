@@ -1,0 +1,21 @@
+[Unit]
+Description=Infrastructure Assurance Kubernetes evidence collection
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=infra-assurance
+Group=infra-assurance
+EnvironmentFile=/etc/infra-assurance/collector.env
+Environment=PYTHONPATH=/opt/infra-assurance/src
+ExecStart=/usr/bin/python3 -m infra_assurance.kubernetes_inventory --evidence-out /var/lib/infra-assurance/evidence/kubernetes.json --context-out /var/lib/infra-assurance/evidence/context.json
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/infra-assurance/evidence
+ReadOnlyPaths=/etc/infra-assurance
+
+[Install]
+WantedBy=multi-user.target
