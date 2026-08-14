@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/history-index.schema.json",
+  "title": "HistoryIndex",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["history_version", "retention", "snapshots"],
+  "properties": {
+    "history_version": {"const": "0.1"},
+    "retention": {"type": "integer", "minimum": 2},
+    "snapshots": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["snapshot_id", "generated_at", "file", "evidence_count", "failed_collections"],
+        "properties": {
+          "snapshot_id": {"type": "string", "minLength": 1},
+          "generated_at": {"type": "string", "format": "date-time"},
+          "file": {"type": "string", "pattern": "^snapshots/"},
+          "evidence_count": {"type": "integer", "minimum": 0},
+          "failed_collections": {"type": "integer", "minimum": 0}
+        }
+      }
+    }
+  }
+}

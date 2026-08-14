@@ -10,12 +10,14 @@ fi
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ADMIN_KUBECONFIG="${ADMIN_KUBECONFIG:-/home/ben/.kube/config}"
 CLUSTER_ID="${CLUSTER_ID:-k3s-main}"
+HISTORY_RETENTION="${HISTORY_RETENTION:-288}"
 INSTALL_ROOT="/opt/infra-assurance"
 CONFIG_DIR="/etc/infra-assurance"
 STATE_DIR="/var/lib/infra-assurance"
 SERVICE_USER="infra-assurance"
 OBSERVER_KUBECONFIG="${CONFIG_DIR}/kubeconfig"
 PREFLIGHT_BIN="/usr/local/bin/iia-k8s-preflight"
+HISTORY_BIN="/usr/local/bin/iia-k8s-history"
 PREFLIGHT_EXAMPLE="${CONFIG_DIR}/examples/hypothetical-app-deployment.json"
 
 command -v kubectl >/dev/null
@@ -26,7 +28,10 @@ if ! id "${SERVICE_USER}" >/dev/null 2>&1; then
 fi
 install -d -o root -g "${SERVICE_USER}" -m 0750 "${CONFIG_DIR}"
 install -d -o root -g "${SERVICE_USER}" -m 0750 "${CONFIG_DIR}/examples"
+install -d -o root -g "${SERVICE_USER}" -m 0750 "${CONFIG_DIR}/declared"
 install -d -o "${SERVICE_USER}" -g "${SERVICE_USER}" -m 0750 "${STATE_DIR}/evidence"
+install -d -o "${SERVICE_USER}" -g "${SERVICE_USER}" -m 0750 "${STATE_DIR}/history"
+install -d -o "${SERVICE_USER}" -g "${SERVICE_USER}" -m 0750 "${STATE_DIR}/history/kubernetes"
 install -d -o root -g root -m 0755 "${INSTALL_ROOT}"
 
 KUBECONFIG="${ADMIN_KUBECONFIG}" kubectl apply -f "${REPO_ROOT}/deploy/kubernetes/observer-rbac.yaml" >/dev/null
@@ -80,8 +85,18 @@ EOF
 chown root:root "${PREFLIGHT_BIN}"
 chmod 0755 "${PREFLIGHT_BIN}"
 
+cat > "${HISTORY_BIN}" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+export PYTHONPATH=/opt/infra-assurance/src
+exec /usr/bin/python3 -m infra_assurance.history_cli "$@"
+EOF
+chown root:root "${HISTORY_BIN}"
+chmod 0755 "${HISTORY_BIN}"
+
 cat > "${CONFIG_DIR}/collector.env" <<EOF
 IIA_CLUSTER_ID=${CLUSTER_ID}
+IIA_HISTORY_RETENTION=${HISTORY_RETENTION}
 KUBECONFIG=${OBSERVER_KUBECONFIG}
 EOF
 chown root:"${SERVICE_USER}" "${CONFIG_DIR}/collector.env"
@@ -112,9 +127,13 @@ assert_can_i no create deployments.apps -n default
 echo "Observer installed."
 echo "Evidence:         ${STATE_DIR}/evidence/kubernetes.json"
 echo "Context:          ${STATE_DIR}/evidence/context.json"
-echo "Operator context: ${STATE_DIR}/evidence/context.md"
 echo "Topology:         ${STATE_DIR}/evidence/topology.json"
-echo "Topology summary: ${STATE_DIR}/evidence/topology.md"
+echo "History:          ${STATE_DIR}/history/kubernetes"
+echo "Latest diff:      ${STATE_DIR}/evidence/diff.json"
+echo "Latest drift:     ${STATE_DIR}/evidence/drift.json"
+echo "Change context:   ${STATE_DIR}/evidence/change-context.json"
 echo "Preflight CLI:    ${PREFLIGHT_BIN}"
+echo "History CLI:      ${HISTORY_BIN}"
+echo "Declared input:   ${CONFIG_DIR}/declared"
 echo "Example request:  ${PREFLIGHT_EXAMPLE}"
 systemctl --no-pager --full status infra-assurance-kubernetes.service || true

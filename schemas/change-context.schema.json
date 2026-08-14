@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/change-context.schema.json",
+  "title": "ChangeContext",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["change_context_version", "task", "generated_at", "history", "drift", "recent_changes", "drift_attention", "unknowns", "required_live_verification", "truncation"],
+  "properties": {
+    "change_context_version": {"const": "0.1"},
+    "task": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "scope", "mutation_allowed"],
+      "properties": {
+        "type": {"const": "infrastructure_change_awareness"},
+        "scope": {"type": "object", "required": ["cluster"], "properties": {"cluster": {"type": "string", "minLength": 1}}, "additionalProperties": false},
+        "mutation_allowed": {"const": false}
+      }
+    },
+    "generated_at": {"type": "string", "format": "date-time"},
+    "history": {"type": "object"},
+    "drift": {"type": "object"},
+    "recent_changes": {"type": "array", "items": {"type": "object"}},
+    "drift_attention": {"type": "array", "items": {"type": "object"}},
+    "unknowns": {"type": "array", "items": {"type": "object"}},
+    "required_live_verification": {"type": "array", "items": {"type": "object"}},
+    "truncation": {"type": "object"}
+  }
+}

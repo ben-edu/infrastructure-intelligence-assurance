@@ -9,12 +9,12 @@ User=infra-assurance
 Group=infra-assurance
 EnvironmentFile=/etc/infra-assurance/collector.env
 Environment=PYTHONPATH=/opt/infra-assurance/src
-ExecStart=/usr/bin/python3 -m infra_assurance.kubernetes_runtime --evidence-out /var/lib/infra-assurance/evidence/kubernetes.json --context-out /var/lib/infra-assurance/evidence/context.json --summary-out /var/lib/infra-assurance/evidence/context.md --topology-out /var/lib/infra-assurance/evidence/topology.json --topology-summary-out /var/lib/infra-assurance/evidence/topology.md
+ExecStart=/usr/bin/python3 -m infra_assurance.kubernetes_runtime --evidence-out /var/lib/infra-assurance/evidence/kubernetes.json --context-out /var/lib/infra-assurance/evidence/context.json --summary-out /var/lib/infra-assurance/evidence/context.md --topology-out /var/lib/infra-assurance/evidence/topology.json --topology-summary-out /var/lib/infra-assurance/evidence/topology.md --history-dir /var/lib/infra-assurance/history/kubernetes --diff-out /var/lib/infra-assurance/evidence/diff.json --diff-summary-out /var/lib/infra-assurance/evidence/diff.md --declared-dir /etc/infra-assurance/declared --drift-out /var/lib/infra-assurance/evidence/drift.json --drift-summary-out /var/lib/infra-assurance/evidence/drift.md --change-context-out /var/lib/infra-assurance/evidence/change-context.json --change-context-summary-out /var/lib/infra-assurance/evidence/change-context.md
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/var/lib/infra-assurance/evidence
+ReadWritePaths=/var/lib/infra-assurance/evidence /var/lib/infra-assurance/history
 ReadOnlyPaths=/etc/infra-assurance
 
 [Install]

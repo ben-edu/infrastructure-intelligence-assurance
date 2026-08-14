@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/drift-report.schema.json",
+  "title": "DriftReport",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["drift_version", "cluster_id", "generated_at", "status", "summary", "results", "unknowns", "loader_errors", "required_live_verification"],
+  "properties": {
+    "drift_version": {"const": "0.1"},
+    "cluster_id": {"type": "string", "minLength": 1},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "status": {"enum": ["DECLARED_STATE_UNAVAILABLE", "DECLARED_STATE_ERRORS", "EVALUATED"]},
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["declared_records", "in_sync", "drift", "unknown", "loader_errors"],
+      "properties": {
+        "declared_records": {"type": "integer", "minimum": 0},
+        "in_sync": {"type": "integer", "minimum": 0},
+        "drift": {"type": "integer", "minimum": 0},
+        "unknown": {"type": "integer", "minimum": 0},
+        "loader_errors": {"type": "integer", "minimum": 0}
+      }
+    },
+    "results": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["classification", "subject", "evidence_ids", "field_mismatches", "unknown_fields", "declared_revision", "declared_source"],
+        "properties": {
+          "classification": {"enum": ["IN_SYNC", "DRIFT", "UNKNOWN"]},
+          "subject": {"type": "string", "minLength": 1},
+          "evidence_ids": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+          "field_mismatches": {"type": "array", "items": {"type": "object"}},
+          "unknown_fields": {"type": "array", "items": {"type": "string"}},
+          "declared_revision": {"type": "string", "minLength": 1},
+          "declared_source": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "unknowns": {"type": "array", "items": {"type": "object"}},
+    "loader_errors": {"type": "array", "items": {"type": "object"}},
+    "required_live_verification": {"type": "array", "items": {"type": "object"}}
+  }
+}

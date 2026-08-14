@@ -6,64 +6,70 @@ Evidence-first infrastructure context and assurance platform.
 
 Milestone 0 — Evidence Contract is complete.
 
-Milestone 1 implements a durable read-only Kubernetes evidence and planning loop for:
+Milestone 1 — Kubernetes evidence, topology, and read-only planning preflight is complete and live-validated.
 
-- namespaces;
-- nodes;
-- deployments;
-- statefulsets;
-- daemonsets;
-- services;
-- ingresses;
-- persistent volume claims;
-- compact operational context;
-- evidence-linked topology;
-- task-scoped deployment planning preflight.
+Milestone 2 adds a durable read-only change-awareness layer:
 
-The live observer runs on the management host with dedicated read-only Kubernetes credentials and a five-minute systemd timer.
+- bounded immutable Kubernetes snapshot history;
+- trust-aware previous/current diff;
+- evidence expiration and failed-collection signaling in comparisons;
+- declared-vs-observed drift evaluation for normalized Git evidence;
+- compact change context for operator/AI consumption.
+
+The live Kubernetes observer runs on the management host with dedicated read-only credentials and a five-minute systemd timer.
 
 ## Runtime model
 
 ```text
 Kubernetes API
   -> dedicated read-only observer identity
-  -> complete normalized evidence
+  -> normalized current evidence
   -> freshness and trust evaluation
   -> compact operational context
-  -> derived topology relationships
-  -> task-scoped planning preflight
-  -> AI consumption
+  -> topology
+  -> bounded immutable history
+  -> trust-aware diff
+  -> declared-vs-observed drift
+  -> compact change context
+  -> task-scoped planning preflight / AI consumption
 ```
 
-Runtime artifacts are deliberately separated by trust role:
+Current-state and task artifacts remain separate from immutable history.
 
 ```text
-kubernetes.json  complete normalized evidence
-context.json     compact AI operational context
-context.md       operator operational summary
-topology.json    structured derived relationships
-topology.md      operator relationship summary
-preflight.json   task-scoped machine-readable planning input
-preflight.md     task-scoped operator/AI planning summary
+/var/lib/infra-assurance/evidence/kubernetes.json
+/var/lib/infra-assurance/evidence/context.json
+/var/lib/infra-assurance/evidence/context.md
+/var/lib/infra-assurance/evidence/topology.json
+/var/lib/infra-assurance/evidence/topology.md
+/var/lib/infra-assurance/evidence/diff.json
+/var/lib/infra-assurance/evidence/diff.md
+/var/lib/infra-assurance/evidence/drift.json
+/var/lib/infra-assurance/evidence/drift.md
+/var/lib/infra-assurance/evidence/change-context.json
+/var/lib/infra-assurance/evidence/change-context.md
+/var/lib/infra-assurance/evidence/preflight.json
+/var/lib/infra-assurance/evidence/preflight.md
 ```
 
-`kubernetes.json` remains the evidence source. Context, topology, and preflight files are derived projections and must never replace source evidence.
+Bounded history:
 
-The topology slice derives only relationships currently supported by observed evidence:
+```text
+/var/lib/infra-assurance/history/kubernetes/index.json
+/var/lib/infra-assurance/history/kubernetes/snapshots/*.json
+```
 
-- Ingress -> Service from backend references;
-- Service -> workload-controller candidates from selector matching;
-- workload -> PVC from explicit PVC references in pod templates.
+The default history retention is 288 snapshots, approximately 24 hours at the current five-minute cadence. This is deliberately replaceable local storage, not a final long-term database decision.
 
-Service-to-controller relationships are explicitly marked as inference because Kubernetes Services select Pods/Endpoints rather than Deployment, StatefulSet, or DaemonSet objects directly.
+## Trust rules
 
-The deployment preflight consumes current evidence and a strict hypothetical deployment request. It separates evidence-backed facts, observed conflicts, inferences, unknowns, and selective live verification requirements before producing a non-executable candidate plan. `mutation_allowed` remains `false` throughout Milestone 1.
+A failed or stale current collection is never used to claim that a resource disappeared.
 
-A failed or stale collection is never used to claim that a requested resource name is available.
+Git-declared and live-observed state remain separate evidence planes. Drift is evaluated only when normalized Git evidence is actually configured. No declared source produces `DECLARED_STATE_UNAVAILABLE`, not zero drift.
 
-A workload observed with desired replicas equal to zero is retained as an observed condition and is not automatically classified as degraded.
+Observed resources outside a configured declared scope are not automatically classified as drift.
 
-Raw Secret values are never collected and the observer RBAC has no Secret access or mutating verbs.
+Raw Secret values are never collected and the Kubernetes observer RBAC has no Secret access or mutating verbs.
 
 ## Install or refresh on the management host
 
@@ -71,20 +77,20 @@ Raw Secret values are never collected and the observer RBAC has no Secret access
 sudo CLUSTER_ID=k3s-main ./scripts/bootstrap-observer.sh
 ```
 
-The bootstrap verifies that the observer can read required inventory and cannot read Secrets or create Deployments. It also installs the read-only planning CLI and an example hypothetical deployment request.
+No additional Kubernetes permission is required for Milestone 2.
 
-## Run the Milestone 1 planning preflight
+## Inspect history
+
+```bash
+iia-k8s-history status
+iia-k8s-history list --limit 10
+```
+
+## Run the read-only planning preflight
 
 ```bash
 sudo -u infra-assurance iia-k8s-preflight \
   --request /etc/infra-assurance/examples/hypothetical-app-deployment.json
-```
-
-Default preflight outputs:
-
-```text
-/var/lib/infra-assurance/evidence/preflight.json
-/var/lib/infra-assurance/evidence/preflight.md
 ```
 
 ## Validate locally
@@ -99,4 +105,6 @@ See:
 - `docs/decisions/0002-compact-operational-context.md` for context compaction;
 - `docs/decisions/0003-kubernetes-topology-projection.md` for relationship trust semantics;
 - `docs/decisions/0004-task-scoped-planning-preflight.md` for planning trust semantics;
-- `docs/milestone-1-ai-consumption-test.md` for the Milestone 1 acceptance test.
+- `docs/decisions/0005-bounded-file-history-and-trust-aware-diff.md` for history/diff semantics;
+- `docs/decisions/0006-git-declared-drift-without-plane-conflation.md` for drift semantics;
+- `docs/milestone-2-history-diff-drift.md` for the current Milestone 2 slice.
