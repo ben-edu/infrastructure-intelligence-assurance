@@ -2,53 +2,45 @@
 
 ## Status
 
-Pending repository and manual derived live acceptance.
+Accepted.
 
 ## Scope
 
-Validate package `0.21.0` and `vm_backup_assurance_version=0.1` using the already accepted PR #33 Proxmox VE source artifact.
+Validated package `0.21.0` and `vm_backup_assurance_version=0.1` using the already accepted PR #33 Proxmox VE source artifact.
 
-This gate must not make any new Proxmox request and must not use/read any Proxmox credential.
+No new Proxmox request was made and no Proxmox credential was read by the integration.
 
 ## Repository gate
 
-Required:
-
-- full pytest suite passes;
-- schema validation passes;
-- integration contains no network/query/control client markers;
-- no RBAC change;
-- no systemd change;
-- prior Proxmox source adapter CLI remains available;
-- prior Kubernetes PVC foundation contract remains `KUBERNETES_PVC` and unchanged by this slice;
-- package version is `0.21.0` only in current-slice version tests.
-
-## Manual derived live gate
-
-Input:
+Accepted on `mgmt-automation`:
 
 ```text
-/tmp/proxmox-ve-backup-evidence.json
+RBAC changes: none
+systemd changes: none
+query/control/credential markers: none
+missing assurance markers: none
+240 passed in 1.25s
 ```
 
-The input should be the accepted source artifact generated during PR #33 live validation. If it is missing, do not silently rerun the PVE source collector as part of this derived-only gate.
-
-Expected current-source baseline from PR #33:
+The accepted source artifact validated before derivation:
 
 ```text
-source: pve-bm2
+source version: 0.1
 source status: COMPLETE
-current guests: 12
-recovery points: 12
-VMs with recovery points: 6
-VMs with no recovery point in complete selected local scope: 6
+source mutation_allowed: false
+source guests: 12
+source recovery points: 12
 ```
 
-Counts may change only if a different accepted source artifact is intentionally supplied. The gate should derive values from the supplied artifact rather than hard-code all counts.
+The SHA-256 of `/tmp/proxmox-ve-backup-evidence.json` was identical before and after derivation:
 
-## Trust acceptance
+```text
+7cd293e49ff09bb7bfb89493b288aae198930dff7f5c1c3c6a73e0fa6732e826
+```
 
-Validate:
+This proves the derived slice did not modify its source artifact.
+
+## Accepted derived artifact
 
 ```text
 vm_backup_assurance_version: 0.1
@@ -57,39 +49,114 @@ scope.asset_type: VIRTUAL_MACHINE
 scope.derived_only: true
 scope.source_neutral_assurance: true
 scope.kubernetes_pvc_assurance_modified: false
-source_status.source_type: PROXMOX_VE
-source_status.source_freshness: UNKNOWN
-summary.unprotected_claims: 0
-summary.kubernetes_pvc_assets_modified: 0
+source_type: PROXMOX_VE
+source_id: pve-bm2
+source status: COMPLETE
+source freshness: UNKNOWN
 ```
 
-For source records with `RECOVERY_POINT_OBSERVED`:
+The VM asset set exactly matched the 12 current VMIDs in the accepted PVE source artifact:
 
-- VM assurance `recovery_point_status=OBSERVED`;
-- `backup_mechanism_status=OBSERVED`;
-- mechanism type `PROXMOX_VE_STORAGE_ARCHIVE`;
-- latest recovery point and source recovery-point IDs are projected;
-- `protection_status=UNKNOWN`;
-- `LAST_SUCCESSFUL_BACKUP` remains `REQUIRED`;
-- restore/integrity/RPO/RTO remain unknown/required.
+```text
+100,101,102,103,104,105,106,107,108,109,110,9000
+```
 
-For complete selected-source negative records:
+## Recovery-point assurance
 
-- `recovery_point_status=NOT_OBSERVED_IN_COMPLETE_SELECTED_SCOPE`;
-- `protection_status=UNKNOWN`;
-- no universal `UNPROTECTED` classification.
+Observed recovery points:
 
-For unknown/failed source records:
+```text
+VMID 100 -> 2 points, latest 2026-05-08T06:13:59Z
+VMID 101 -> 1 point,  latest 2026-05-08T10:36:12Z
+VMID 106 -> 3 points, latest 2026-08-14T16:13:14Z
+VMID 107 -> 3 points, latest 2026-08-14T16:40:35Z
+VMID 108 -> 2 points, latest 2026-04-15T12:30:02Z
+VMID 109 -> 1 point,  latest 2026-04-13T10:34:52Z
+```
 
-- `recovery_point_status=UNKNOWN`;
-- no absence claim.
+For these six VM assets:
 
-## Safety gate
+```text
+recovery_point_status: OBSERVED
+backup_mechanism_status: OBSERVED
+mechanism type: PROXMOX_VE_STORAGE_ARCHIVE
+protection_status: UNKNOWN
+```
 
-The output must not contain source credentials, URLs, raw `volid`, guest names, source raw payloads, storage server/path/username, fingerprints, encryption-key references, Terraform state, or connection strings.
+Complete selected-scope negative observations:
 
-No Proxmox request, backup, restore, snapshot, prune, verify, GC, ACL, credential, RBAC, systemd, Kubernetes PVC, or infrastructure mutation is allowed.
+```text
+VMID 102
+VMID 103
+VMID 104
+VMID 105
+VMID 110
+VMID 9000
+```
+
+For these six assets:
+
+```text
+recovery_point_status: NOT_OBSERVED_IN_COMPLETE_SELECTED_SCOPE
+backup_mechanism_status: UNKNOWN
+protection_status: UNKNOWN
+```
+
+This remains a negative fact only for the accepted `pve-bm2/delfan/local` selected scope. It is not universal backup absence.
+
+## Accepted summary
+
+```text
+assets_total: 12
+recovery_point_observed: 6
+scoped_negative_recovery_point: 6
+recovery_point_unknown: 0
+backup_mechanism_observed: 6
+retention_configuration_observed: 12
+protection_unknown: 12
+restore_verification_unknown: 12
+integrity_verification_unknown: 12
+rpo_unknown: 12
+rto_unknown: 12
+unprotected_claims: 0
+authoritative_source_artifacts_consumed: 1
+kubernetes_pvc_assets_modified: 0
+```
+
+Required unresolved evidence remains:
+
+```text
+LAST_SUCCESSFUL_BACKUP
+BACKUP_INTEGRITY_VERIFICATION
+RESTORE_TEST
+RPO_TARGET_AND_RESULT
+RTO_TARGET_AND_RESULT
+```
+
+Retention configuration is partial evidence only; effectiveness remains unknown.
+
+## Trust acceptance
+
+Accepted:
+
+- source artifact unchanged during derivation;
+- VM/PVC asset-domain separation preserved;
+- no VMID-to-Kubernetes-PVC relation inferred;
+- `protection_status=UNKNOWN` for all 12 VM assets;
+- no universal `UNPROTECTED` classification;
+- `unprotected_claims=0`;
+- `kubernetes_pvc_assets_modified=0`;
+- source freshness remains `UNKNOWN` because PVE source artifact v0.1 has no TTL contract;
+- `LAST_SUCCESSFUL_BACKUP` remains required because archive presence is not task-result success;
+- restore/integrity/RPO/RTO remain unknown;
+- no source-native archive protection flag is promoted into common assurance output;
+- forbidden projected keys: none;
+- raw URL markers: false.
+
+No Proxmox request, backup, restore, snapshot, prune, verify, garbage collection, ACL, credential, RBAC, systemd, Kubernetes PVC, or infrastructure mutation occurred.
 
 ## Acceptance result
 
-Pending.
+```text
+PR #35 LIVE ACCEPTANCE: PASS
+```
