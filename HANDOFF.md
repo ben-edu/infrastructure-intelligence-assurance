@@ -15,6 +15,7 @@ This is the compact continuation checkpoint for the Infrastructure Intelligence 
 
 - repository: `ben-edu/infrastructure-intelligence-assurance`
 - stable branch: `main`
+- current main HEAD before PR #28 merge: `cebdd9fdc96ea7104c409c048d2eaba2f58f2ffc`
 - accepted PR #26 code merge: `d4170dd33731754021e3aea8ca46b84c0163fcf6`
 - management host: `mgmt-automation`
 - checkout: `~/projects/infrastructure-intelligence-assurance`
@@ -23,21 +24,22 @@ This is the compact continuation checkpoint for the Infrastructure Intelligence 
 - oneshot: `infra-assurance-kubernetes.service`
 - timer: every 5 minutes
 
-Milestones 0–3 are live validated for evidence contract, Kubernetes observation/context/topology/preflight, history/diff, Git declared-state/drift, workload inventory, and Prometheus Operator coverage.
+Milestones 0–3 are live validated.
 
-Milestone 4 accepted/live-validated slices:
+Milestone 4 accepted/live-validated slices now cover:
 
-- PR #10 — Prometheus runtime;
-- PR #13 — Alertmanager handling correlation;
-- PR #14 — Kubernetes Event correlation;
-- PR #16 — incident candidates/drill-down;
-- PR #18 — bounded EndpointSlice/Pod/ReplicaSet routing ownership;
-- PR #20 — alert resource scope identity validation;
-- PR #22 — routing ownership integration into inventory/incident context;
-- PR #24 — scope-aware drill-down recommendations;
-- PR #26 — bounded Prometheus rule context, merged at `d4170dd33731754021e3aea8ca46b84c0163fcf6`.
+- Prometheus runtime;
+- Alertmanager handling correlation;
+- Kubernetes Event correlation;
+- incident candidate grouping and drill-down;
+- bounded EndpointSlice/Pod/ReplicaSet routing ownership;
+- validated alert infrastructure identities;
+- routing ownership integration;
+- scope-aware drill-down recommendations;
+- bounded Prometheus alert-rule context;
+- exact Prometheus rule-context integration into incident drill-down (PR #28 accepted; pending merge).
 
-Known real drift remains intentionally unresolved:
+Known intentional drift remains:
 
 ```text
 Ingress/validation/nginx-validation
@@ -45,144 +47,118 @@ Git:  k3s-master.soria-academie.fr
 Live: k3s-master.behnam.fr
 ```
 
-## Accepted incident baseline
+## PR #28 accepted Prometheus rule-context integration
+
+- PR: `#28 Milestone 4 integrate Prometheus rule context into incident drill-down`
+- branch: `feature/m4-prometheus-rule-integration`
+- base main: `cebdd9fdc96ea7104c409c048d2eaba2f58f2ffc`
+- package version: `0.18.0`
+- status: repository/live accepted; ready for squash merge
+- RBAC change: none
+- new infrastructure/telemetry query: none
+- Loki/OpenTelemetry: none
+- mutation: none
+
+Accepted final contract:
 
 ```text
-incident_candidates_version: 0.3
-drilldown_policy.version: 0.1
-drilldown_policy.mode: SCOPE_AWARE
+incident_candidates_version: 0.4
+prometheus_rule_context_integration.version: 0.1
+prometheus_rule_context_integration.mode: EXACT_COMPLETE_ONLY
+source_status.prometheus_rule_context: COMPLETE
 mutation_allowed: false
 ```
-
-Accepted live candidate set:
-
-```text
-SUPPRESSED Namespace/keycloak    alerts=2 related_workloads=2
-SUPPRESSED Namespace/monitoring  alerts=5 related_workloads=9
-SUPPRESSED Namespace/moodle      alerts=2 related_workloads=2 related_warning_events=1
-ACTIVE     Platform/k3s-main     alerts=2 names=KubeCPUOvercommit,Watchdog related_workloads=0
-```
-
-The active Platform candidate currently retains:
-
-```text
-VERIFY_ALERT_CONDITION_CURRENT -> PROMETHEUS_ALERTMANAGER
-VERIFY_PLATFORM_SIGNAL_INPUTS  -> PROMETHEUS_KUBERNETES
-```
-
-Default Loki recommendation is absent for Platform scope.
-
-## Accepted PR #26 Prometheus rule context
-
-Package version: `0.17.0`.
-
-No RBAC expansion was required. The source reuses the existing read-only `monitoring/kube-prom-stack-prometheus:9090` Kubernetes Service proxy. No Loki/OpenTelemetry was added. The slice does not modify `incident-candidates.json`.
-
-Runtime order:
-
-```text
-kubernetes_runtime
-routing_ownership
-alert_scope_runtime
-incident_runtime
-routing_context_integration
-scope_aware_drilldown
-prometheus_rule_context
-```
-
-Artifacts:
-
-```text
-/var/lib/infra-assurance/evidence/prometheus-rule-context.json
-/var/lib/infra-assurance/evidence/prometheus-rule-context.md
-```
-
-Accepted contract:
-
-```text
-prometheus_rule_context_version: 0.1
-mutation_allowed: false
-source.operation: GET_RULES_BY_EXACT_ACTIVE_ALERTNAME
-source.status: COMPLETE
-max_active_alert_names: 20
-```
-
-Query minimization:
-
-```text
-type=alert
-exclude_alerts=true
-rule_name[]=<exact current ACTIVE alert name>
-```
-
-Only distinct safe alert names from ACTIVE incident candidates are requested. Suppressed candidates are excluded. No fuzzy matching is used. More than 20 active names produces explicit `PARTIAL`; no active names means no Rules API request.
-
-Safe projection excludes PromQL expression/query, labels, annotations, file paths, embedded alerts, last-error text, dashboards/runbook URLs, raw API payloads, credentials, tokens, and connection strings. Every rule records `expression_persisted=false`.
 
 Accepted repository/live evidence:
 
 ```text
 RBAC changes: none
-192 passed in 1.07s
+query-capable markers: none
+204 passed in 1.29s
 all runtime stages: status=0/SUCCESS
-active alert names total/requested: 2/2
-active alert names truncated: false
-requested: KubeCPUOvercommit, Watchdog
-matched: KubeCPUOvercommit, Watchdog
+active candidates: 1
+active Platform candidate: Platform/k3s-main
+active alert names: KubeCPUOvercommit, Watchdog
+selection: COMPLETE_EXACT_RULE_MATCH
+matched rules: 2
 unmatched: none
-rule records: 2
-rule health OK: 2
-rules FIRING: 2
-unknowns: none
-errors: none
+integration unknowns: none
+non-active candidates enriched: none
 forbidden projected keys: none
 raw URL markers: false
-incident artifact remained v0.3 / SCOPE_AWARE
 ```
 
-Accepted exact rule metadata:
+Accepted current Platform drill-down:
 
 ```text
-KubeCPUOvercommit | group=kubernetes-resources | state=FIRING | health=OK | duration=600s | keep_firing=0s
-Watchdog          | group=general.rules        | state=FIRING | health=OK | duration=0s   | keep_firing=0s
+VERIFY_ALERT_CONDITION_CURRENT -> PROMETHEUS_ALERTMANAGER
+VERIFY_PROMETHEUS_RULE_INPUTS  -> PROMETHEUS_RULE_INPUTS
 ```
 
-Both rule names exactly matched the active `Platform/k3s-main` candidate. The rule artifact emits separate required live verification:
+The previous generic `PROMETHEUS_KUBERNETES` Platform target is removed only because the rule source is COMPLETE and exact coverage is complete. Partial/failed/unmatched/mismatched rule evidence keeps the generic fallback.
+
+Accepted exact rule metadata remains:
 
 ```text
-PROMETHEUS_RULE_INPUTS
+Watchdog          | group=general.rules        | state=FIRING | health=OK | duration=0s
+KubeCPUOvercommit | group=kubernetes-resources | state=FIRING | health=OK | duration=600s
 ```
 
-Interpretation: exact rule metadata and rule health/state are observed facts from Prometheus. Current metric values inside the rule expression are still unobserved. Rule metadata does not establish root cause, business impact, or remediation.
+Rule state/health is not current PromQL input evidence and is not root-cause proof. `PROMETHEUS_RULE_INPUTS` remains a recommended live verification delegated to the authoritative metrics system.
 
-Relevant docs:
+Relevant accepted docs:
 
 ```text
-docs/decisions/0018-collect-bounded-prometheus-rule-context.md
-docs/milestone-4-prometheus-rule-context.md
-docs/reports/2026-08-15-m4-prometheus-rule-context-live-test-gate.md
+docs/decisions/0019-integrate-exact-prometheus-rule-context.md
+docs/milestone-4-prometheus-rule-context-integration.md
+docs/reports/2026-08-15-m4-prometheus-rule-context-integration-live-test-gate.md
 ```
 
-## Exact next step
+## Milestone 4 closure boundary
 
-Create a small derived-only Milestone 4 rule-context integration slice.
+The Delivery Roadmap requires observability intelligence capabilities such as signal correlation, incident grouping, impact summaries, alert enrichment, evidence/confidence reporting, and recommended drill-down/live checks. It does not require the platform to execute every recommended Prometheus metric query.
 
-Purpose: make accepted Prometheus rule evidence directly useful in incident drill-down without adding any new infrastructure query.
+Do not add an arbitrary PromQL executor merely to consume `PROMETHEUS_RULE_INPUTS` unless later evidence demonstrates a clear operator need and a safe bounded design.
+
+After PR #28 merge, treat the current evidence-first Milestone 4 vertical path as sufficiently complete to begin Milestone 5.
+
+## Exact next step after PR #28 merge — Milestone 5 first vertical slice
+
+Create a small read-only Backup and Recovery Assurance foundation slice using evidence already available locally before adding any backup-system credential or API integration.
+
+Purpose:
+
+Identify stateful assets that require protection and represent the absence of backup evidence correctly as `UNKNOWN`, never as `UNPROTECTED`.
 
 Smallest intended scope:
 
-1. read only local `incident-candidates.json` and accepted `prometheus-rule-context.json` after rule-context collection;
-2. require rule source `COMPLETE` before promoting exact rule metadata into incident context;
-3. correlate by existing `candidate_id` plus exact alert-name evidence only; no fuzzy matching;
-4. attach bounded safe rule context to ACTIVE candidates: alertname, group name, normalized state/health, duration/keep-firing/evaluation metadata, and evidence IDs only;
-5. never attach PromQL expression, labels, annotations, raw payloads, URLs, credentials, or other excluded fields;
-6. for complete exact rule matches, refine the generic Platform next-evidence request toward `PROMETHEUS_RULE_INPUTS` while preserving `VERIFY_ALERT_CONDITION_CURRENT -> PROMETHEUS_ALERTMANAGER`;
-7. retain generic `PROMETHEUS_KUBERNETES` verification when rule context is missing, partial, failed, or unmatched; unknown remains explicit;
-8. do not query rule input metric values in the integration slice;
-9. do not add Loki/OpenTelemetry;
-10. no RBAC change, no mutation, and live acceptance before rule context influences stronger hypothesis/cause language.
+1. derive Kubernetes stateful asset candidates from accepted local inventory/evidence only;
+2. start with PVCs and their observed workload relationships where available;
+3. create an independent backup-assurance artifact; do not modify infrastructure;
+4. distinguish asset existence from protection evidence;
+5. when no authoritative backup source has been observed, set protection/restore state to `UNKNOWN`, not `UNPROTECTED`;
+6. attach provenance/evidence IDs and current/stale semantics from upstream evidence;
+7. do not infer that a PVC is backed up from workload type, StorageClass, snapshots, labels, names, or annotations unless authoritative evidence exists;
+8. do not add PBS/Proxmox/PostgreSQL/MariaDB credentials or APIs in the same first slice;
+9. define explicit future evidence targets for backup mechanism, last success, retention, failure domain, integrity verification, and restore test;
+10. keep `mutation_allowed=false` and live-validate before any stronger protection classification.
 
-The integration is derived evidence only. It must reduce operator search space, not claim that a firing/healthy rule proves the underlying cause.
+Suggested first assurance vocabulary should remain conservative and compatible with Project Sources, for example:
+
+```text
+PROTECTED
+PARTIALLY_PROTECTED
+UNPROTECTED
+UNKNOWN
+BACKUP_STALE
+RESTORE_UNVERIFIED
+RPO_VIOLATION
+RTO_UNKNOWN
+```
+
+For the first derived-only slice, expect `UNKNOWN` protection unless an already accepted source actually proves otherwise.
+
+This is intentionally a foundation for later authoritative backup-source integration, not a claim that Kubernetes observation can determine backup success.
 
 ## Trust invariants
 

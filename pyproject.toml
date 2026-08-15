@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "infrastructure-intelligence-assurance"
-version = "0.17.0"
-description = "Evidence-first infrastructure history, Git drift, workload inventory, observability intelligence, validated alert scope, Kubernetes routing ownership, scope-aware incident drill-down, bounded Prometheus rule context, and planning context"
+version = "0.18.0"
+description = "Evidence-first infrastructure history, Git drift, workload inventory, observability intelligence, validated alert scope, Kubernetes routing ownership, scope-aware incident drill-down, bounded Prometheus rule context and integration, and planning context"
 requires-python = ">=3.11"
 
 [project.optional-dependencies]
@@ -26,6 +26,7 @@ iia-alert-scope = "infra_assurance.alert_scope_runtime:main"
 iia-routing-context = "infra_assurance.routing_context_integration:main"
 iia-scope-aware-drilldown = "infra_assurance.scope_aware_drilldown:main"
 iia-prometheus-rule-context = "infra_assurance.prometheus_rule_context:main"
+iia-prometheus-rule-integration = "infra_assurance.prometheus_rule_context_integration:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

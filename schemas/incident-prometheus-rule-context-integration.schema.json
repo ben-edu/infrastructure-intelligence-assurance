@@ -1,0 +1,384 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Incident Prometheus Rule Context Integration Extension",
+  "type": "object",
+  "required": [
+    "incident_candidates_version",
+    "mutation_allowed",
+    "source_status",
+    "prometheus_rule_context_integration",
+    "summary",
+    "candidates",
+    "recommended_next_evidence_targets",
+    "prometheus_rule_context_integration_unknowns"
+  ],
+  "properties": {
+    "incident_candidates_version": {
+      "const": "0.4"
+    },
+    "mutation_allowed": {
+      "const": false
+    },
+    "source_status": {
+      "type": "object",
+      "required": [
+        "prometheus_rule_context"
+      ],
+      "properties": {
+        "prometheus_rule_context": {
+          "enum": [
+            "COMPLETE",
+            "PARTIAL",
+            "FAILED_TO_OBSERVE"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "prometheus_rule_context_integration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "mode",
+        "source_status",
+        "source_generated_at"
+      ],
+      "properties": {
+        "version": {
+          "const": "0.1"
+        },
+        "mode": {
+          "const": "EXACT_COMPLETE_ONLY"
+        },
+        "source_status": {
+          "enum": [
+            "COMPLETE",
+            "PARTIAL",
+            "FAILED_TO_OBSERVE"
+          ]
+        },
+        "source_generated_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": [
+        "active_candidates_considered_for_prometheus_rule_context",
+        "active_candidates_with_complete_prometheus_rule_context",
+        "platform_checks_refined_to_prometheus_rule_inputs",
+        "prometheus_rule_integration_unknowns"
+      ],
+      "properties": {
+        "active_candidates_considered_for_prometheus_rule_context": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "active_candidates_with_complete_prometheus_rule_context": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "platform_checks_refined_to_prometheus_rule_inputs": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "prometheus_rule_integration_unknowns": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": true
+    },
+    "candidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "state"
+        ],
+        "properties": {
+          "state": {
+            "enum": [
+              "ACTIVE",
+              "SUPPRESSED",
+              "UNKNOWN"
+            ]
+          },
+          "prometheus_rule_context": {
+            "$ref": "#/$defs/candidateRuleContext"
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "state": {
+                  "const": "ACTIVE"
+                }
+              },
+              "required": [
+                "state"
+              ]
+            },
+            "then": {
+              "required": [
+                "prometheus_rule_context"
+              ]
+            }
+          }
+        ],
+        "additionalProperties": true
+      }
+    },
+    "recommended_next_evidence_targets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "target",
+          "candidate_checks"
+        ],
+        "properties": {
+          "target": {
+            "type": "string",
+            "minLength": 1
+          },
+          "candidate_checks": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "prometheus_rule_context_integration_unknowns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "code",
+          "subject",
+          "statement",
+          "evidence_ids"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^PROMETHEUS_RULE_INTEGRATION_"
+          },
+          "subject": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "statement": {
+            "type": "string",
+            "minLength": 1
+          },
+          "evidence_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "ruleProjection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rule_id",
+        "evidence_id",
+        "alertname",
+        "group_name",
+        "rule_type",
+        "state",
+        "health",
+        "duration_seconds",
+        "keep_firing_for_seconds",
+        "evaluation_time_seconds",
+        "last_evaluation",
+        "expression_persisted"
+      ],
+      "properties": {
+        "rule_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "evidence_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "alertname": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "group_name": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "rule_type": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "state": {
+          "enum": [
+            "FIRING",
+            "PENDING",
+            "INACTIVE",
+            "UNKNOWN",
+            null
+          ]
+        },
+        "health": {
+          "enum": [
+            "OK",
+            "ERROR",
+            "UNKNOWN",
+            null
+          ]
+        },
+        "duration_seconds": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "keep_firing_for_seconds": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "evaluation_time_seconds": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "last_evaluation": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "expression_persisted": {
+          "const": false
+        }
+      }
+    },
+    "candidateRuleContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source_status",
+        "selection",
+        "alert_names",
+        "matched_rules",
+        "unmatched_alert_names",
+        "missing_rule_ids",
+        "basis",
+        "required_live_verification",
+        "evidence_ids"
+      ],
+      "properties": {
+        "source_status": {
+          "enum": [
+            "COMPLETE",
+            "PARTIAL",
+            "FAILED_TO_OBSERVE"
+          ]
+        },
+        "selection": {
+          "enum": [
+            "COMPLETE_EXACT_RULE_MATCH",
+            "SOURCE_INCOMPLETE",
+            "CANDIDATE_CONTEXT_NOT_OBSERVED",
+            "CANDIDATE_ALERT_SET_MISMATCH",
+            "MATCHED_RULE_RECORD_MISSING",
+            "PARTIAL_EXACT_RULE_MATCH",
+            "NO_EXACT_RULE_MATCH",
+            "RULE_ALERT_SET_MISMATCH"
+          ]
+        },
+        "alert_names": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "matched_rules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ruleProjection"
+          }
+        },
+        "unmatched_alert_names": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "missing_rule_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "basis": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "required_live_verification": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "target",
+              "statement"
+            ],
+            "properties": {
+              "target": {
+                "const": "PROMETHEUS_RULE_INPUTS"
+              },
+              "statement": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        },
+        "evidence_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
