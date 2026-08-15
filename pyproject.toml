@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "infrastructure-intelligence-assurance"
-version = "0.13.0"
-description = "Evidence-first infrastructure history, Git drift, workload inventory, observability intelligence, Kubernetes routing ownership evidence, incident grouping, and planning context"
+version = "0.14.0"
+description = "Evidence-first infrastructure history, Git drift, workload inventory, observability intelligence, validated alert scope, Kubernetes routing ownership evidence, incident grouping, and planning context"
 requires-python = ">=3.11"
 
 [project.optional-dependencies]
@@ -22,6 +22,7 @@ iia-git-source = "infra_assurance.git_declared_observer:main"
 iia-inventory = "infra_assurance.inventory_cli:main"
 iia-incident-candidates = "infra_assurance.incident_runtime:main"
 iia-routing-ownership = "infra_assurance.routing_ownership:main"
+iia-alert-scope = "infra_assurance.alert_scope_runtime:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
