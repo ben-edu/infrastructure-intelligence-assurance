@@ -80,11 +80,11 @@ The real kubelet Service is `Service/kube-system/kube-prom-stack-kubelet`, with 
 - PR: `#20 Milestone 4 validate alert resource scope`
 - branch: `feature/m4-alert-scope-validation`
 - package version: `0.14.0`
-- status: Draft; pending repository and management-host live acceptance
+- status: Draft; corrected repository test gate pending, no live bootstrap acceptance yet
 
 ### Why this slice exists
 
-PR #18 exposed that current alert attention contains synthetic Service subjects:
+PR #18 exposed synthetic Service subjects in alert attention:
 
 ```text
 Service/keycloak/kube-prom-stack-kubelet
@@ -92,13 +92,13 @@ Service/monitoring/kube-prom-stack-kubelet
 Service/moodle/kube-prom-stack-kubelet
 ```
 
-Those Kubernetes Services do not exist. The alert labels `namespace` and `service` represent signal dimensions and must not automatically become an authoritative Service identity.
+Those Kubernetes Services do not exist. Alert `namespace` and `service` labels are signal dimensions and must not automatically become authoritative Service identity.
 
 ### Design
 
 No new infrastructure query or RBAC is added.
 
-A derived post-step reads only same-cycle local artifacts:
+A derived post-step reads same-cycle local artifacts:
 
 ```text
 alert-attention.json
@@ -115,7 +115,7 @@ alert_scope_runtime
 incident_runtime
 ```
 
-The validator rewrites final `alert-attention.json` to version `0.2`, rebuilds Event correlation from corrected scopes, then incident grouping consumes the corrected artifacts.
+Final `alert-attention.json` becomes version `0.2`; Event correlation is rebuilt from corrected scopes before incident grouping.
 
 Each attention record gains:
 
@@ -144,9 +144,37 @@ Rules:
 - otherwise fallback is Platform;
 - existing workload association remains `INFERRED_RELATION` in this slice;
 - failed/incomplete Kubernetes collection remains partial/failed observation, not absence;
-- original allowlisted alert labels remain preserved.
+- original allowlisted alert labels remain preserved;
+- warning provenance uses the existing attention `evidence_ids` list, not a singular synthetic `evidence_id` field.
 
 No routing ownership is integrated into incident impact context yet.
+
+### First management-host gate attempt
+
+Static guards passed:
+
+```text
+RBAC changes: none
+query-capable client markers: none
+```
+
+Pytest stopped the run before bootstrap:
+
+```text
+3 failed, 153 passed in 1.56s
+```
+
+All three failures were `KeyError: 'evidence_id'` in fallback scope warning construction.
+
+Root cause: implementation defect. Alert-attention records correctly expose `evidence_ids`, while the new validator incorrectly referenced `alert["evidence_id"]` in fallback warning paths.
+
+Correction committed on the active branch:
+
+- use existing `alert.evidence_ids` when composing warning provenance;
+- do not invent a singular evidence field;
+- regression test verifies original alert evidence survives Service-to-Namespace fallback.
+
+Because pytest failed, `bootstrap-observer.sh` did not execute in this attempt. No PR #20 runtime/systemd acceptance claim exists yet.
 
 Relevant docs:
 
@@ -158,22 +186,23 @@ docs/reports/2026-08-15-m4-alert-scope-validation-live-test-gate.md
 
 ## Exact next step
 
-Run PR #20 repository tests and management-host live gate.
+Fast-forward the active branch on `mgmt-automation` and rerun the full pytest suite only.
 
-Acceptance must confirm:
+If pytest is green, continue with the existing PR #20 bootstrap/live acceptance block without changing RBAC.
 
-1. full pytest suite passes;
-2. no RBAC change and no query-capable client in scope validator;
-3. observer plus routing/scope/incident post-steps succeed;
-4. final alert-attention version is `0.2`;
-5. `source_status.kubernetes_scope` is explicit;
-6. attention cardinality is preserved;
-7. every attention record contains `scope_validation`;
-8. the three kubelet pseudo-Service subjects no longer remain Service-scoped unless the exact Services unexpectedly exist now;
-9. they are not rewritten to `Service/kube-system/kube-prom-stack-kubelet`;
-10. original `service=kube-prom-stack-kubelet` labels remain preserved;
-11. Event correlation and incident grouping use corrected scopes;
-12. sensitive/free-form guards and `mutation_allowed=false` remain clean.
+Live acceptance must then confirm:
+
+1. no RBAC change and no query-capable client in scope validator;
+2. observer plus routing/scope/incident post-steps succeed;
+3. final alert-attention version is `0.2`;
+4. `source_status.kubernetes_scope` is explicit;
+5. attention cardinality is preserved;
+6. every attention record contains `scope_validation`;
+7. the three kubelet pseudo-Service subjects no longer remain Service-scoped unless exact Services unexpectedly exist now;
+8. they are not rewritten to `Service/kube-system/kube-prom-stack-kubelet`;
+9. original `service=kube-prom-stack-kubelet` labels remain preserved;
+10. Event correlation and incident grouping use corrected scopes;
+11. sensitive/free-form guards and `mutation_allowed=false` remain clean.
 
 If accepted, merge PR #20. Only after that create a separate slice to integrate complete routing ownership into topology/inventory/incident context where evidence supports the upgrade.
 
