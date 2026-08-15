@@ -6,10 +6,18 @@
   "additionalProperties": false,
   "required": ["drift_version", "cluster_id", "generated_at", "status", "summary", "results", "unknowns", "loader_errors", "required_live_verification"],
   "properties": {
-    "drift_version": {"const": "0.1"},
+    "drift_version": {"const": "0.2"},
     "cluster_id": {"type": "string", "minLength": 1},
     "generated_at": {"type": "string", "format": "date-time"},
-    "status": {"enum": ["DECLARED_STATE_UNAVAILABLE", "DECLARED_STATE_ERRORS", "EVALUATED"]},
+    "status": {
+      "enum": [
+        "DECLARED_STATE_UNAVAILABLE",
+        "DECLARED_STATE_OBSERVATION_FAILED",
+        "DECLARED_STATE_ERRORS",
+        "EVALUATED",
+        "EVALUATED_PARTIAL"
+      ]
+    },
     "summary": {
       "type": "object",
       "additionalProperties": false,

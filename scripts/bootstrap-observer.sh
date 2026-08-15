@@ -18,20 +18,37 @@ SERVICE_USER="infra-assurance"
 OBSERVER_KUBECONFIG="${CONFIG_DIR}/kubeconfig"
 PREFLIGHT_BIN="/usr/local/bin/iia-k8s-preflight"
 HISTORY_BIN="/usr/local/bin/iia-k8s-history"
+GIT_SOURCE_BIN="/usr/local/bin/iia-git-source"
 PREFLIGHT_EXAMPLE="${CONFIG_DIR}/examples/hypothetical-app-deployment.json"
+
+GIT_CONFIG="${CONFIG_DIR}/git-source.json"
+GIT_CONFIG_DIR="${CONFIG_DIR}/git"
+GIT_PRIVATE_KEY="${GIT_CONFIG_DIR}/api-cluster-infra_ed25519"
+GIT_PUBLIC_KEY="${GIT_PRIVATE_KEY}.pub"
+GIT_KNOWN_HOSTS="${GIT_CONFIG_DIR}/known_hosts"
+GIT_STATE_DIR="${STATE_DIR}/git"
+DECLARED_STATE_DIR="${STATE_DIR}/declared"
+DECLARED_CURRENT_DIR="${DECLARED_STATE_DIR}/current"
+DECLARED_SOURCE_STATUS="${DECLARED_STATE_DIR}/source-status.json"
 
 command -v kubectl >/dev/null
 command -v python3 >/dev/null
+command -v git >/dev/null
+command -v ssh-keygen >/dev/null
 
 if ! id "${SERVICE_USER}" >/dev/null 2>&1; then
   useradd --system --home-dir "${STATE_DIR}" --create-home --shell /usr/sbin/nologin "${SERVICE_USER}"
 fi
+
 install -d -o root -g "${SERVICE_USER}" -m 0750 "${CONFIG_DIR}"
 install -d -o root -g "${SERVICE_USER}" -m 0750 "${CONFIG_DIR}/examples"
-install -d -o root -g "${SERVICE_USER}" -m 0750 "${CONFIG_DIR}/declared"
+install -d -o root -g "${SERVICE_USER}" -m 0750 "${GIT_CONFIG_DIR}"
 install -d -o "${SERVICE_USER}" -g "${SERVICE_USER}" -m 0750 "${STATE_DIR}/evidence"
 install -d -o "${SERVICE_USER}" -g "${SERVICE_USER}" -m 0750 "${STATE_DIR}/history"
 install -d -o "${SERVICE_USER}" -g "${SERVICE_USER}" -m 0750 "${STATE_DIR}/history/kubernetes"
+install -d -o "${SERVICE_USER}" -g "${SERVICE_USER}" -m 0750 "${GIT_STATE_DIR}"
+install -d -o "${SERVICE_USER}" -g "${SERVICE_USER}" -m 0750 "${DECLARED_STATE_DIR}"
+install -d -o "${SERVICE_USER}" -g "${SERVICE_USER}" -m 0750 "${DECLARED_CURRENT_DIR}"
 install -d -o root -g root -m 0755 "${INSTALL_ROOT}"
 
 KUBECONFIG="${ADMIN_KUBECONFIG}" kubectl apply -f "${REPO_ROOT}/deploy/kubernetes/observer-rbac.yaml" >/dev/null
@@ -69,6 +86,77 @@ chown root:"${SERVICE_USER}" "${OBSERVER_KUBECONFIG}"
 chmod 0640 "${OBSERVER_KUBECONFIG}"
 unset TOKEN TOKEN_B64 CA_DATA
 
+if [[ ! -s "${GIT_PRIVATE_KEY}" || ! -s "${GIT_PUBLIC_KEY}" ]]; then
+  rm -f "${GIT_PRIVATE_KEY}" "${GIT_PUBLIC_KEY}"
+  ssh-keygen \
+    -q \
+    -t ed25519 \
+    -N '' \
+    -C 'infra-assurance:ben-edu/api-cluster-infra' \
+    -f "${GIT_PRIVATE_KEY}"
+fi
+chown "${SERVICE_USER}:${SERVICE_USER}" "${GIT_PRIVATE_KEY}"
+chmod 0600 "${GIT_PRIVATE_KEY}"
+chown root:"${SERVICE_USER}" "${GIT_PUBLIC_KEY}"
+chmod 0644 "${GIT_PUBLIC_KEY}"
+
+GIT_HOST_KEYS_TMP="$(mktemp)"
+if python3 - "${GIT_HOST_KEYS_TMP}" <<'PY'
+import json
+import sys
+import urllib.request
+
+request = urllib.request.Request(
+    "https://api.github.com/meta",
+    headers={"User-Agent": "infrastructure-intelligence-assurance"},
+)
+with urllib.request.urlopen(request, timeout=15) as response:
+    value = json.load(response)
+keys = value.get("ssh_keys", [])
+if not keys:
+    raise SystemExit("GitHub metadata returned no SSH host keys")
+with open(sys.argv[1], "w", encoding="utf-8") as handle:
+    for key in keys:
+        handle.write(f"github.com {key}\n")
+PY
+then
+  install -o root -g "${SERVICE_USER}" -m 0644 "${GIT_HOST_KEYS_TMP}" "${GIT_KNOWN_HOSTS}"
+elif [[ ! -s "${GIT_KNOWN_HOSTS}" ]]; then
+  rm -f "${GIT_HOST_KEYS_TMP}"
+  echo "Could not initialize trusted GitHub SSH host keys and no previous known_hosts file exists." >&2
+  exit 1
+fi
+rm -f "${GIT_HOST_KEYS_TMP}"
+
+cat > "${GIT_CONFIG}" <<EOF
+{
+  "git_source_version": "0.2",
+  "sources": [
+    {
+      "id": "github.com/ben-edu/api-cluster-infra",
+      "repository": "git@github.com:ben-edu/api-cluster-infra.git",
+      "branch": "main",
+      "cluster_id": "${CLUSTER_ID}",
+      "raw_manifest_paths": [
+        "kubernetes/bookstack/01-pvc.yaml",
+        "kubernetes/bookstack/02-mariadb.yaml",
+        "kubernetes/bookstack/03-bookstack.yaml",
+        "kubernetes/validation/nginx/nginx-validation.yaml"
+      ],
+      "kustomize_targets": [
+        "kubernetes/fastapi-platform/overlays/dev",
+        "kubernetes/fastapi-platform/overlays/prod"
+      ],
+      "private_key_file": "${GIT_PRIVATE_KEY}",
+      "public_key_file": "${GIT_PUBLIC_KEY}",
+      "known_hosts_file": "${GIT_KNOWN_HOSTS}"
+    }
+  ]
+}
+EOF
+chown root:"${SERVICE_USER}" "${GIT_CONFIG}"
+chmod 0640 "${GIT_CONFIG}"
+
 rm -rf "${INSTALL_ROOT}/src"
 cp -a "${REPO_ROOT}/src" "${INSTALL_ROOT}/src"
 chown -R root:root "${INSTALL_ROOT}/src"
@@ -93,6 +181,15 @@ exec /usr/bin/python3 -m infra_assurance.history_cli "$@"
 EOF
 chown root:root "${HISTORY_BIN}"
 chmod 0755 "${HISTORY_BIN}"
+
+cat > "${GIT_SOURCE_BIN}" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+export PYTHONPATH=/opt/infra-assurance/src
+exec /usr/bin/python3 -m infra_assurance.git_declared_observer "$@"
+EOF
+chown root:root "${GIT_SOURCE_BIN}"
+chmod 0755 "${GIT_SOURCE_BIN}"
 
 cat > "${CONFIG_DIR}/collector.env" <<EOF
 IIA_CLUSTER_ID=${CLUSTER_ID}
@@ -134,6 +231,13 @@ echo "Latest drift:     ${STATE_DIR}/evidence/drift.json"
 echo "Change context:   ${STATE_DIR}/evidence/change-context.json"
 echo "Preflight CLI:    ${PREFLIGHT_BIN}"
 echo "History CLI:      ${HISTORY_BIN}"
-echo "Declared input:   ${CONFIG_DIR}/declared"
+echo "Git source CLI:   ${GIT_SOURCE_BIN}"
+echo "Git source:       github.com/ben-edu/api-cluster-infra"
+echo "Declared state:   ${DECLARED_CURRENT_DIR}"
+echo "Git source status:${DECLARED_SOURCE_STATUS}"
 echo "Example request:  ${PREFLIGHT_EXAMPLE}"
+echo
+echo "Read-only Git deploy public key:"
+cat "${GIT_PUBLIC_KEY}"
+echo
 systemctl --no-pager --full status infra-assurance-kubernetes.service || true

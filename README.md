@@ -8,30 +8,32 @@ Milestone 0 — Evidence Contract is complete.
 
 Milestone 1 — Kubernetes evidence, topology, and read-only planning preflight is complete and live-validated.
 
-Milestone 2 adds a durable read-only change-awareness layer:
+Milestone 2 now provides:
 
 - bounded immutable Kubernetes snapshot history;
 - trust-aware previous/current diff;
 - evidence expiration and failed-collection signaling in comparisons;
-- declared-vs-observed drift evaluation for normalized Git evidence;
+- a dedicated read-only Git declared-state observer;
+- safe normalization of supported Kubernetes declarations;
+- declared-vs-observed drift evaluation without evidence-plane conflation;
 - compact change context for operator/AI consumption.
 
-The live Kubernetes observer runs on the management host with dedicated read-only credentials and a five-minute systemd timer.
+The live loop runs on the management host every five minutes.
 
 ## Runtime model
 
 ```text
-Kubernetes API
-  -> dedicated read-only observer identity
-  -> normalized current evidence
-  -> freshness and trust evaluation
-  -> compact operational context
-  -> topology
-  -> bounded immutable history
-  -> trust-aware diff
-  -> declared-vs-observed drift
-  -> compact change context
-  -> task-scoped planning preflight / AI consumption
+Private infrastructure Git
+  -> dedicated read-only deploy key
+  -> bare Git cache
+  -> explicit direct-manifest and renderer targets
+  -> normalized declared evidence + Git revision
+                                  \
+Kubernetes API                     \
+  -> dedicated read-only identity   \
+  -> normalized observed evidence    -> declared-vs-observed drift
+  -> freshness / trust              -> compact change context
+  -> topology / history / diff      -> planning / AI consumption
 ```
 
 Current-state and task artifacts remain separate from immutable history.
@@ -52,24 +54,76 @@ Current-state and task artifacts remain separate from immutable history.
 /var/lib/infra-assurance/evidence/preflight.md
 ```
 
-Bounded history:
+Bounded Kubernetes history:
 
 ```text
 /var/lib/infra-assurance/history/kubernetes/index.json
 /var/lib/infra-assurance/history/kubernetes/snapshots/*.json
 ```
 
-The default history retention is 288 snapshots, approximately 24 hours at the current five-minute cadence. This is deliberately replaceable local storage, not a final long-term database decision.
+Normalized Git declared state:
+
+```text
+/var/lib/infra-assurance/declared/current/records.json
+/var/lib/infra-assurance/declared/source-status.json
+/var/lib/infra-assurance/git/repos/*.git
+```
+
+The default Kubernetes history retention is 288 snapshots, approximately 24 hours at the current five-minute cadence. This remains replaceable local storage, not a final long-term database decision.
+
+## Git declared-state source
+
+The first configured source is:
+
+```text
+github.com/ben-edu/api-cluster-infra
+branch: main
+cluster: k3s-main
+```
+
+The source mapping is explicit rather than a recursive YAML scan. BookStack and validation use configured direct manifest paths. FastAPI dev/prod use configured Kustomize targets rendered locally at the exact fetched revision. Helm values and example directories are outside the current declared-state contract.
+
+Authentication uses a dedicated read-only SSH deploy key generated on the management host. The runtime does not reuse a personal SSH key or administrator GitHub credential.
+
+The Git observer keeps a bare repository cache. Kustomize rendering uses a transient detached worktree at the exact fetched revision; it is removed after rendering and is not evidence storage.
+
+Only these Kubernetes kinds can currently become declared evidence:
+
+```text
+Namespace
+Deployment
+StatefulSet
+DaemonSet
+Service
+Ingress
+PersistentVolumeClaim
+```
+
+`Secret`, `ConfigMap`, and unsupported kinds are not serialized into declared evidence. For supported workload documents, only explicitly modeled non-sensitive fields are retained. Raw environment values, Secret payloads, arbitrary ConfigMap payloads, credentials, and connection strings are not emitted.
+
+The source state is independently recorded as:
+
+```text
+COMPLETE
+PARTIAL
+FAILED_TO_OBSERVE
+```
+
+A failed Git refresh does not make the previous declared bundle current. Drift becomes unknown until the source is observed successfully again.
+
+The first live Git observer acceptance completed successfully at revision `5767e0a4c583d0a0e8c87b2e24c42eaeb822a3b4`: 27 declarations normalized, 26 were in sync, and one evidence-backed Ingress host drift was surfaced without automatic mutation.
 
 ## Trust rules
 
-A failed or stale current collection is never used to claim that a resource disappeared.
+A failed or stale current Kubernetes collection is never used to claim that a resource disappeared.
 
-Git-declared and live-observed state remain separate evidence planes. Drift is evaluated only when normalized Git evidence is actually configured. No declared source produces `DECLARED_STATE_UNAVAILABLE`, not zero drift.
+Git-declared and live-observed state remain separate evidence planes. A Git source failure, stale declaration, or cluster mismatch cannot become drift by inference.
 
-Observed resources outside a configured declared scope are not automatically classified as drift.
+Observed resources outside the configured declared scope are not automatically classified as drift.
 
-Raw Secret values are never collected and the Kubernetes observer RBAC has no Secret access or mutating verbs.
+Raw Kubernetes Secret values are never collected and the Kubernetes observer RBAC has no Secret access or mutating verbs.
+
+`mutation_allowed` remains `false`.
 
 ## Install or refresh on the management host
 
@@ -77,13 +131,28 @@ Raw Secret values are never collected and the Kubernetes observer RBAC has no Se
 sudo CLUSTER_ID=k3s-main ./scripts/bootstrap-observer.sh
 ```
 
-No additional Kubernetes permission is required for Milestone 2.
+The bootstrap creates the dedicated Git deploy key if it does not already exist and prints its public half. Register that public key on `ben-edu/api-cluster-infra` as a read-only deploy key. No additional Kubernetes permission is required.
+
+After the deploy key is registered, the existing five-minute collector automatically refreshes Git declared evidence before each Kubernetes observation.
+
+## Inspect Git source status
+
+```bash
+sudo -u infra-assurance iia-git-source status
+sudo -u infra-assurance iia-git-source public-key
+```
+
+A manual safe refresh is also available:
+
+```bash
+sudo -u infra-assurance iia-git-source sync
+```
 
 ## Inspect history
 
 ```bash
-iia-k8s-history status
-iia-k8s-history list --limit 10
+sudo -u infra-assurance iia-k8s-history status
+sudo -u infra-assurance iia-k8s-history list --limit 10
 ```
 
 ## Run the read-only planning preflight
@@ -107,4 +176,5 @@ See:
 - `docs/decisions/0004-task-scoped-planning-preflight.md` for planning trust semantics;
 - `docs/decisions/0005-bounded-file-history-and-trust-aware-diff.md` for history/diff semantics;
 - `docs/decisions/0006-git-declared-drift-without-plane-conflation.md` for drift semantics;
-- `docs/milestone-2-history-diff-drift.md` for the current Milestone 2 slice.
+- `docs/decisions/0007-dedicated-git-declared-observer.md` for the Git observer boundary;
+- `docs/milestone-2-history-diff-drift.md` for the current Milestone 2 architecture.
