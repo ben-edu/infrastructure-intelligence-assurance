@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted for Milestone 2 implementation.
+Accepted and live-validated for Milestone 2.
 
 ## Context
 
@@ -179,13 +179,31 @@ Declared nested structures are compared as declared subsets where the Kubernetes
 
 ## Evidence from first live diagnostics
 
-The first live source tests established two useful constraints:
+The first live source tests established three useful constraints:
 
 1. The dedicated deploy key successfully authenticated to `ben-edu/api-cluster-infra` and resolved revision `5767e0a4c583d0a0e8c87b2e24c42eaeb822a3b4`.
 2. The original `kubectl create --dry-run=client` parser normalized zero supported records without a kubeconfig but normalized records when a kubeconfig was supplied, proving an unwanted Git-to-live-cluster dependency.
-3. A broad recursive scan then produced duplicate FastAPI identities from raw base/overlay/patch material, proving the need for explicit Kustomize targets.
+3. A broad recursive scan produced duplicate FastAPI identities from raw base/overlay/patch material, proving the need for explicit Kustomize targets.
 
 The implementation was revised before acceptance rather than treating these diagnostics as acceptable partial operation.
+
+## Live acceptance
+
+The corrected implementation passed on `mgmt-automation`:
+
+```text
+64 tests passed
+Git source status: COMPLETE
+Git revision: 5767e0a4c583d0a0e8c87b2e24c42eaeb822a3b4
+normalized declarations: 27
+source errors: 0
+```
+
+Git synchronization succeeded as the `infra-assurance` service identity with `KUBECONFIG` removed. No transient Kustomize worktree remained after rendering.
+
+Drift evaluation returned 26 in-sync declarations and one evidence-backed drift for `Ingress/validation/nginx-validation`: Git declares host `k3s-master.soria-academie.fr`, while current observed evidence reports `k3s-master.behnam.fr`.
+
+This mismatch remains operator attention only. The platform does not mutate Git or Kubernetes in this read-only phase.
 
 ## Security consequences
 
