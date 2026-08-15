@@ -150,7 +150,7 @@ def build_getter_from_env(
     return get_json, {
         "credential_file_mode_secure": mode_secure,
         "tls_verification": verify_tls,
-        "runtime_credential_approved": mode_secure and verify_tls and not allow_discovery_credential,
+        "runtime_credential_approved": False,
         "discovery_override_used": bool(allow_discovery_credential or allow_insecure_tls_discovery),
     }
 
