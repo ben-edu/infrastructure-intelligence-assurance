@@ -2,7 +2,7 @@
 
 ## Status
 
-Accepted — repository and management-host live acceptance passed.
+Accepted — repository and management-host live acceptance passed. Ready for squash merge.
 
 ## Purpose
 
