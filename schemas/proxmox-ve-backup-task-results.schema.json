@@ -1,0 +1,157 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://soria.local/schemas/proxmox-ve-backup-task-results.schema.json",
+  "title": "Proxmox VE Backup Task Results",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "pve_backup_task_results_version",
+    "generated_at",
+    "mutation_allowed",
+    "source",
+    "observation",
+    "task_results",
+    "recovery_point_correlations",
+    "summary",
+    "unknowns",
+    "caveats"
+  ],
+  "properties": {
+    "pve_backup_task_results_version": {"const": "0.1"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "mutation_allowed": {"const": false},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "source_id",
+        "node",
+        "operation",
+        "status",
+        "request_mode",
+        "task_limit",
+        "limit_saturated",
+        "historical_completeness",
+        "credential_file_mode_secure",
+        "tls_verification",
+        "runtime_credential_approved",
+        "discovery_override_used"
+      ],
+      "properties": {
+        "type": {"const": "proxmox_ve_api"},
+        "source_id": {"type": "string", "minLength": 1, "maxLength": 200},
+        "node": {"type": "string", "minLength": 1, "maxLength": 200},
+        "operation": {"const": "GET_BOUNDED_VZDUMP_TASK_RESULTS"},
+        "status": {"enum": ["COMPLETE", "FAILED_TO_OBSERVE"]},
+        "request_mode": {"enum": ["SERVER_FILTERED_VZDUMP", "BOUNDED_LOCAL_TYPE_FILTER"]},
+        "task_limit": {"type": "integer", "minimum": 1, "maximum": 5000},
+        "limit_saturated": {"type": "boolean"},
+        "historical_completeness": {"const": "NOT_ESTABLISHED"},
+        "credential_file_mode_secure": {"type": "boolean"},
+        "tls_verification": {"type": "boolean"},
+        "runtime_credential_approved": {"const": false},
+        "discovery_override_used": {"type": "boolean"}
+      }
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["operation", "status", "http_status", "error_class", "rows_returned"],
+      "properties": {
+        "operation": {"const": "GET_VZDUMP_TASK_RESULTS"},
+        "status": {"enum": ["COMPLETE", "FAILED_TO_OBSERVE"]},
+        "http_status": {"type": ["integer", "null"]},
+        "error_class": {"type": ["string", "null"]},
+        "rows_returned": {"type": "integer", "minimum": 0}
+      }
+    },
+    "task_results": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/task_result"}
+    },
+    "recovery_point_correlations": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/correlation"}
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "accepted_current_vmids",
+        "task_results_projected",
+        "successful_task_results",
+        "strict_recovery_point_task_matches",
+        "recovery_points_without_strict_match_in_returned_history"
+      ],
+      "properties": {
+        "accepted_current_vmids": {"type": "integer", "minimum": 0},
+        "task_results_projected": {"type": "integer", "minimum": 0},
+        "successful_task_results": {"type": "integer", "minimum": 0},
+        "strict_recovery_point_task_matches": {"type": "integer", "minimum": 0},
+        "recovery_points_without_strict_match_in_returned_history": {"type": "integer", "minimum": 0}
+      }
+    },
+    "unknowns": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/unknown"}
+    },
+    "caveats": {
+      "type": "array",
+      "items": {"type": "string", "minLength": 1}
+    }
+  },
+  "$defs": {
+    "task_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["task_result_id", "task_type", "node", "vmid", "start_time", "end_time", "result"],
+      "properties": {
+        "task_result_id": {"type": "string", "pattern": "^pve-backup-task:[a-f0-9]{24}$"},
+        "task_type": {"const": "VZDUMP"},
+        "node": {"type": "string", "minLength": 1, "maxLength": 200},
+        "vmid": {"type": "integer", "minimum": 1},
+        "start_time": {"type": ["string", "null"], "format": "date-time"},
+        "end_time": {"type": ["string", "null"], "format": "date-time"},
+        "result": {"enum": ["SUCCESS", "FAILURE", "RUNNING_OR_INCOMPLETE", "UNKNOWN"]}
+      }
+    },
+    "correlation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["recovery_point_id", "vmid", "status", "task_result_id", "start_delta_seconds", "basis"],
+      "properties": {
+        "recovery_point_id": {"type": "string", "minLength": 1, "maxLength": 300},
+        "vmid": {"type": "integer", "minimum": 1},
+        "status": {"enum": ["STRICT_SUCCESS_TASK_MATCH", "NO_STRICT_MATCH_IN_RETURNED_HISTORY"]},
+        "task_result_id": {"type": ["string", "null"], "pattern": "^pve-backup-task:[a-f0-9]{24}$"},
+        "start_delta_seconds": {"type": ["integer", "null"], "minimum": 0, "maximum": 2},
+        "basis": {
+          "type": "array",
+          "prefixItems": [
+            {"const": "VMID"},
+            {"const": "RECOVERY_POINT_CREATED_AT"},
+            {"const": "VZDUMP_START_TIME"}
+          ],
+          "minItems": 3,
+          "maxItems": 3
+        }
+      }
+    },
+    "unknown": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "statement"],
+      "properties": {
+        "code": {
+          "enum": [
+            "TASK_HISTORY_COMPLETENESS_NOT_ESTABLISHED",
+            "TASK_RESULT_LIMIT_SATURATED",
+            "TASK_HISTORY_FAILED_TO_OBSERVE"
+          ]
+        },
+        "statement": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}
