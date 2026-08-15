@@ -100,30 +100,21 @@ BM2 CN=delfan.local; certificate valid through 2027-10-13
 
 BM1 reachability was observed using insecure TLS verification; certificate trust is not healthy/verified and must remain a separate fact.
 
-Safe local/project metadata proves that an existing Proxmox API-token access pattern exists:
-
-```text
-api-cluster-infra Terraform provider uses API URL + token ID + token secret
-bm1/bm2 Terraform variable declarations exist
-local afpa-infra-rebuild Proxmox env file path exists
-Proxmox env example defines BASE_URL / TOKEN_ID / TOKEN_SECRET / TLS options
-```
+Safe local/project metadata proves that an existing Proxmox API-token access pattern exists. `api-cluster-infra` Terraform providers for both BM environments use API URL + token ID + sensitive token secret + TLS verification setting. A local Proxmox MCP env file path also exists. These are capability/access-path signals, not accepted platform observer credentials.
 
 Potentially sensitive Terraform state/tfvars were identified by filename only and must not be read for discovery.
-
-A non-root check of `/etc/infra-assurance/collector.env` hit `PermissionError`; this was a helper limitation only and did not print secret data.
 
 ### Current interpretation
 
 Proxmox VE is now a live candidate authoritative source for VM backup configuration because its API is reachable. PBS itself remains UNKNOWN.
 
-The platform must not infer PBS absence from 8007 timeout. Prefer PVE's own configured storage/job evidence because PVE can integrate PBS as storage even when direct PBS reachability from `mgmt-automation` is restricted.
+Do not infer PBS absence from 8007 timeout. Official PVE storage semantics represent Proxmox Backup Server as storage type `pbs`; therefore use bounded PVE storage/job metadata first. This can establish configured PVE-to-PBS integration even if direct PBS reachability from `mgmt-automation` is restricted.
 
-Configured PVE storage of type `pbs` would prove a PVE-to-PBS configuration, not successful backups. A configured PVE backup job would prove declared schedule, not successful execution/retention/restore verification.
+Configured PVE `pbs` storage proves configuration, not successful backup. A configured PVE backup job proves declared schedule, not successful execution/retention/restore verification.
 
 ## Exact next step — existing Proxmox credential metadata + bounded authenticated GET preflight
 
-Use the existing local Proxmox env file only for a bounded discovery preflight. This existing token is discovery-only unless a later accepted check proves it is an appropriate least-privilege observer identity.
+Use the existing local Proxmox env file only for a bounded discovery preflight. This token is discovery-only unless a later accepted check proves it is an appropriate least-privilege observer identity.
 
 Preflight requirements:
 
@@ -132,7 +123,7 @@ Preflight requirements:
 3. internally map configured endpoint to BM1/BM2/OTHER without printing the raw URL;
 4. authenticate only for GET requests;
 5. first verify PVE version/identity;
-6. if authorized, retrieve only safe projections of configured PVE storage types/IDs and cluster backup jobs;
+6. if authorized, retrieve only safe projections of configured PVE storage IDs/types/content/disabled state and cluster backup jobs;
 7. specifically determine whether storage type `pbs` is configured;
 8. never print raw storage config, usernames, passwords, token ID/secret, fingerprints, encryption-key references, or full connection strings;
 9. stop on 401/403 rather than escalating privileges;
