@@ -1,5 +1,9 @@
 # Git Declared Parser and Source-Scope Correction — 2026-08-15
 
+## Status
+
+Accepted and live-validated on `mgmt-automation`.
+
 ## Trigger
 
 Live Git authentication succeeded against `ben-edu/api-cluster-infra`, but the first declared-state sync exposed two implementation defects before PR acceptance.
@@ -32,6 +36,26 @@ The source mapping was also too broad: recursively scanning raw Kustomize base, 
 - keep Secret, ConfigMap, Helm values, example credentials, and unsupported kinds outside normalized declared evidence;
 - add regression tests for local parsing, Kustomize target scope, sensitive-kind gating, and rejection of the legacy broad include-path configuration.
 
-## Acceptance implication
+## Final live acceptance
 
-The diagnostic partial outputs are not accepted as operational declared state. Final acceptance requires source sync without an injected kubeconfig and without false duplicate identities.
+Repository tests passed:
+
+```text
+64 passed in 0.71s
+```
+
+The corrected source sync succeeded as the `infra-assurance` service identity with `KUBECONFIG` explicitly removed:
+
+```text
+status: COMPLETE
+revision: 5767e0a4c583d0a0e8c87b2e24c42eaeb822a3b4
+normalized_records: 27
+skipped_documents: 3
+errors: []
+```
+
+No false duplicate identities remained. FastAPI declarations were rendered into the intended namespaces `fastapi-platform-dev` and `fastapi-platform`, and the transient Kustomize worktree check returned no residual paths.
+
+The subsequent drift evaluation completed with 26 records in sync and one real Ingress host drift. The exact Git revision declares `k3s-master.soria-academie.fr`, while current observed evidence reports `k3s-master.behnam.fr` for `Ingress/validation/nginx-validation`.
+
+The drift is preserved for operator attention. The platform does not mutate either Git or Kubernetes in this read-only phase.
