@@ -66,12 +66,6 @@ current guests: 12
 recovery points observed: 12
 ```
 
-Current guest VMIDs:
-
-```text
-100,101,102,103,104,105,106,107,108,109,110,9000
-```
-
 Recovery-point coverage in the complete `delfan/local` scope:
 
 ```text
@@ -92,15 +86,15 @@ VMIDs with no recovery point observed in the complete selected storage scope:
 102,103,104,105,110,9000
 ```
 
-Observed recovery points:
+Latest observed recovery points:
 
 ```text
-VMID 100: 2; latest 2026-05-08T06:13:59Z
-VMID 101: 1; latest 2026-05-08T10:36:12Z
-VMID 106: 3; latest 2026-08-14T16:13:14Z
-VMID 107: 3; latest 2026-08-14T16:40:35Z
-VMID 108: 2; latest 2026-04-15T12:30:02Z
-VMID 109: 1; latest 2026-04-13T10:34:52Z
+100 -> 2026-05-08T06:13:59Z
+101 -> 2026-05-08T10:36:12Z
+106 -> 2026-08-14T16:13:14Z
+107 -> 2026-08-14T16:40:35Z
+108 -> 2026-04-15T12:30:02Z
+109 -> 2026-04-13T10:34:52Z
 ```
 
 The source-native archive protection flag was `false` on the observed records. This remains source-native metadata only and was not mapped to platform protection state.
