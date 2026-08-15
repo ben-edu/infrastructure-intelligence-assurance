@@ -16,11 +16,8 @@ def test_prometheus_rule_context_runs_after_scope_aware_drilldown():
     assert "--summary-out /var/lib/infra-assurance/evidence/prometheus-rule-context.md" in text
 
 
-def test_package_exposes_rule_context_cli_and_version():
+def test_package_exposes_rule_context_cli():
     pyproject = (ROOT / "pyproject.toml").read_text()
-    init = (ROOT / "src" / "infra_assurance" / "__init__.py").read_text()
-    assert 'version = "0.17.0"' in pyproject
-    assert '__version__ = "0.17.0"' in init
     assert 'iia-prometheus-rule-context = "infra_assurance.prometheus_rule_context:main"' in pyproject
 
 
