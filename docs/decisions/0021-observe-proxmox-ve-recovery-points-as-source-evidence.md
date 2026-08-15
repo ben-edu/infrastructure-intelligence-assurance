@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed. Repository implementation is in progress and requires manual live acceptance before merge.
+Accepted and live validated on 2026-08-15.
 
 ## Context
 
@@ -32,7 +32,7 @@ The adapter is source evidence, not a protection classifier.
 
 The adapter uses HTTP GET only. It must not expose or implement backup, restore, snapshot, prune, verify, garbage collection, schedule mutation, guest mutation, or credential mutation.
 
-The first implementation is intentionally not wired into systemd because the currently available token is not an acceptable runtime observer credential.
+The accepted implementation is intentionally not wired into systemd because the currently available token is not an acceptable runtime observer credential.
 
 ### Credential boundary
 
@@ -40,7 +40,9 @@ Normal collector execution refuses a group/world-readable credential file and re
 
 Manual discovery/live-test execution may use explicit override flags, but the produced artifact must show that the credential is not runtime-approved.
 
-A dedicated least-privilege observer identity is a separate future access-control decision and is not provisioned during the current read-only phase.
+`credential_runtime_approved` remains `false` in this source slice even if file mode or TLS settings later improve. Effective least-privilege approval is a separate access-control decision.
+
+A dedicated least-privilege observer identity is not provisioned during the current read-only phase.
 
 ### Source projection
 
@@ -83,6 +85,8 @@ A returned PVE backup artifact is evidence of an observed recovery point. It is 
 
 The PVE archive field `protected=false` is a source-native retention/deletion-protection flag. It must never map to platform assurance `UNPROTECTED`.
 
+A complete source scope with no recovery point for a current VM is a valid negative fact only for that exact PVE node/storage scope. It does not prove the VM has no backup in every possible source.
+
 ### Future PBS compatibility
 
 Keep the core Backup and Recovery Assurance model source-neutral.
@@ -93,8 +97,37 @@ PBS datastore/namespace/snapshot identifiers belong in PBS source-specific evide
 
 PVE may later report that a storage backend type is `pbs`; that configuration evidence must remain distinct from stronger PBS-native evidence.
 
+## Live validation
+
+Accepted repository/live results:
+
+```text
+228 passed in 1.34s
+source status: COMPLETE
+mutation_allowed: false
+all six bounded GET operations: HTTP 200
+current guests: 12
+recovery points: 12
+VMs with recovery point in selected scope: 6
+VMs without recovery point in complete selected scope: 6
+selected-scope UNKNOWN records: 0
+cluster backup jobs: 0
+pbs storages configured: 0
+credential_runtime_approved: false
+credential_file_mode_secure: false
+TLS verification: false
+discovery override used: true
+forbidden projected keys: none
+raw URL markers: false
+credential material projection: none
+```
+
+No platform protection classification was emitted.
+
 ## Consequences
 
-The platform can begin consuming authoritative VM recovery-point evidence without reusing an administrative credential in runtime and without prematurely asserting protection quality.
+The platform can consume authoritative VM recovery-point evidence without reusing an administrative credential in runtime and without prematurely asserting protection quality.
 
-A later slice may integrate accepted PVE recovery-point evidence into a source-neutral backup assurance model. Runtime wiring remains blocked until a dedicated least-privilege Proxmox observer credential and trustworthy TLS path are separately accepted.
+The smallest next slice is a derived integration step that consumes the accepted PVE source artifact and enriches source-neutral Backup Assurance without performing another Proxmox query. It must preserve source-specific provenance and must not turn selected-scope recovery-point absence directly into universal `UNPROTECTED`.
+
+Runtime wiring remains blocked until a dedicated least-privilege Proxmox observer credential and trustworthy TLS path are separately accepted.
