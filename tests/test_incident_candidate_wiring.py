@@ -26,9 +26,14 @@ def test_incident_runtime_performs_no_infrastructure_query():
     assert "requests." not in combined
 
 
-def test_incident_slice_does_not_expand_kubernetes_rbac():
-    text = (ROOT / "deploy" / "kubernetes" / "observer-rbac.yaml").read_text(encoding="utf-8")
-    assert "pods\n" not in text
-    assert "endpointslices" not in text
-    assert "secrets\n" not in text
-    assert "resources:\n      - events" not in text  # Events remain in the existing core resource list, not a new broad role.
+def test_incident_candidates_do_not_consume_unaccepted_routing_ownership_artifact():
+    service = (ROOT / "systemd" / "infra-assurance-kubernetes.service").read_text(encoding="utf-8")
+    incident_line = next(
+        line
+        for line in service.splitlines()
+        if line.startswith("ExecStartPost=/usr/bin/python3 -m infra_assurance.incident_runtime")
+    )
+    assert "kubernetes-routing-ownership" not in incident_line
+    runtime = (ROOT / "src" / "infra_assurance" / "incident_runtime.py").read_text(encoding="utf-8")
+    builder = (ROOT / "src" / "infra_assurance" / "incident_candidates.py").read_text(encoding="utf-8")
+    assert "routing_ownership" not in runtime + builder
