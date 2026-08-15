@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "infrastructure-intelligence-assurance"
-version = "0.22.0"
+version = "0.23.0"
 description = "Evidence-first infrastructure intelligence, observability drill-down, and backup/recovery assurance foundations"
 requires-python = ">=3.11"
 
@@ -31,6 +31,7 @@ iia-backup-assurance-foundation = "infra_assurance.backup_assurance_foundation:m
 iia-proxmox-ve-backup-evidence = "infra_assurance.proxmox_ve_backup_evidence:main"
 iia-vm-backup-assurance = "infra_assurance.vm_backup_assurance:main"
 iia-proxmox-ve-backup-task-results = "infra_assurance.proxmox_ve_backup_task_results:main"
+iia-vm-last-successful-backup = "infra_assurance.vm_last_successful_backup_integration:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
