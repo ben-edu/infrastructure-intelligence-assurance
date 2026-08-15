@@ -2,7 +2,9 @@
 
 ## Status
 
-Authentication accepted; parser/source-scope fixes pending final management-host acceptance.
+Accepted on the management host.
+
+The dedicated Git observer now satisfies the Milestone 2 live gate. One real declared-vs-observed drift remains visible and is intentionally not mutated by this read-only phase.
 
 ## Scope
 
@@ -32,59 +34,114 @@ kubernetes/fastapi-platform/overlays/dev
 kubernetes/fastapi-platform/overlays/prod
 ```
 
-## Live evidence already observed
+## Diagnostic history
 
-The dedicated public key was initially attached to the wrong repository. Direct SSH authentication exposed the mistake without revealing private key material. The same key was moved to the intended repository.
+The dedicated public key was initially attached to the wrong repository. Direct SSH authentication exposed the mistake without revealing private key material. The same key was moved to the intended repository and authentication then succeeded as `ben-edu/api-cluster-infra`.
 
-Current direct SSH authentication succeeds as:
+The first observer implementation also exposed two defects during live testing:
+
+1. `kubectl create --dry-run=client` still depended on Kubernetes configuration in this environment. Without a kubeconfig, supported manifests failed normalization.
+2. Recursively scanning all YAML under `kubernetes/` treated Kustomize bases, overlays, and patches as independent final declarations, producing false duplicate identities.
+
+The implementation was corrected so direct manifests are parsed locally and FastAPI dev/prod are taken only from rendered Kustomize targets at the exact Git revision.
+
+## Final management-host acceptance
+
+Repository branch:
 
 ```text
-ben-edu/api-cluster-infra
+feature/m2-git-declared-observer
+head: 6c3ff5d add durable Git declared-state observation
 ```
 
-The observer successfully fetched exact revision:
+Repository tests:
 
 ```text
-5767e0a4c583d0a0e8c87b2e24c42eaeb822a3b4
+64 passed in 0.71s
 ```
 
-The first implementation used `kubectl create --dry-run=client` as a YAML parser. Without a kubeconfig, all supported documents failed normalization. Supplying the read-only kubeconfig as a diagnostic allowed 16 records to normalize, proving an unintended parser dependency on live Kubernetes configuration.
+The bootstrap completed successfully and the one-shot Kubernetes evidence service exited with `status=0/SUCCESS`.
 
-That diagnostic also produced duplicate FastAPI identities because the original source mapping recursively scanned raw Kustomize base, overlay, and patch YAML as if every file were an independent final declaration.
+Git source observation completed without an injected `KUBECONFIG`:
 
-These results are treated as implementation defects, not accepted partial operation.
+```text
+status: COMPLETE
+revision: 5767e0a4c583d0a0e8c87b2e24c42eaeb822a3b4
+normalized_records: 27
+skipped_documents: 3
+errors: []
+```
 
-## Revised acceptance requirements
+The transient Kustomize worktree check produced no remaining paths after the sync.
+
+The 27 normalized declarations contain:
+
+- direct BookStack PVC, Deployment, Service, and Ingress resources;
+- direct validation Namespace, Deployment, Service, and Ingress resources;
+- FastAPI dev resources rendered into namespace `fastapi-platform-dev`;
+- FastAPI prod resources rendered into namespace `fastapi-platform`.
+
+No false default-namespace duplicate identities were reported.
+
+## Drift result
+
+The final drift report was evaluated successfully:
+
+```text
+status: EVALUATED
+declared_records: 27
+in_sync: 26
+drift: 1
+unknown: 0
+loader_errors: 0
+```
+
+The only drift is:
+
+```text
+Ingress/validation/nginx-validation
+field: backends
+declared host: k3s-master.soria-academie.fr
+observed host: k3s-master.behnam.fr
+service: nginx-validation
+service_port: 80
+path: /
+```
+
+The exact Git revision declares `k3s-master.soria-academie.fr`, so the mismatch is a real declared-vs-observed difference rather than parser, Kustomize, or identity noise.
+
+No automatic repair is attempted. Initial platform phases remain read-only; resolving this drift requires deciding whether Git or the live cluster represents the intended target state and then making that change through the authoritative infrastructure workflow.
+
+## Change context
+
+The generated compact change context reported:
+
+```text
+mutation_allowed: false
+recent_changes: 0
+drift_attention: 1
+unknowns: 0
+required_live_verification: 0
+```
+
+The drift is therefore surfaced as evidence-backed operator attention, not converted into an inferred repair action.
+
+## Acceptance result
+
+All revised acceptance requirements pass:
 
 1. Repository tests pass from the management-host checkout.
-2. Bootstrap preserves the existing Kubernetes observer and existing dedicated Git deploy key.
-3. Git source sync succeeds without setting `KUBECONFIG` for the Git CLI.
+2. Bootstrap preserves the Kubernetes observer and dedicated Git identity.
+3. Git source sync succeeds without injecting `KUBECONFIG` into the Git CLI.
 4. Exact Git revision is recorded.
 5. Direct manifests normalize locally.
-6. FastAPI dev/prod declarations come only from rendered Kustomize targets at the exact Git revision.
+6. FastAPI dev/prod declarations come only from rendered Kustomize targets at the exact revision.
 7. No false default-namespace duplicates are produced from raw base/patch files.
-8. `Secret`, `ConfigMap`, unsupported kinds, environment values, and raw manifest bodies are absent from declared evidence.
+8. Sensitive and unsupported documents do not become declared evidence.
 9. Transient Kustomize worktrees are removed after rendering.
-10. Drift is evaluated against the current live Kubernetes snapshot without conflating evidence planes.
-11. Any real render/normalization/source failure remains distinct from zero drift.
-12. `mutation_allowed` remains `false` and Kubernetes RBAC is unchanged.
-
-## Known first live comparison
-
-The source repository contains:
-
-```text
-kubernetes/validation/nginx/nginx-validation.yaml
-```
-
-That manifest declares:
-
-- Namespace `validation`;
-- Deployment `validation/nginx-validation`;
-- Service `validation/nginx-validation`;
-- Ingress `validation/nginx-validation`.
-
-The FastAPI Kustomize targets additionally exercise environment-specific namespace and image rendering.
+10. Drift is evaluated against current observed evidence without evidence-plane conflation.
+11. Source/render/normalization failures remain distinct from zero drift.
+12. `mutation_allowed` remains `false` and Kubernetes RBAC remains read-only.
 
 ## Expected persistent artifacts
 
@@ -101,6 +158,6 @@ The FastAPI Kustomize targets additionally exercise environment-specific namespa
 /var/lib/infra-assurance/evidence/change-context.json
 ```
 
-Temporary Git worktrees used for Kustomize rendering are operational scratch state, not evidence artifacts, and must be removed after each sync.
+Temporary Git worktrees used for Kustomize rendering are operational scratch state, not evidence artifacts, and are removed after each sync.
 
 The private key and raw repository/rendered manifest content must never be copied into reports, prompts, or evidence artifacts.
