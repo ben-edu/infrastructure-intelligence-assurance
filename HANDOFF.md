@@ -15,7 +15,7 @@ This is the compact continuation checkpoint for the Infrastructure Intelligence 
 
 - repository: `ben-edu/infrastructure-intelligence-assurance`
 - stable branch: `main`
-- current main checkpoint before PR #20 merge: `68af6664c6754d0fe6cd832e824c10f92070c2a9`
+- current main checkpoint: `62c75f863c053be5e353c15f62523c27a52be9d3`
 - management host: `mgmt-automation`
 - checkout: `~/projects/infrastructure-intelligence-assurance`
 - cluster: `k3s-main`
@@ -32,7 +32,7 @@ Milestone 4 accepted/live-validated slices:
 - PR #14 — Kubernetes Event correlation;
 - PR #16 — incident candidates/drill-down;
 - PR #18 — bounded EndpointSlice/Pod/ReplicaSet routing ownership;
-- PR #20 — alert resource scope identity validation; accepted and ready to merge.
+- PR #20 — alert resource scope identity validation.
 
 Known real drift remains intentionally unresolved:
 
@@ -42,7 +42,7 @@ Git:  k3s-master.soria-academie.fr
 Live: k3s-master.behnam.fr
 ```
 
-## PR #18 accepted routing baseline
+## PR #18 routing ownership baseline
 
 Merged commit:
 
@@ -63,7 +63,7 @@ services with resolved workloads: 63
 mutation_allowed: false
 ```
 
-Least-privilege RBAC remains:
+Least-privilege RBAC:
 
 ```text
 EndpointSlices: list=yes, direct get=no
@@ -78,25 +78,19 @@ The real kubelet Service is `Service/kube-system/kube-prom-stack-kubelet`, with 
 
 ## PR #20 accepted alert scope validation
 
-- PR: `#20 Milestone 4 validate alert resource scope`
-- branch: `feature/m4-alert-scope-validation`
-- package version: `0.14.0`
-- status: live accepted; ready for squash merge
-- no RBAC change
-- no new infrastructure/telemetry query
-
-Why it exists: PR #18 exposed synthetic Service subjects built from alert label dimensions:
+Merged commit:
 
 ```text
-Service/keycloak/kube-prom-stack-kubelet
-Service/monitoring/kube-prom-stack-kubelet
-Service/moodle/kube-prom-stack-kubelet
+62c75f863c053be5e353c15f62523c27a52be9d3
 ```
 
-Those Services do not exist. Alert `namespace` and `service` labels are signal dimensions, not authoritative compound Service identity.
+Package version: `0.14.0`.
 
-Accepted rule:
+No RBAC or new infrastructure/telemetry query was added.
 
+Accepted semantics:
+
+- alert labels remain signal dimensions;
 - exact observed Service/Node/Namespace identities may remain infrastructure-scoped;
 - unobserved Service identity is never rewritten to a similarly named Service elsewhere;
 - with an observed namespace, invalid Service scope falls back to Namespace with `UNVERIFIED_SIGNAL_DIMENSION`;
@@ -113,7 +107,7 @@ root cause: incorrect singular alert["evidence_id"] reference in fallback warnin
 corrected gate: 156 passed in 0.89s
 ```
 
-Runtime/systemd acceptance:
+Accepted live execution:
 
 ```text
 kubernetes_runtime   status=0/SUCCESS
@@ -122,7 +116,7 @@ alert_scope_runtime status=0/SUCCESS
 incident_runtime    status=0/SUCCESS
 ```
 
-Final stdlib-only artifact acceptance:
+Final artifact acceptance:
 
 ```text
 PR #20 LIVE ACCEPTANCE: PASS
@@ -149,7 +143,7 @@ raw URL markers: false
 mutation_allowed: false
 ```
 
-Corrected incident grouping:
+Current incident grouping after correction:
 
 ```text
 Namespace/keycloak    alerts=2
@@ -168,15 +162,19 @@ docs/reports/2026-08-15-m4-alert-scope-validation-live-test-gate.md
 
 ## Exact next step
 
-1. Squash merge PR #20.
-2. Update `main` Handoff after merge with the actual merge commit.
-3. Create a separate Milestone 4 routing-ownership integration slice.
-4. That slice must consume the existing `kubernetes-routing-ownership.json` artifact only; no new infrastructure query or RBAC is required.
-5. Prefer `RESOLVED_WORKLOAD_ROUTING` over `SERVICE_SELECTOR_MATCH_INFERENCE` only where routing evidence is complete and unambiguous.
-6. Preserve multiple routing workload targets when real routing has multiple controllers; do not select one heuristically.
-7. Keep `NON_POD_ROUTING`, `NO_ENDPOINTS_OBSERVED`, `UNKNOWN`, and partial/failed source states explicit.
-8. Do not turn Namespace fallback alerts into Service/workload ownership merely because a routing record with a similar signal label exists.
-9. Update operational inventory/incident impact context only where the accepted identity and routing subjects actually join.
+Create a separate Milestone 4 routing-ownership integration slice.
+
+Requirements:
+
+1. Consume the already accepted local artifact `kubernetes-routing-ownership.json`; no new infrastructure query or RBAC.
+2. Prefer `RESOLVED_WORKLOAD_ROUTING` over `SERVICE_SELECTOR_MATCH_INFERENCE` only where routing source evidence is complete and the exact Service subject joins.
+3. Preserve multiple real routing workload targets; never choose one heuristically.
+4. Keep `NON_POD_ROUTING`, `NO_ENDPOINTS_OBSERVED`, `UNKNOWN`, and partial/failed routing states explicit.
+5. Do not turn Namespace fallback alerts into Service/workload ownership merely because signal labels resemble a Service elsewhere.
+6. Enrich operational inventory and incident impact context only where exact accepted subjects join.
+7. Keep selector inference available as weaker evidence when no accepted routing relation exists; label the difference explicitly.
+8. Live validate changes in workload-impact context and the `loki-headless` multi-controller case.
+9. No root-cause or business-impact claim.
 10. Do not add Loki/OpenTelemetry in this integration slice.
 
 ## Trust invariants
