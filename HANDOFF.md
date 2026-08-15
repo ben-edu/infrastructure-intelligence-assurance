@@ -15,7 +15,7 @@ This is the compact continuation checkpoint for the Infrastructure Intelligence 
 
 - repository: `ben-edu/infrastructure-intelligence-assurance`
 - stable branch: `main`
-- current main HEAD after PR #28 merge: `9b32c7657a648c04081c9bcc4f5112872c2ecd2c`
+- current main HEAD before PR #30 merge: `434079ec90edc0cccd94b4e697f92b615aa87cd1`
 - accepted PR #28 code merge: `9b32c7657a648c04081c9bcc4f5112872c2ecd2c`
 - management host: `mgmt-automation`
 - checkout: `~/projects/infrastructure-intelligence-assurance`
@@ -24,20 +24,7 @@ This is the compact continuation checkpoint for the Infrastructure Intelligence 
 - oneshot: `infra-assurance-kubernetes.service`
 - timer: every 5 minutes
 
-Milestones 0–3 are live validated.
-
-Milestone 4 accepted/live-validated slices now cover:
-
-- Prometheus runtime;
-- Alertmanager handling correlation;
-- Kubernetes Event correlation;
-- incident candidate grouping and drill-down;
-- bounded EndpointSlice/Pod/ReplicaSet routing ownership;
-- validated alert infrastructure identities;
-- routing ownership integration;
-- scope-aware drill-down recommendations;
-- bounded Prometheus alert-rule context;
-- exact Prometheus rule-context integration into incident drill-down, merged in PR #28 at `9b32c7657a648c04081c9bcc4f5112872c2ecd2c`.
+Milestones 0–3 are live validated. The current evidence-first Milestone 4 vertical path is accepted and sufficiently complete. Milestone 5 is active.
 
 Known intentional drift remains:
 
@@ -47,19 +34,41 @@ Git:  k3s-master.soria-academie.fr
 Live: k3s-master.behnam.fr
 ```
 
-## Accepted PR #28 Prometheus rule-context integration
+## Active accepted work — PR #30 Milestone 5 Kubernetes backup assurance foundation
 
-Package version: `0.18.0`.
+- PR: `#30 Milestone 5 Kubernetes backup assurance foundation`
+- branch: `feature/m5-kubernetes-backup-assurance-foundation`
+- base main: `434079ec90edc0cccd94b4e697f92b615aa87cd1`
+- package version: `0.19.0`
+- status: repository/live accepted; ready for squash merge
+- RBAC change: none
+- new infrastructure/backup/database query: none
+- new credentials: none
+- mutation: none
 
-No RBAC change, infrastructure/telemetry query, Loki/OpenTelemetry integration, or mutation was added.
+Purpose: identify Kubernetes PVC stateful assets requiring backup/recovery assurance while representing absent authoritative backup evidence as `UNKNOWN`, never as `UNPROTECTED`.
 
-Accepted final contract:
+Accepted artifacts:
 
 ```text
-incident_candidates_version: 0.4
-prometheus_rule_context_integration.version: 0.1
-prometheus_rule_context_integration.mode: EXACT_COMPLETE_ONLY
-source_status.prometheus_rule_context: COMPLETE
+/var/lib/infra-assurance/evidence/backup-assurance.json
+/var/lib/infra-assurance/evidence/backup-assurance.md
+```
+
+Inputs remain local accepted evidence only:
+
+```text
+/var/lib/infra-assurance/evidence/kubernetes.json
+/var/lib/infra-assurance/evidence/topology.json
+```
+
+Accepted contract:
+
+```text
+backup_assurance_version: 0.1
+scope.asset_type: KUBERNETES_PVC
+scope.derived_only: true
+scope.authoritative_backup_source_integrated: false
 mutation_allowed: false
 ```
 
@@ -67,92 +76,69 @@ Accepted repository/live evidence:
 
 ```text
 RBAC changes: none
-query-capable markers: none
-204 passed in 1.29s
+query / external-source markers: none
+217 passed in 1.94s
 all runtime stages: status=0/SUCCESS
-active candidates: 1
-active Platform candidate: Platform/k3s-main
-active alert names: KubeCPUOvercommit, Watchdog
-selection: COMPLETE_EXACT_RULE_MATCH
-matched rules: 2
-unmatched: none
-integration unknowns: none
-non-active candidates enriched: none
+backup_assurance_foundation: status=0/SUCCESS
+PVC collection: COMPLETE / CURRENT
+workload/PVC relationship scope: COMPLETE
+PVC assets: 37
+same-cycle asset set exact match: true
+current assets: 37
+stale assets: 0
+assets with direct controller reference: 16
+protection UNKNOWN: 37
+restore verification UNKNOWN: 37
+unprotected_claims: 0
+authoritative_backup_sources_integrated: 0
+unknown: AUTHORITATIVE_BACKUP_SOURCE_NOT_INTEGRATED
 forbidden projected keys: none
 raw URL markers: false
 ```
 
-Accepted current Platform drill-down:
+Every asset retained exactly eight future authoritative evidence targets:
 
 ```text
-VERIFY_ALERT_CONDITION_CURRENT -> PROMETHEUS_ALERTMANAGER
-VERIFY_PROMETHEUS_RULE_INPUTS  -> PROMETHEUS_RULE_INPUTS
+BACKUP_MECHANISM
+LAST_SUCCESSFUL_BACKUP
+BACKUP_RETENTION
+BACKUP_FAILURE_DOMAIN
+BACKUP_INTEGRITY_VERIFICATION
+RESTORE_TEST
+RPO_TARGET_AND_RESULT
+RTO_TARGET_AND_RESULT
 ```
 
-The previous generic `PROMETHEUS_KUBERNETES` Platform target is removed only because the rule source is COMPLETE and exact coverage is complete. Partial/failed/unmatched/mismatched rule evidence keeps the generic fallback.
-
-Accepted exact rule metadata:
-
-```text
-Watchdog          | group=general.rules        | state=FIRING | health=OK | duration=0s
-KubeCPUOvercommit | group=kubernetes-resources | state=FIRING | health=OK | duration=600s
-```
-
-Rule state/health is not current PromQL input evidence and is not root-cause proof. `PROMETHEUS_RULE_INPUTS` remains a recommended live verification delegated to the authoritative metrics system.
+The 21 PVC assets without a direct Deployment/StatefulSet/DaemonSet controller relation are not classified as orphaned. The current relation model is controller-spec context only and does not cover all Pod-level/generated consumers.
 
 Relevant accepted docs:
 
 ```text
-docs/decisions/0019-integrate-exact-prometheus-rule-context.md
-docs/milestone-4-prometheus-rule-context-integration.md
-docs/reports/2026-08-15-m4-prometheus-rule-context-integration-live-test-gate.md
+docs/decisions/0020-derive-kubernetes-pvc-backup-assurance-foundation.md
+docs/milestone-5-kubernetes-backup-assurance-foundation.md
+docs/reports/2026-08-15-m5-kubernetes-backup-assurance-foundation-live-test-gate.md
 ```
 
-## Milestone 4 closure boundary
+## Exact next step after PR #30 merge — authoritative backup-source discovery
 
-The Delivery Roadmap requires observability intelligence capabilities such as signal correlation, incident grouping, impact summaries, alert enrichment, evidence/confidence reporting, and recommended drill-down/live checks. It does not require the platform to execute every recommended Prometheus metric query.
+Do not choose or implement a PBS, Proxmox, PostgreSQL, MariaDB, or external-target collector by assumption.
 
-Do not add an arbitrary PromQL executor merely to consume `PROMETHEUS_RULE_INPUTS` unless later evidence demonstrates a clear operator need and a safe bounded design.
+Repository search currently provides no accepted configuration proving which authoritative backup source is live, which assets it covers, or what least-privilege observation path already exists.
 
-Treat the current evidence-first Milestone 4 vertical path as sufficiently complete to begin Milestone 5.
+Run a bounded read-only source-discovery/preflight first. The discovery should determine, without printing secrets or complete sensitive connection strings:
 
-## Exact next step — Milestone 5 first vertical slice
+1. which backup/recovery engines are actually present and active;
+2. whether PBS/Proxmox VM backup evidence exists;
+3. whether PostgreSQL or MariaDB use database-native backup tooling;
+4. whether external backup targets are configured;
+5. whether an existing least-privilege read-only identity/access path is available;
+6. what evidence each source can authoritatively prove: mechanism, last success, retention, failure domain, verification, restore tests, RPO/RTO;
+7. what asset identity can be safely joined to the foundation artifact;
+8. whether source observation can be performed without changing schedules, jobs, credentials, or infrastructure.
 
-Create a small read-only Backup and Recovery Assurance foundation slice using evidence already available locally before adding any backup-system credential or API integration.
+Choose exactly one source for the next implementation slice based on that evidence. Prefer the smallest source that has a clear authoritative contract and safe read-only observation path.
 
-Purpose:
-
-Identify stateful assets that require protection and represent the absence of backup evidence correctly as `UNKNOWN`, never as `UNPROTECTED`.
-
-Smallest intended scope:
-
-1. derive Kubernetes stateful asset candidates from accepted local inventory/evidence only;
-2. start with PVCs and their observed workload relationships where available;
-3. create an independent backup-assurance artifact; do not modify infrastructure;
-4. distinguish asset existence from protection evidence;
-5. when no authoritative backup source has been observed, set protection/restore state to `UNKNOWN`, not `UNPROTECTED`;
-6. attach provenance/evidence IDs and current/stale semantics from upstream evidence;
-7. do not infer that a PVC is backed up from workload type, StorageClass, snapshots, labels, names, or annotations unless authoritative evidence exists;
-8. do not add PBS/Proxmox/PostgreSQL/MariaDB credentials or APIs in the same first slice;
-9. define explicit future evidence targets for backup mechanism, last success, retention, failure domain, integrity verification, and restore test;
-10. keep `mutation_allowed=false` and live-validate before any stronger protection classification.
-
-Suggested assurance vocabulary remains compatible with Project Sources:
-
-```text
-PROTECTED
-PARTIALLY_PROTECTED
-UNPROTECTED
-UNKNOWN
-BACKUP_STALE
-RESTORE_UNVERIFIED
-RPO_VIOLATION
-RTO_UNKNOWN
-```
-
-For the first derived-only slice, expect `UNKNOWN` protection unless an already accepted authoritative source proves otherwise.
-
-This is intentionally a foundation for later authoritative backup-source integration, not a claim that Kubernetes observation can determine backup success.
+Do not create new broad/admin credentials as part of source discovery. Do not modify backup schedules or trigger backup/restore jobs.
 
 ## Trust invariants
 

@@ -35,11 +35,8 @@ def test_rule_integration_is_derived_only_and_has_no_query_client():
         assert marker not in text
 
 
-def test_package_exposes_rule_integration_cli_and_current_version():
+def test_package_still_exposes_rule_integration_cli():
     pyproject = (ROOT / "pyproject.toml").read_text()
-    init = (ROOT / "src" / "infra_assurance" / "__init__.py").read_text()
-    assert 'version = "0.18.0"' in pyproject
-    assert '__version__ = "0.18.0"' in init
     assert (
         'iia-prometheus-rule-integration = '
         '"infra_assurance.prometheus_rule_context_integration:main"'
