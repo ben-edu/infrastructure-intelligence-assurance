@@ -5,6 +5,15 @@ import json
 import os
 from pathlib import Path
 
+from .alertmanager_runtime_intelligence import (
+    DEFAULT_ALERTMANAGER_NAMESPACE,
+    DEFAULT_ALERTMANAGER_PORT,
+    DEFAULT_ALERTMANAGER_SERVICE,
+    build_alert_attention,
+    build_alertmanager_runtime_intelligence,
+    render_alert_attention_markdown,
+    render_alertmanager_runtime_markdown,
+)
 from .change_context import build_change_context, render_change_context_markdown
 from .drift import build_drift_report, load_declared_records, render_drift_markdown
 from .history import DEFAULT_RETENTION, SnapshotHistoryStore, snapshot_id
@@ -61,8 +70,9 @@ def main() -> int:
         description=(
             "Collect Kubernetes evidence and emit current context, topology, bounded history, "
             "snapshot diff, Git-declared drift, compact change context, Prometheus Operator "
-            "configuration coverage, Prometheus runtime target/alert intelligence, and a "
-            "workload-centric operational inventory projection."
+            "configuration coverage, Prometheus runtime target/alert intelligence, Alertmanager "
+            "handling/correlation evidence, alert attention, and a workload-centric operational "
+            "inventory projection."
         )
     )
     parser.add_argument("--cluster-id", default=os.environ.get("IIA_CLUSTER_ID"))
@@ -105,6 +115,23 @@ def main() -> int:
         type=int,
         default=int(os.environ.get("IIA_PROMETHEUS_PORT", str(DEFAULT_PROMETHEUS_PORT))),
     )
+    parser.add_argument("--alertmanager-runtime-out", type=Path)
+    parser.add_argument("--alertmanager-runtime-summary-out", type=Path)
+    parser.add_argument("--alert-attention-out", type=Path)
+    parser.add_argument("--alert-attention-summary-out", type=Path)
+    parser.add_argument(
+        "--alertmanager-namespace",
+        default=os.environ.get("IIA_ALERTMANAGER_NAMESPACE", DEFAULT_ALERTMANAGER_NAMESPACE),
+    )
+    parser.add_argument(
+        "--alertmanager-service",
+        default=os.environ.get("IIA_ALERTMANAGER_SERVICE", DEFAULT_ALERTMANAGER_SERVICE),
+    )
+    parser.add_argument(
+        "--alertmanager-port",
+        type=int,
+        default=int(os.environ.get("IIA_ALERTMANAGER_PORT", str(DEFAULT_ALERTMANAGER_PORT))),
+    )
     parser.add_argument("--inventory-out", type=Path)
     parser.add_argument("--inventory-summary-out", type=Path)
     args = parser.parse_args()
@@ -115,6 +142,8 @@ def main() -> int:
         parser.error("--history-retention must be at least 2")
     if args.prometheus_port < 1 or args.prometheus_port > 65535:
         parser.error("--prometheus-port must be between 1 and 65535")
+    if args.alertmanager_port < 1 or args.alertmanager_port > 65535:
+        parser.error("--alertmanager-port must be between 1 and 65535")
 
     store = SnapshotHistoryStore(args.history_dir, retention=args.history_retention)
     _seed_history_from_existing_latest(store, args.evidence_out, cluster_id=args.cluster_id)
@@ -153,6 +182,14 @@ def main() -> int:
         prometheus_service=args.prometheus_service,
         prometheus_port=args.prometheus_port,
     )
+    alertmanager_runtime = build_alertmanager_runtime_intelligence(
+        prometheus_runtime,
+        kubectl_context=args.kubectl_context,
+        alertmanager_namespace=args.alertmanager_namespace,
+        alertmanager_service=args.alertmanager_service,
+        alertmanager_port=args.alertmanager_port,
+    )
+    alert_attention = build_alert_attention(prometheus_runtime, alertmanager_runtime)
     inventory = build_operational_inventory(
         snapshot,
         topology,
@@ -199,6 +236,20 @@ def main() -> int:
         atomic_write_text(
             args.prometheus_runtime_summary_out,
             render_prometheus_runtime_markdown(prometheus_runtime),
+        )
+    if args.alertmanager_runtime_out:
+        atomic_write_json(args.alertmanager_runtime_out, alertmanager_runtime)
+    if args.alertmanager_runtime_summary_out:
+        atomic_write_text(
+            args.alertmanager_runtime_summary_out,
+            render_alertmanager_runtime_markdown(alertmanager_runtime),
+        )
+    if args.alert_attention_out:
+        atomic_write_json(args.alert_attention_out, alert_attention)
+    if args.alert_attention_summary_out:
+        atomic_write_text(
+            args.alert_attention_summary_out,
+            render_alert_attention_markdown(alert_attention),
         )
     if args.inventory_out:
         atomic_write_json(args.inventory_out, inventory)

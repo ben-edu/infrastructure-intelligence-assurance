@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/alertmanager-runtime-intelligence.schema.json",
+  "title": "Alertmanager Runtime Intelligence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["alertmanager_runtime_version", "cluster_id", "generated_at", "mutation_allowed", "source", "summary", "alerts", "silences", "unknowns", "errors"],
+  "properties": {
+    "alertmanager_runtime_version": {"const": "0.1"},
+    "cluster_id": {"type": "string", "minLength": 1},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "mutation_allowed": {"const": false},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "access", "namespace", "service", "port", "status"],
+      "properties": {
+        "type": {"const": "alertmanager_http_api_v2"},
+        "access": {"const": "kubernetes_service_proxy"},
+        "namespace": {"type": "string", "minLength": 1},
+        "service": {"type": "string", "minLength": 1},
+        "port": {"type": "integer", "minimum": 1, "maximum": 65535},
+        "status": {"enum": ["COMPLETE", "PARTIAL", "FAILED_TO_OBSERVE"]}
+      }
+    },
+    "summary": {"type": "object"},
+    "alerts": {"type": "array", "items": {"$ref": "#/$defs/alert"}},
+    "silences": {"type": "array", "items": {"$ref": "#/$defs/silence"}},
+    "unknowns": {"type": "array", "items": {"$ref": "#/$defs/unknown"}},
+    "errors": {"type": "array", "items": {"$ref": "#/$defs/error"}}
+  },
+  "$defs": {
+    "labels": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "alertname": {"type": "string"},
+        "severity": {"type": "string"},
+        "namespace": {"type": "string"},
+        "service": {"type": "string"},
+        "job": {"type": "string"},
+        "pod": {"type": "string"},
+        "container": {"type": "string"},
+        "node": {"type": "string"}
+      }
+    },
+    "correlation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "prometheus_alert_id", "evidence_ids"],
+      "properties": {
+        "status": {"enum": ["MATCHED", "UNRESOLVED", "AMBIGUOUS"]},
+        "prometheus_alert_id": {"type": ["string", "null"]},
+        "evidence_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+      }
+    },
+    "alert": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["alertmanager_alert_id", "evidence_id", "observed_at", "expires_at", "state", "handling_state", "labels", "starts_at", "updated_at", "ends_at", "silence_refs", "silenced_by_count", "inhibited_by_count", "muted_by_count", "prometheus_correlation"],
+      "properties": {
+        "alertmanager_alert_id": {"type": "string"},
+        "evidence_id": {"type": "string"},
+        "observed_at": {"type": "string", "format": "date-time"},
+        "expires_at": {"type": "string", "format": "date-time"},
+        "state": {"enum": ["ACTIVE", "SUPPRESSED", "UNPROCESSED", "UNKNOWN"]},
+        "handling_state": {"enum": ["ACTIVE", "SILENCED", "INHIBITED", "SILENCED_AND_INHIBITED", "SUPPRESSED_OTHER", "UNPROCESSED", "UNKNOWN"]},
+        "labels": {"$ref": "#/$defs/labels"},
+        "starts_at": {"type": ["string", "null"]},
+        "updated_at": {"type": ["string", "null"]},
+        "ends_at": {"type": ["string", "null"]},
+        "silence_refs": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "silenced_by_count": {"type": "integer", "minimum": 0},
+        "inhibited_by_count": {"type": "integer", "minimum": 0},
+        "muted_by_count": {"type": "integer", "minimum": 0},
+        "prometheus_correlation": {"$ref": "#/$defs/correlation"}
+      }
+    },
+    "silence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["silence_ref", "evidence_id", "observed_at", "expires_at", "state", "starts_at", "ends_at", "updated_at"],
+      "properties": {
+        "silence_ref": {"type": "string"},
+        "evidence_id": {"type": "string"},
+        "observed_at": {"type": "string", "format": "date-time"},
+        "expires_at": {"type": "string", "format": "date-time"},
+        "state": {"enum": ["ACTIVE", "PENDING", "EXPIRED", "UNKNOWN"]},
+        "starts_at": {"type": ["string", "null"]},
+        "ends_at": {"type": ["string", "null"]},
+        "updated_at": {"type": ["string", "null"]}
+      }
+    },
+    "unknown": {
+      "type": "object",
+      "required": ["code", "statement", "evidence_ids"],
+      "properties": {
+        "code": {"type": "string"},
+        "statement": {"type": "string"},
+        "evidence_ids": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "error": {
+      "type": "object",
+      "required": ["scope", "code", "summary"],
+      "properties": {
+        "scope": {"enum": ["alerts", "silences"]},
+        "code": {"type": "string"},
+        "summary": {"type": "string"}
+      }
+    }
+  }
+}
