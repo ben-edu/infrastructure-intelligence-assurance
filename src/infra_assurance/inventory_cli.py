@@ -28,6 +28,10 @@ def main() -> int:
     list_parser = subparsers.add_parser("list")
     list_parser.add_argument("--namespace")
     list_parser.add_argument("--attention-only", action="store_true")
+    list_parser.add_argument(
+        "--observability-status",
+        choices=("OPERATOR_MONITOR_MATCH", "NO_OPERATOR_MONITOR_MATCH", "UNKNOWN"),
+    )
 
     show_parser = subparsers.add_parser("show")
     show_parser.add_argument("--namespace", required=True)
@@ -48,6 +52,7 @@ def main() -> int:
                     "cluster_id": inventory["cluster_id"],
                     "generated_at": inventory["generated_at"],
                     "mutation_allowed": inventory["mutation_allowed"],
+                    "observability_source_status": inventory.get("observability_source_status"),
                     "summary": inventory["summary"],
                 },
                 indent=2,
@@ -64,6 +69,9 @@ def main() -> int:
                 continue
             if args.attention_only and not entity.get("attention"):
                 continue
+            observability = entity.get("observability", {})
+            if args.observability_status and observability.get("status") != args.observability_status:
+                continue
             declared = entity.get("declared", {})
             change = entity.get("recent_change", {})
             print(
@@ -71,6 +79,7 @@ def main() -> int:
                 f"declared={declared.get('coverage')} "
                 f"comparison={declared.get('comparison')} "
                 f"change={change.get('state')} "
+                f"observability={observability.get('status')} "
                 f"attention={len(entity.get('attention', []))}"
             )
         return 0

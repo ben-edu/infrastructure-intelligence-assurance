@@ -1,0 +1,179 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/prometheus-operator-coverage.schema.json",
+  "title": "Prometheus Operator Configuration Coverage",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "observability_coverage_version",
+    "cluster_id",
+    "generated_at",
+    "mutation_allowed",
+    "source_status",
+    "summary",
+    "source_observations",
+    "workload_coverage",
+    "unknowns",
+    "errors"
+  ],
+  "properties": {
+    "observability_coverage_version": {"const": "0.1"},
+    "cluster_id": {"type": "string", "minLength": 1},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "mutation_allowed": {"const": false},
+    "source_status": {"enum": ["COMPLETE", "PARTIAL", "FAILED_TO_OBSERVE"]},
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "prometheus_instances",
+        "service_monitors",
+        "pod_monitors",
+        "selected_service_monitors",
+        "selected_pod_monitors",
+        "workloads_total",
+        "workloads_with_operator_monitor_match",
+        "workloads_without_operator_monitor_match",
+        "workloads_observability_unknown"
+      ],
+      "properties": {
+        "prometheus_instances": {"type": "integer", "minimum": 0},
+        "service_monitors": {"type": "integer", "minimum": 0},
+        "pod_monitors": {"type": "integer", "minimum": 0},
+        "selected_service_monitors": {"type": "integer", "minimum": 0},
+        "selected_pod_monitors": {"type": "integer", "minimum": 0},
+        "workloads_total": {"type": "integer", "minimum": 0},
+        "workloads_with_operator_monitor_match": {"type": "integer", "minimum": 0},
+        "workloads_without_operator_monitor_match": {"type": "integer", "minimum": 0},
+        "workloads_observability_unknown": {"type": "integer", "minimum": 0}
+      }
+    },
+    "source_observations": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/observation"}
+    },
+    "workload_coverage": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/workload_coverage"}
+    },
+    "unknowns": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/unknown"}
+    },
+    "errors": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/error"}
+    }
+  },
+  "$defs": {
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "evidence_id",
+        "plane",
+        "subject",
+        "existence",
+        "observation_status",
+        "attempted_at",
+        "observed_at",
+        "expires_at",
+        "data",
+        "provenance",
+        "errors"
+      ],
+      "properties": {
+        "schema_version": {"const": "0.1"},
+        "evidence_id": {"type": "string"},
+        "plane": {"const": "observed"},
+        "subject": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["system", "cluster", "api_group", "kind", "namespace", "name"],
+          "properties": {
+            "system": {"const": "kubernetes"},
+            "cluster": {"type": "string"},
+            "api_group": {"enum": ["", "monitoring.coreos.com"]},
+            "kind": {"enum": ["Namespace", "Service", "Prometheus", "ServiceMonitor", "PodMonitor"]},
+            "namespace": {"type": ["string", "null"]},
+            "name": {"type": "string"}
+          }
+        },
+        "existence": {"const": "PRESENT"},
+        "observation_status": {"const": "COMPLETE"},
+        "attempted_at": {"type": "string", "format": "date-time"},
+        "observed_at": {"type": "string", "format": "date-time"},
+        "expires_at": {"type": "string", "format": "date-time"},
+        "data": {"type": "object"},
+        "provenance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["source_type", "source_id", "collector", "collector_version", "operation"],
+          "properties": {
+            "source_type": {"const": "kubernetes_api"},
+            "source_id": {"type": "string"},
+            "collector": {"const": "prometheus-operator-coverage-observer"},
+            "collector_version": {"type": "string"},
+            "operation": {"type": "string"}
+          }
+        },
+        "errors": {"type": "array", "maxItems": 0}
+      }
+    },
+    "path": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["prometheus", "monitor", "basis", "evidence_ids"],
+      "properties": {
+        "prometheus": {"type": "string"},
+        "monitor": {"type": "string"},
+        "service": {"type": "string"},
+        "basis": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+        "evidence_ids": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "workload_coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "subject",
+        "status",
+        "scope_completeness",
+        "service_monitor_paths",
+        "pod_monitor_paths",
+        "evidence_ids",
+        "caveats"
+      ],
+      "properties": {
+        "subject": {"type": "string"},
+        "status": {"enum": ["OPERATOR_MONITOR_MATCH", "NO_OPERATOR_MONITOR_MATCH", "UNKNOWN"]},
+        "scope_completeness": {"enum": ["COMPLETE", "PARTIAL"]},
+        "service_monitor_paths": {"type": "array", "items": {"$ref": "#/$defs/path"}},
+        "pod_monitor_paths": {"type": "array", "items": {"$ref": "#/$defs/path"}},
+        "evidence_ids": {"type": "array", "items": {"type": "string"}},
+        "caveats": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "unknown": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "statement", "evidence_ids"],
+      "properties": {
+        "code": {"type": "string"},
+        "statement": {"type": "string"},
+        "evidence_ids": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scope", "code", "summary"],
+      "properties": {
+        "scope": {"type": "string"},
+        "code": {"type": "string"},
+        "summary": {"type": "string"}
+      }
+    }
+  }
+}
