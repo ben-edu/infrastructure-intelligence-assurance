@@ -15,7 +15,7 @@ This is the compact continuation checkpoint for the Infrastructure Intelligence 
 
 - repository: `ben-edu/infrastructure-intelligence-assurance`
 - stable branch: `main`
-- current main HEAD after PR #30 merge: `0e6f96a9f1b4adba34c43803a21a70116423b65c`
+- current main HEAD after post-PR30 continuity merge: `987d583ade9003e46e4dbf2e027f62f1a0ab7c0d`
 - accepted PR #30 code merge: `0e6f96a9f1b4adba34c43803a21a70116423b65c`
 - management host: `mgmt-automation`
 - checkout: `~/projects/infrastructure-intelligence-assurance`
@@ -36,69 +36,27 @@ Live: k3s-master.behnam.fr
 
 ## Accepted Milestone 5 foundation — PR #30
 
-- PR: `#30 Milestone 5 Kubernetes backup assurance foundation`
 - merge: `0e6f96a9f1b4adba34c43803a21a70116423b65c`
 - package version: `0.19.0`
-- RBAC change: none
-- new infrastructure/backup/database query: none
-- new credentials: none
-- mutation: none
+- backup assurance artifact: `/var/lib/infra-assurance/evidence/backup-assurance.json`
+- backup assurance version: `0.1`
+- mutation allowed: false
 
-Accepted artifacts:
-
-```text
-/var/lib/infra-assurance/evidence/backup-assurance.json
-/var/lib/infra-assurance/evidence/backup-assurance.md
-```
-
-Accepted contract:
+Accepted live foundation:
 
 ```text
-backup_assurance_version: 0.1
-scope.asset_type: KUBERNETES_PVC
-scope.derived_only: true
-scope.authoritative_backup_source_integrated: false
-mutation_allowed: false
-```
-
-Accepted repository/live evidence:
-
-```text
-RBAC changes: none
-query / external-source markers: none
-217 passed in 1.94s
-all runtime stages: status=0/SUCCESS
-backup_assurance_foundation: status=0/SUCCESS
+217 passed
 PVC collection: COMPLETE / CURRENT
-workload/PVC relationship scope: COMPLETE
 PVC assets: 37
 same-cycle asset set exact match: true
-current assets: 37
-stale assets: 0
 assets with direct controller reference: 16
 protection UNKNOWN: 37
 restore verification UNKNOWN: 37
 unprotected_claims: 0
 authoritative_backup_sources_integrated: 0
-unknown: AUTHORITATIVE_BACKUP_SOURCE_NOT_INTEGRATED
-forbidden projected keys: none
-raw URL markers: false
 ```
 
-Every asset retains exactly eight future authoritative evidence targets:
-
-```text
-BACKUP_MECHANISM
-LAST_SUCCESSFUL_BACKUP
-BACKUP_RETENTION
-BACKUP_FAILURE_DOMAIN
-BACKUP_INTEGRITY_VERIFICATION
-RESTORE_TEST
-RPO_TARGET_AND_RESULT
-RTO_TARGET_AND_RESULT
-```
-
-The 21 PVC assets without a direct Deployment/StatefulSet/DaemonSet controller relation are not classified as orphaned. The current relation model is controller-spec context only and does not cover all Pod-level/generated consumers.
+The 21 PVC assets without a direct controller relation are not classified as orphaned.
 
 Relevant accepted docs:
 
@@ -108,26 +66,58 @@ docs/milestone-5-kubernetes-backup-assurance-foundation.md
 docs/reports/2026-08-15-m5-kubernetes-backup-assurance-foundation-live-test-gate.md
 ```
 
-## Exact next step — authoritative backup-source discovery
+## Active discovery — authoritative backup source
 
-Do not choose or implement a PBS, Proxmox, PostgreSQL, MariaDB, or external-target collector by assumption.
+Branch: `docs/m5-backup-source-discovery`.
 
-Repository search currently provides no accepted configuration proving which authoritative backup source is live, which assets it covers, or what least-privilege observation path already exists.
+First bounded management-host discovery completed without triggering backup/restore operations.
 
-Run a bounded read-only source-discovery/preflight first. The discovery should determine, without printing secrets or complete sensitive connection strings:
+Observed backup/recovery CLI capabilities:
 
-1. which backup/recovery engines are actually present and active;
-2. whether PBS/Proxmox VM backup evidence exists;
-3. whether PostgreSQL or MariaDB use database-native backup tooling;
-4. whether external backup targets are configured;
-5. whether an existing least-privilege read-only identity/access path is available;
-6. what evidence each source can authoritatively prove: mechanism, last success, retention, failure domain, verification, restore tests, RPO/RTO;
-7. what asset identity can be safely joined to the foundation artifact;
-8. whether source observation can be performed without changing schedules, jobs, credentials, or infrastructure.
+```text
+proxmox-backup-client / pvesh / pvesm / vzdump: absent
+pgbackrest / wal-g: absent
+pg_dump / pg_restore / psql: present
+mariadb-backup / mariabackup / mysqldump / mariadb: absent
+restic / borg / kopia / rclone / velero: absent
+```
 
-Choose exactly one source for the next implementation slice based on that evidence. Prefer the smallest source that has a clear authoritative contract and safe read-only observation path.
+Relevant systemd unit names observed:
 
-Do not create new broad/admin credentials as part of source discovery. Do not modify backup schedules or trigger backup/restore jobs.
+```text
+dpkg-db-backup.service
+dpkg-db-backup.timer
+pg_basebackup@.service
+pg_basebackup@.timer
+postgresql.service
+postgresql@.service
+```
+
+Only `dpkg-db-backup.timer` appeared active/scheduled in the generic timer listing. A `pg_basebackup@` template is capability/declared mechanism evidence only; it does not prove an instantiated backup job, successful backup, retention, or restore verification.
+
+No accepted PBS/Proxmox/database-native backup configuration was found in repository search. No matching SSH host aliases were available on the management host. The first config-variable-name check had an awk syntax error; this affected that subsection only and printed no secret value.
+
+Discovery report:
+
+```text
+docs/reports/2026-08-15-m5-authoritative-backup-source-discovery.md
+```
+
+## Exact next step — bounded PostgreSQL backup preflight
+
+PostgreSQL is the only source with a concrete local signal worth investigating next, but it is not yet selected as the authoritative source.
+
+Run a second read-only preflight that makes no database connection and performs no backup/restore operation. Determine:
+
+1. whether any `pg_basebackup@` service/timer instances are enabled, active, or scheduled;
+2. template unit file paths and safe directive structure;
+3. environment/config filenames and variable names only, never values;
+4. local PostgreSQL cluster metadata only;
+5. presence/metadata of plausible local backup directories without reading backup contents;
+6. corrected relevant variable-name discovery for `collector.env` and `/etc/environment`;
+7. whether the resulting observation path can authoritatively prove last success/retention/verification/restores without broad credentials.
+
+Do not run `psql`, `pg_basebackup`, `pg_dump`, restore commands, or create/modify schedules or credentials during this preflight.
 
 ## Trust invariants
 
