@@ -18,6 +18,7 @@ ExecStartPost=/usr/bin/python3 -m infra_assurance.routing_context_integration --
 ExecStartPost=/usr/bin/python3 -m infra_assurance.scope_aware_drilldown --incident /var/lib/infra-assurance/evidence/incident-candidates.json --summary /var/lib/infra-assurance/evidence/incident-candidates.md
 ExecStartPost=/usr/bin/python3 -m infra_assurance.prometheus_rule_context --incident /var/lib/infra-assurance/evidence/incident-candidates.json --out /var/lib/infra-assurance/evidence/prometheus-rule-context.json --summary-out /var/lib/infra-assurance/evidence/prometheus-rule-context.md
 ExecStartPost=/usr/bin/python3 -m infra_assurance.prometheus_rule_context_integration --incident /var/lib/infra-assurance/evidence/incident-candidates.json --rule-context /var/lib/infra-assurance/evidence/prometheus-rule-context.json --summary /var/lib/infra-assurance/evidence/incident-candidates.md
+ExecStartPost=/usr/bin/python3 -m infra_assurance.backup_assurance_foundation --snapshot /var/lib/infra-assurance/evidence/kubernetes.json --topology /var/lib/infra-assurance/evidence/topology.json --out /var/lib/infra-assurance/evidence/backup-assurance.json --summary-out /var/lib/infra-assurance/evidence/backup-assurance.md
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
