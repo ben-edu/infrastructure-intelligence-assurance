@@ -2,7 +2,7 @@
 
 ## Status
 
-Discovery in progress. First management-host preflight completed successfully without triggering backup or restore operations.
+Discovery in progress. Two bounded management-host preflights completed successfully without triggering backup or restore operations.
 
 ## Purpose
 
@@ -22,9 +22,7 @@ unprotected_claims: 0
 authoritative_backup_sources_integrated: 0
 ```
 
-## First source-discovery preflight
-
-Management host: `mgmt-automation`.
+## First management-host source-discovery preflight
 
 Observed CLI availability:
 
@@ -49,54 +47,81 @@ rclone: absent
 velero: absent
 ```
 
-Observed systemd unit names relevant to backup/recovery:
+Relevant systemd unit names included `pg_basebackup@.service/.timer`, but only `dpkg-db-backup.timer` appeared active/scheduled in the generic timer listing.
+
+No accepted PBS/Proxmox/database-native backup configuration was found in the platform repository. No matching SSH host aliases were available on `mgmt-automation`.
+
+The first config-variable-name subsection had an `awk` syntax error. This affected that subsection only and printed no secret value.
+
+## Second PostgreSQL metadata-only preflight
+
+Observed PostgreSQL runtime metadata:
 
 ```text
-dpkg-db-backup.service
-dpkg-db-backup.timer
-pg_basebackup@.service
-pg_basebackup@.timer
-postgresql.service
-postgresql@.service
+cluster: 15/main
+port: 5432
+status: online
+owner: postgres
+systemd: postgresql@15-main.service active/running
 ```
 
-Only `dpkg-db-backup.timer` was observed as an active/scheduled relevant timer in the generic timer listing. The presence of `pg_basebackup@.service/.timer` templates does not prove that an instantiated PostgreSQL backup job exists or runs.
+Observed `pg_basebackup` package capability:
 
-No cron or local systemd files containing the searched backup-tool references were found under the bounded paths checked.
+```text
+pg_basebackup@.service
+  Description=Basebackup of PostgreSQL Cluster %i
+  User=postgres
+  Exec program=pg_backupcluster
+  Environment variable name=KEEP
 
-No matching SSH host alias was available in `~/.ssh/config` because that file was not present.
+pg_basebackup@.timer
+  Description=Weekly Basebackup of PostgreSQL Cluster %i
+  OnCalendar=weekly
+  RandomizedDelaySec=1h
+```
 
-Repository search found only the newly accepted backup-assurance foundation files; no accepted PBS/Proxmox/database-native backup configuration was found.
+However, no instantiated `pg_basebackup@<instance>.service` or `.timer`, no enabled instance symlink, and no scheduled `pg_basebackup` timer were observed.
 
-The configuration-variable-name subsection of the first preflight had an `awk` syntax error. This is a preflight-script defect only. It does not invalidate the other discovery results and no secret value was printed by that subsection.
+No active backup/replication-related PostgreSQL configuration keys were observed in the bounded configuration scan. No relevant backup/PBS/Proxmox/database variable names were found in `/etc/infra-assurance/collector.env` or `/etc/environment`.
 
-## Current interpretation
+No `pg_basebackup`-specific configuration file was found. `/var/backups` exists, but directory existence alone is not backup evidence and its contents were not read.
 
-The current evidence does not justify implementing a PBS/Proxmox collector: no corresponding management-host CLI or accepted repository configuration was observed.
+## PostgreSQL conclusion
 
-The presence of `pg_dump`, `pg_restore`, `psql`, and `pg_basebackup@` templates makes PostgreSQL the only source with a concrete local signal worth investigating next. However, CLI/template presence alone is not evidence of an active backup mechanism, backup success, retention, restore verification, or database coverage.
+PostgreSQL on `mgmt-automation` is a real running database capability, but the current discovery does not establish an active database-native backup mechanism.
 
-Do not classify PostgreSQL as the selected authoritative source yet.
+The `pg_basebackup@` units are package/template capability only. They are not evidence of an instantiated schedule, completed backup, retention, integrity verification, restore test, RPO result, or RTO result.
+
+Therefore PostgreSQL is **not selected as the next authoritative backup source** from this host.
+
+Do not implement a PostgreSQL backup collector from these observations alone.
+
+## Historical Proxmox/PBS signal requiring live verification
+
+Historical infrastructure/project material records two Proxmox VE bare-metal environments and documents Proxmox Backup Server as the selected infrastructure-backup approach. This is useful discovery context but is not current live evidence and must not be treated as proof that PBS is presently configured or healthy.
+
+The next discovery should verify the current Proxmox/PBS path read-only before any collector is designed.
 
 ## Exact next discovery step
 
-Run a second bounded PostgreSQL backup preflight that performs no database connection and no backup operation. Determine only:
+Perform a bounded Proxmox/PBS preflight using current infrastructure endpoints/access paths only for verification. The preflight should:
 
-1. whether any `pg_basebackup@` service/timer instances are enabled, active, or scheduled;
-2. where the template unit files reside;
-3. whether template execution depends on environment/config files, while printing only filenames/directive names and never values;
-4. which local PostgreSQL clusters are registered/running, using cluster metadata only;
-5. whether any local backup directories or known package-managed backup paths exist, without reading backup contents;
-6. whether `collector.env` or `/etc/environment` contain relevant variable names, with values redacted;
-7. whether the observed PostgreSQL backup path can prove last success, retention, integrity, restore test, RPO, or RTO without broad credentials or mutation.
+1. verify current Proxmox VE endpoint reachability and TLS/API identity without credentials where possible;
+2. inspect local project/config metadata for existing Proxmox observer/API credential *names or file paths only*, never values;
+3. determine whether an existing read-only Proxmox API identity/access path already exists;
+4. if a safe authenticated observation path exists, determine whether PBS-backed storage/backup jobs are configured without printing tokens, secrets, full connection strings, or sensitive configuration;
+5. distinguish Proxmox VE reachability from PBS presence;
+6. distinguish configured backup storage/job from successful backup evidence;
+7. do not run backup, restore, prune, verify, garbage-collection, snapshot, or schedule-changing operations.
 
-No database connection, `pg_basebackup`, `pg_dump`, restore, schedule change, credential creation, or backup execution is allowed during this discovery step.
+If no least-privilege read-only path exists, stop at `UNKNOWN` and design that observation identity separately rather than reusing an administrative credential.
 
 ## Trust boundary
 
 - package/tool presence is capability evidence, not backup evidence;
 - a systemd template is declared capability, not an instantiated backup job;
-- an enabled timer is schedule evidence, not successful backup evidence;
+- an enabled timer would be schedule evidence, not successful backup evidence;
 - backup files/directories existing on disk are not sufficient to claim successful or restorable protection;
+- historical design documentation is not current live evidence;
 - authoritative protection classification remains UNKNOWN until accepted source evidence exists;
 - no secrets, tokens, passwords, private keys, raw database credentials, or complete sensitive connection strings may enter discovery output.
