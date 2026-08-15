@@ -2,7 +2,7 @@
 
 ## Status
 
-Repository gate accepted after correction. Management-host bootstrap/runtime acceptance remains pending.
+Repository gate accepted after correction. Management-host runtime executed successfully; final artifact acceptance is pending one stdlib-only verification pass because the manual acceptance helper used `sudo python3` with an unavailable optional `jsonschema` package.
 
 ## Purpose
 
@@ -47,52 +47,87 @@ The corrected branch was fast-forwarded on `mgmt-automation` and the full reposi
 156 passed in 0.89s
 ```
 
-Tested branch checkpoint before this bookkeeping commit:
+This establishes repository-level correctness for the corrected implementation.
+
+## Second management-host attempt — runtime succeeded, helper dependency failed
+
+`bootstrap-observer.sh` completed and the systemd oneshot finished successfully.
+
+Observed execution order and status:
 
 ```text
-2d7e655 Record first PR 20 gate failure
+kubernetes_runtime   status=0/SUCCESS
+routing_ownership   status=0/SUCCESS
+alert_scope_runtime status=0/SUCCESS
+incident_runtime    status=0/SUCCESS
 ```
 
-This establishes repository-level correctness for the corrected implementation. It does not yet establish live scope-validation/systemd acceptance.
+The oneshot returned to `inactive (dead)` after successful completion, which is expected.
 
-## Required live acceptance evidence
-
-1. Existing observer collection, Prometheus, Alertmanager, Event, routing ownership, inventory, incident grouping, Git/history/drift remain healthy.
-2. No Kubernetes RBAC changes are introduced by this slice.
-3. The scope-validation runtime contains no infrastructure query client (`kubectl`, subprocess, HTTP client).
-4. systemd ordering is:
+The manual Python acceptance helper then stopped before printing its JSON assertions with:
 
 ```text
-routing ownership
-alert scope validation / Event-correlation rebuild
-incident grouping
+ModuleNotFoundError: No module named 'jsonschema'
 ```
 
-5. Final `alert-attention.json` is version `0.2`.
-6. `source_status.kubernetes_scope` is explicit.
-7. Attention cardinality is unchanged by scope validation.
-8. Original allowlisted alert labels remain unchanged.
-9. Every final attention record contains `scope_validation`.
-10. Exact observed Service/Node/Namespace subjects may remain resource scoped with `VALIDATED_INFRASTRUCTURE_SUBJECT`.
-11. Existing workload scope remains `INFERRED_RELATION`; this slice does not upgrade it to observed routing ownership.
-12. An unobserved exact Service identity with a valid observed namespace falls back to Namespace scope with `UNVERIFIED_SIGNAL_DIMENSION`.
-13. An unobserved Namespace identity falls back to Platform scope.
-14. Failed/incomplete relevant Kubernetes collection keeps `kubernetes_scope` partial/failed, not false absence.
-15. The three previously observed kubelet pseudo-Service subjects are specifically inspected:
+This is an acceptance-helper environment defect, not a platform runtime failure. Repository tests already exercise the schema with `jsonschema`; the root/system Python used by the manual helper does not have that optional test dependency installed. No package installation is required for the runtime and none should be added solely to satisfy this helper.
+
+Useful live evidence emitted by the successfully completed runtime before the helper failure:
 
 ```text
-Service/keycloak/kube-prom-stack-kubelet
-Service/monitoring/kube-prom-stack-kubelet
-Service/moodle/kube-prom-stack-kubelet
+Alert attention records: 11
+Active: 5
+Inhibited: 6
+Correlated to Prometheus: 11
+Workload scoped: 0
+Node scoped: 0
+Service scoped: 0
+Namespace scoped: 9
+Platform scoped: 2
 ```
 
-16. Those subjects must not remain Service scoped unless current Kubernetes evidence now proves the exact Services exist.
-17. They must not be rewritten automatically to `Service/kube-system/kube-prom-stack-kubelet`.
-18. Original `service=kube-prom-stack-kubelet` signal labels must remain preserved.
-19. Event correlation is rebuilt from corrected scopes before incident grouping.
-20. Incident candidate cardinality/grouping changes are allowed only as a deterministic consequence of corrected scope identity; no alerts may be silently dropped.
-21. Sensitive/free-form field guards remain clean and `mutation_allowed=false`.
-22. Fallback warnings preserve existing alert `evidence_ids`; no singular synthetic `evidence_id` field is required.
+The final attention context explicitly reported six `ALERT_SCOPE_SERVICE_SIGNAL_NOT_OBSERVED` corrections for kubelet-labelled signals in monitoring, moodle, and keycloak. They fell back to their observed Namespace scopes; no pseudo-Service scope remained in the rendered context and no automatic rewrite to the real kube-system Service was performed.
+
+Incident grouping after corrected scope identity produced:
+
+```text
+Alert attention records: 11
+Incident candidates: 4
+Active candidates: 4
+Suppressed candidates: 0
+Unknown candidates: 0
+```
+
+Current candidates were:
+
+```text
+Namespace/keycloak
+Namespace/monitoring
+Namespace/moodle
+Platform/k3s-main
+```
+
+This is consistent with the intended correction: synthetic kubelet Service identities are no longer used downstream.
+
+## Remaining live acceptance evidence
+
+Run one stdlib-only artifact inspection; do not reinstall dependencies or rerun pytest/bootstrap unnecessarily.
+
+The remaining check must confirm:
+
+1. final `alert-attention.json` version is `0.2`;
+2. `source_status.kubernetes_scope` is explicit and current;
+3. Attention cardinality equals current Alertmanager alert cardinality;
+4. Event correlation cardinality equals final attention cardinality;
+5. every final attention record contains `scope_validation`;
+6. no final `SERVICE` scope lacks an observed Kubernetes Service;
+7. the kubelet pseudo-Service subjects do not remain;
+8. no automatic rewrite to `Service/kube-system/kube-prom-stack-kubelet` occurred;
+9. original `service=kube-prom-stack-kubelet` signal labels remain preserved;
+10. Event correlation and incident grouping use corrected scopes;
+11. sensitive/free-form field guards remain clean and `mutation_allowed=false`.
+
+Schema validation does not need to be repeated in this root-Python live helper because the accepted repository test suite already validates the v0.2 schema.
 
 ## Expected interpretation
 
