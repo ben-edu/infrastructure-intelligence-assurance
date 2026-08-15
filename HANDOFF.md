@@ -17,7 +17,7 @@ Project Sources remain authoritative for durable goals, roadmap, trust principle
 
 - repo: `ben-edu/infrastructure-intelligence-assurance`
 - stable branch: `main`
-- stable main checkpoint: `a9feef8957f74d0cb9ed4299fd86778de0bb2fe4`
+- stable main before PR #16 merge: `a9feef8957f74d0cb9ed4299fd86778de0bb2fe4`
 - management host: `mgmt-automation`
 - checkout: `~/projects/infrastructure-intelligence-assurance`
 - Kubernetes cluster: `k3s-main`
@@ -61,83 +61,61 @@ monitoring/kube-prom-stack-prometheus:9090
 services/proxy get only
 ```
 
-Accepted runtime included 21 active targets, all UP, with 11 target paths attributed to workloads and 10 unattributed. Prometheus runtime state is signal-scoped and is not generic application-health proof.
+Accepted baseline included 21 active targets, all UP. Prometheus runtime evidence is signal-scoped and is not generic application-health proof.
 
 ### Milestone 4 — Alertmanager handling correlation
 
 PR #13 is merged and live accepted.
 
-Accepted live run included 11 Alertmanager alerts: 2 ACTIVE and 9 INHIBITED, with all 11 uniquely correlated to Prometheus. Scope remained 6 Service, 3 Namespace, 2 Platform, 0 Workload, 0 Node. No unsupported workload ownership was invented.
+Accepted baseline included 11 Alertmanager alerts: 2 ACTIVE and 9 INHIBITED, all uniquely correlated to Prometheus. Scope remained Service/Namespace/Platform without invented workload ownership.
 
 ### Milestone 4 — Kubernetes Event correlation
 
-PR #14 is squash-merged at:
+PR #14 is merged and live accepted at:
 
 ```text
 c97d5197bf278192055d87bde7f47705280038ad
 ```
 
-Accepted live run:
+Accepted Event boundary:
 
 ```text
-pytest: 125 passed in 0.89s
+core/v1 Events: get/list/watch
+create Event: no
+list Pods: no
+list Secrets: no
+Kubernetes mutation: no
+window: 3600 seconds
+max recent records: 500
+```
+
+Accepted live run had one Warning Event, `ProbeWarning` on a Moodle Pod. It was attached only as Namespace/moodle supporting context. Pod-name controller inference was not introduced and platform alerts were not broadly matched.
+
+### Milestone 4 — Incident candidates and drill-down
+
+PR #16 implementation is live accepted and ready to merge.
+
+```text
+branch: feature/m4-incident-candidates
+tested head: 855d8acde041d6896d3172ba3a949134dd6d201e
+package version: 0.12.0
+pytest: 134 passed in 0.94s
 observer service: status=0/SUCCESS
-Git declared source: COMPLETE
-Prometheus source: COMPLETE
-Alertmanager source: COMPLETE
-Kubernetes Event source: COMPLETE
+incident ExecStartPost: status=0/SUCCESS
 mutation_allowed: false
 ```
 
-Event RBAC remained read-only:
+No new infrastructure query or RBAC was introduced:
 
 ```text
-list Events cluster-wide: yes
-create Event: no
-list Pods cluster-wide: no
-list Secrets cluster-wide: no
+list Pods: no
+list EndpointSlices: no
+list Secrets: no
 create Deployment: no
+query-capable client markers in incident implementation: none
 ```
 
-Current accepted Event evidence had one one-hour Warning record:
-
-```text
-ProbeWarning
-Pod/moodle/moodle-b49d869bd-flsr6
-count: 758740
-```
-
-The same cycle had 10 alert-attention records and 10 Event-correlation records. One Namespace/moodle attention record received the Warning Event as namespace-membership context. Nine had `NO_DIRECT_EVENT_MATCH`. Platform alerts were not broadly matched. Pod-name controller inference was not introduced.
-
-Detailed report:
-
-```text
-docs/reports/2026-08-15-m4-kubernetes-event-correlation-live-test-gate.md
-```
-
-## Active work — PR #16 incident candidates and drill-down
-
-- PR: `#16 Milestone 4 incident candidates and drill-down`
-- branch: `feature/m4-incident-candidates`
-- base: `a9feef8957f74d0cb9ed4299fd86778de0bb2fe4`
-- status: Draft; do not merge until management-host live acceptance passes
-- package version on branch: `0.12.0`
-
-### Goal
-
-Prove the roadmap capability:
-
-```text
-signal correlation -> incident grouping -> bounded infrastructure context -> recommended drill-down
-```
-
-before adding another telemetry engine.
-
-### No-new-query boundary
-
-This slice adds no infrastructure RBAC and performs no new infrastructure query.
-
-A systemd `ExecStartPost` reads only already-generated current local artifacts:
+The incident projection reads only current local artifacts:
 
 ```text
 alert-attention.json
@@ -153,83 +131,81 @@ and emits:
 /var/lib/infra-assurance/evidence/incident-candidates.md
 ```
 
-The incident builder contains no `kubectl`, HTTP client, subprocess, Loki, OpenTelemetry, or Jenkins query.
-
-### Grouping semantics
-
-Candidates group only by identical:
+Live result:
 
 ```text
-scope.type + scope.subject
+alert attention records: 10
+incident candidates: 7
+ACTIVE: 4
+SUPPRESSED: 3
+UNKNOWN: 0
+scope:
+  NAMESPACE: 3
+  PLATFORM: 1
+  SERVICE: 3
+candidates with related Warning Events: 1
+candidates with related workload context: 3
+candidates with exact recent change: 0
+candidates with exact drift: 0
 ```
 
-Service/Namespace/Platform scopes never merge merely because they share a namespace or cluster.
+Grouping is only by identical `scope.type + scope.subject`. `SUPPRESSED` means inhibited/silenced operational evidence, not resolved.
 
-Candidate state is:
+Infrastructure context remained bounded:
+
+- Namespace membership is breadth context only, not affected-workload proof.
+- Platform scope did not expand to all workloads.
+- Service candidates did not receive guessed workload ownership.
+- Recent change/drift attach only on exact subject identity.
+- Event context remains supporting evidence, not root cause.
+
+Current deterministic next-evidence recommendations:
 
 ```text
-ACTIVE | SUPPRESSED | UNKNOWN
+PROMETHEUS_ALERTMANAGER: 4
+KUBERNETES_ENDPOINTSLICE_POD: 3
+LOKI_CANDIDATE: 3
+KUBERNETES_OBJECT: 1
+PROMETHEUS_KUBERNETES: 1
 ```
 
-An inhibited/silenced-only candidate is `SUPPRESSED`, not resolved.
-
-### Infrastructure context
-
-- WORKLOAD: exact identity only.
-- SERVICE: existing Service-to-workload selector inference only; EndpointSlice/Pod routing is not proven.
-- NAMESPACE: workload membership is breadth context only, not affected-workload proof.
-- NODE: workload placement remains unknown without Pod evidence; verify live instead of guessing.
-- PLATFORM: cluster counts only; all workloads are not automatically classified as impacted.
-
-Recent changes and drift attach only when their subject exactly matches the candidate subject.
-
-### Deterministic drill-down
-
-Recommended checks can include:
+Sensitive/causal guards passed:
 
 ```text
-VERIFY_ALERT_CONDITION_CURRENT
-REFRESH_ALERT_EVIDENCE
-REFRESH_KUBERNETES_EVENT_EVIDENCE
-VERIFY_SERVICE_ENDPOINT_OWNERSHIP
-VERIFY_NODE_WORKLOAD_PLACEMENT
-VERIFY_RELATED_EVENT_OBJECT_STATE
-REVIEW_EXACT_RECENT_CHANGE
-VERIFY_EXACT_DECLARED_OBSERVED_DRIFT
-VERIFY_PLATFORM_SIGNAL_INPUTS
-CHECK_SCOPE_LOGS_IF_NEEDED
+forbidden projected keys: none
+raw URL markers: false
+causal assertion markers: none
 ```
 
-`LOKI_CANDIDATE` is a recommendation target only. This PR does not query Loki.
-
-Relevant docs:
+Detailed report:
 
 ```text
-docs/decisions/0013-incident-candidates-are-derived-evidence-groups.md
-docs/milestone-4-incident-candidates.md
 docs/reports/2026-08-15-m4-incident-candidates-live-test-gate.md
 ```
 
-## Exact next step
+## Exact next step after PR #16 merge
 
-Run PR #16 management-host acceptance:
+Prefer a small read-only Kubernetes EndpointSlice/Pod ownership slice before adding Loki or OpenTelemetry.
 
-1. fetch/reset branch;
-2. run full pytest;
-3. bootstrap/refresh the normal observer;
-4. verify systemd `ExecStartPost` succeeds;
-5. inspect `incident-candidates.json` and `.md`;
-6. confirm candidate count is bounded by current alert-attention count;
-7. inspect ACTIVE/SUPPRESSED/UNKNOWN counts and exact grouping;
-8. inspect related workload/route/PVC context and caveats;
-9. verify current Event relations remain supporting context, not cause;
-10. inspect exact-subject recent change/drift attachment;
-11. inspect deterministic recommended checks and `recommended_next_evidence_targets`;
-12. verify no RBAC expansion and no new query path;
-13. verify sensitive/free-form/raw URL fields are absent;
-14. update live report and merge only if semantics are correct.
+Why this is the next useful slice:
 
-Use live results to choose the next specialized source. Do not preselect Loki/OpenTelemetry/Jenkins before the candidate recommendations show which missing evidence is actually useful.
+- three current Service-scoped incident candidates explicitly require `KUBERNETES_ENDPOINTSLICE_POD` verification;
+- current Service-to-workload relationships are selector-based inference and do not prove live routing;
+- the existing `Service/monitoring/loki-headless` multiple-controller ambiguity also requires EndpointSlice/Pod ownership evidence;
+- resolving this structural uncertainty improves topology, runtime attribution, and incident context before adding another telemetry engine.
+
+Smallest intended scope:
+
+1. add read-only observation for EndpointSlices and the minimum bounded Pod metadata needed for ownership/routing;
+2. use EndpointSlice target references plus Pod owner references to derive evidence-backed Service -> Pod -> controller relations;
+3. do not infer controller ownership from Pod names;
+4. do not ingest Pod logs, environment variables, Secret values, mounted Secret content, service-account tokens, or sensitive connection data;
+5. retain existing selector inference as a weaker relation where exact live routing evidence is unavailable;
+6. surface ambiguity/unknown explicitly rather than forcing a controller match;
+7. keep `mutation_allowed=false` and separate future control identity from observation identity;
+8. use live acceptance before allowing the stronger relation to influence incident candidates.
+
+Do not add Loki/OpenTelemetry in the same slice.
 
 ## Trust invariants
 
