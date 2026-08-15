@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import subprocess
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -78,6 +79,16 @@ def _parse_owner_projection(value: str) -> list[dict[str, str]] | None:
     return owners
 
 
+def _target_namespace(
+    *, kind: str, target_namespace: str, slice_namespace: str
+) -> str | None:
+    if target_namespace:
+        return target_namespace
+    if kind == "Pod":
+        return slice_namespace
+    return None
+
+
 def _parse_endpointslice_projection(value: str) -> tuple[list[dict[str, Any]], int]:
     slices: list[dict[str, Any]] = []
     invalid = 0
@@ -107,7 +118,11 @@ def _parse_endpointslice_projection(value: str) -> tuple[list[dict[str, Any]], i
                 target_ref = {
                     "api_group": _api_group(api_version),
                     "kind": kind,
-                    "namespace": target_namespace or namespace,
+                    "namespace": _target_namespace(
+                        kind=kind,
+                        target_namespace=target_namespace,
+                        slice_namespace=namespace,
+                    ),
                     "name": target_name,
                 }
             endpoints.append(
@@ -169,23 +184,62 @@ def _collect_endpointslices(
         f"jsonpath={ENDPOINTSLICE_JSONPATH}",
     ]
     try:
-        result = runner(command, capture_output=True, text=True, timeout=timeout_seconds, check=False)
+        result = runner(
+            command,
+            capture_output=True,
+            text=True,
+            timeout=timeout_seconds,
+            check=False,
+        )
     except subprocess.TimeoutExpired:
         return (
-            {"status": "FAILED_TO_OBSERVE", "mode": "LIST_PROJECTED", "observed_at": None, "expires_at": None, "item_count": None, "evidence_id": evidence_id},
+            {
+                "status": "FAILED_TO_OBSERVE",
+                "mode": "LIST_PROJECTED",
+                "observed_at": None,
+                "expires_at": None,
+                "item_count": None,
+                "evidence_id": evidence_id,
+            },
             [],
-            [{"source": "endpoint_slices", "code": "KUBECTL_TIMEOUT", "summary": "kubectl exceeded the local EndpointSlice timeout."}],
+            [
+                {
+                    "source": "endpoint_slices",
+                    "code": "KUBECTL_TIMEOUT",
+                    "summary": "kubectl exceeded the local EndpointSlice timeout.",
+                }
+            ],
         )
     except FileNotFoundError:
         return (
-            {"status": "FAILED_TO_OBSERVE", "mode": "LIST_PROJECTED", "observed_at": None, "expires_at": None, "item_count": None, "evidence_id": evidence_id},
+            {
+                "status": "FAILED_TO_OBSERVE",
+                "mode": "LIST_PROJECTED",
+                "observed_at": None,
+                "expires_at": None,
+                "item_count": None,
+                "evidence_id": evidence_id,
+            },
             [],
-            [{"source": "endpoint_slices", "code": "KUBECTL_NOT_AVAILABLE", "summary": "kubectl is not available in the collector runtime."}],
+            [
+                {
+                    "source": "endpoint_slices",
+                    "code": "KUBECTL_NOT_AVAILABLE",
+                    "summary": "kubectl is not available in the collector runtime.",
+                }
+            ],
         )
     if result.returncode != 0:
         code, summary = _classify_failure(result.stderr)
         return (
-            {"status": "FAILED_TO_OBSERVE", "mode": "LIST_PROJECTED", "observed_at": None, "expires_at": None, "item_count": None, "evidence_id": evidence_id},
+            {
+                "status": "FAILED_TO_OBSERVE",
+                "mode": "LIST_PROJECTED",
+                "observed_at": None,
+                "expires_at": None,
+                "item_count": None,
+                "evidence_id": evidence_id,
+            },
             [],
             [{"source": "endpoint_slices", "code": code, "summary": summary}],
         )
@@ -232,27 +286,75 @@ def _get_owner_projection(
         f"jsonpath={OWNER_JSONPATH}",
     ]
     try:
-        result = runner(command, capture_output=True, text=True, timeout=timeout_seconds, check=False)
+        result = runner(
+            command,
+            capture_output=True,
+            text=True,
+            timeout=timeout_seconds,
+            check=False,
+        )
     except subprocess.TimeoutExpired:
-        return {"state": "UNKNOWN", "evidence_id": evidence_id, "controller_owners": []}, {"code": "KUBECTL_TIMEOUT", "summary": "Exact-name Kubernetes metadata GET timed out."}
+        return (
+            {"state": "UNKNOWN", "evidence_id": evidence_id, "controller_owners": []},
+            {
+                "code": "KUBECTL_TIMEOUT",
+                "summary": "Exact-name Kubernetes metadata GET timed out.",
+            },
+        )
     except FileNotFoundError:
-        return {"state": "UNKNOWN", "evidence_id": evidence_id, "controller_owners": []}, {"code": "KUBECTL_NOT_AVAILABLE", "summary": "kubectl is not available in the collector runtime."}
+        return (
+            {"state": "UNKNOWN", "evidence_id": evidence_id, "controller_owners": []},
+            {
+                "code": "KUBECTL_NOT_AVAILABLE",
+                "summary": "kubectl is not available in the collector runtime.",
+            },
+        )
 
     if result.returncode != 0:
         code, summary = _classify_failure(result.stderr)
         if code == "KUBERNETES_NOT_FOUND":
-            return {"state": "ABSENT", "evidence_id": evidence_id, "controller_owners": []}, None
-        return {"state": "UNKNOWN", "evidence_id": evidence_id, "controller_owners": []}, {"code": code, "summary": summary}
+            return {
+                "state": "ABSENT",
+                "evidence_id": evidence_id,
+                "controller_owners": [],
+            }, None
+        return (
+            {"state": "UNKNOWN", "evidence_id": evidence_id, "controller_owners": []},
+            {"code": code, "summary": summary},
+        )
 
     owners = _parse_owner_projection(result.stdout)
     if owners is None:
-        return {"state": "UNKNOWN", "evidence_id": evidence_id, "controller_owners": []}, {"code": "OWNER_PROJECTION_INVALID", "summary": "Controller ownerReference projection could not be parsed safely."}
-    return {"state": "PRESENT", "evidence_id": evidence_id, "controller_owners": owners}, None
+        return (
+            {"state": "UNKNOWN", "evidence_id": evidence_id, "controller_owners": []},
+            {
+                "code": "OWNER_PROJECTION_INVALID",
+                "summary": "Controller ownerReference projection could not be parsed safely.",
+            },
+        )
+    return {
+        "state": "PRESENT",
+        "evidence_id": evidence_id,
+        "controller_owners": owners,
+    }, None
 
 
-def _status_for_selective_get(*, requested: int, present: int, absent: int, unknown: int, skipped: int, now: datetime, ttl_seconds: int) -> dict[str, Any]:
+def _status_for_selective_get(
+    *,
+    requested: int,
+    present: int,
+    absent: int,
+    unknown: int,
+    skipped: int,
+    now: datetime,
+    ttl_seconds: int,
+) -> dict[str, Any]:
     if unknown or skipped:
-        status = "FAILED_TO_OBSERVE" if requested > 0 and unknown + skipped == requested else "PARTIAL"
+        status = (
+            "FAILED_TO_OBSERVE"
+            if requested > 0 and unknown + skipped == requested
+            else "PARTIAL"
+        )
     else:
         status = "COMPLETE"
     return {
@@ -268,7 +370,11 @@ def _status_for_selective_get(*, requested: int, present: int, absent: int, unkn
     }
 
 
-def _snapshot_indexes(snapshot: dict[str, Any]) -> tuple[dict[tuple[str, str | None, str], dict[str, Any]], dict[str, dict[str, Any]]]:
+def _snapshot_indexes(
+    snapshot: dict[str, Any],
+) -> tuple[
+    dict[tuple[str, str | None, str], dict[str, Any]], dict[str, dict[str, Any]]
+]:
     resources: dict[tuple[str, str | None, str], dict[str, Any]] = {}
     collections: dict[str, dict[str, Any]] = {}
     for envelope in snapshot.get("evidence", []):
@@ -285,7 +391,9 @@ def _snapshot_indexes(snapshot: dict[str, Any]) -> tuple[dict[tuple[str, str | N
     return resources, collections
 
 
-def _collection_complete(collections: dict[str, dict[str, Any]], kind: str) -> bool:
+def _collection_complete(
+    collections: dict[str, dict[str, Any]], kind: str
+) -> bool:
     envelope = collections.get(kind)
     return bool(envelope and envelope.get("observation_status") == "COMPLETE")
 
@@ -314,20 +422,42 @@ def _resolve_workload(
     if owner_kind == "ReplicaSet":
         key = (namespace, owner_name)
         if key in skipped_replica_sets:
-            return {"resolution": "REPLICASET_GET_BOUND_EXCEEDED", "immediate_owner": immediate_owner, "workload": None, "basis": basis, "evidence_ids": evidence_ids}
+            return {
+                "resolution": "REPLICASET_GET_BOUND_EXCEEDED",
+                "immediate_owner": immediate_owner,
+                "workload": None,
+                "basis": basis,
+                "evidence_ids": evidence_ids,
+            }
         replica_set = replica_sets.get(key)
         if replica_set is None or replica_set["state"] == "UNKNOWN":
             if replica_set is not None:
                 evidence_ids.append(replica_set["evidence_id"])
-            return {"resolution": "REPLICASET_OBSERVATION_UNKNOWN", "immediate_owner": immediate_owner, "workload": None, "basis": basis, "evidence_ids": evidence_ids}
+            return {
+                "resolution": "REPLICASET_OBSERVATION_UNKNOWN",
+                "immediate_owner": immediate_owner,
+                "workload": None,
+                "basis": basis,
+                "evidence_ids": evidence_ids,
+            }
         if replica_set["state"] == "ABSENT":
             evidence_ids.append(replica_set["evidence_id"])
-            return {"resolution": "REPLICASET_NOT_FOUND", "immediate_owner": immediate_owner, "workload": None, "basis": basis, "evidence_ids": evidence_ids}
+            return {
+                "resolution": "REPLICASET_NOT_FOUND",
+                "immediate_owner": immediate_owner,
+                "workload": None,
+                "basis": basis,
+                "evidence_ids": evidence_ids,
+            }
         evidence_ids.append(replica_set["evidence_id"])
         rs_owners = replica_set.get("controller_owners", [])
         if len(rs_owners) != 1:
             return {
-                "resolution": "REPLICASET_CONTROLLER_OWNER_AMBIGUOUS" if len(rs_owners) > 1 else "REPLICASET_CONTROLLER_OWNER_UNKNOWN",
+                "resolution": (
+                    "REPLICASET_CONTROLLER_OWNER_AMBIGUOUS"
+                    if len(rs_owners) > 1
+                    else "REPLICASET_CONTROLLER_OWNER_UNKNOWN"
+                ),
                 "immediate_owner": immediate_owner,
                 "workload": None,
                 "basis": basis + ["REPLICASET_EXACT_GET"],
@@ -335,12 +465,24 @@ def _resolve_workload(
             }
         rs_owner = rs_owners[0]
         if rs_owner["kind"] != "Deployment":
-            return {"resolution": "UNSUPPORTED_REPLICASET_CONTROLLER_KIND", "immediate_owner": immediate_owner, "workload": None, "basis": basis + ["REPLICASET_CONTROLLER_OWNER_REFERENCE"], "evidence_ids": evidence_ids}
+            return {
+                "resolution": "UNSUPPORTED_REPLICASET_CONTROLLER_KIND",
+                "immediate_owner": immediate_owner,
+                "workload": None,
+                "basis": basis + ["REPLICASET_CONTROLLER_OWNER_REFERENCE"],
+                "evidence_ids": evidence_ids,
+            }
         owner_kind = "Deployment"
         owner_name = rs_owner["name"]
         basis.append("REPLICASET_CONTROLLER_OWNER_REFERENCE")
     elif owner_kind not in WORKLOAD_KINDS:
-        return {"resolution": "UNSUPPORTED_POD_CONTROLLER_KIND", "immediate_owner": immediate_owner, "workload": None, "basis": basis, "evidence_ids": evidence_ids}
+        return {
+            "resolution": "UNSUPPORTED_POD_CONTROLLER_KIND",
+            "immediate_owner": immediate_owner,
+            "workload": None,
+            "basis": basis,
+            "evidence_ids": evidence_ids,
+        }
 
     workload_subject = _label(owner_kind, namespace, owner_name)
     workload = resources.get((owner_kind, namespace, owner_name))
@@ -354,7 +496,11 @@ def _resolve_workload(
             "evidence_ids": list(dict.fromkeys(evidence_ids)),
         }
     return {
-        "resolution": "WORKLOAD_NOT_OBSERVED" if _collection_complete(collections, owner_kind) else "WORKLOAD_OBSERVATION_UNKNOWN",
+        "resolution": (
+            "WORKLOAD_NOT_OBSERVED"
+            if _collection_complete(collections, owner_kind)
+            else "WORKLOAD_OBSERVATION_UNKNOWN"
+        ),
         "immediate_owner": immediate_owner,
         "workload": workload_subject,
         "basis": basis,
@@ -399,7 +545,9 @@ def build_routing_ownership(
             (endpoint["target_ref"]["namespace"], endpoint["target_ref"]["name"])
             for endpoint_slice in endpoint_slices
             for endpoint in endpoint_slice["endpoints"]
-            if endpoint.get("target_ref") and endpoint["target_ref"]["kind"] == "Pod"
+            if endpoint.get("target_ref")
+            and endpoint["target_ref"]["kind"] == "Pod"
+            and endpoint["target_ref"].get("namespace")
         }
     )
     selected_pods = pod_targets[:max_pod_gets]
@@ -416,7 +564,13 @@ def build_routing_ownership(
         )
         pod_records[(namespace, name)] = record
         if error:
-            errors.append({"source": "pods", "subject": _label("Pod", namespace, name), **error})
+            errors.append(
+                {
+                    "source": "pods",
+                    "subject": _label("Pod", namespace, name),
+                    **error,
+                }
+            )
 
     rs_targets = sorted(
         {
@@ -441,9 +595,17 @@ def build_routing_ownership(
         )
         rs_records[(namespace, name)] = record
         if error:
-            errors.append({"source": "replica_sets", "subject": _label("ReplicaSet", namespace, name), **error})
+            errors.append(
+                {
+                    "source": "replica_sets",
+                    "subject": _label("ReplicaSet", namespace, name),
+                    **error,
+                }
+            )
 
-    def _counts(records: dict[tuple[str, str], dict[str, Any]]) -> tuple[int, int, int]:
+    def _counts(
+        records: dict[tuple[str, str], dict[str, Any]]
+    ) -> tuple[int, int, int]:
         return (
             sum(record["state"] == "PRESENT" for record in records.values()),
             sum(record["state"] == "ABSENT" for record in records.values()),
@@ -453,12 +615,22 @@ def build_routing_ownership(
     pod_present, pod_absent, pod_unknown = _counts(pod_records)
     rs_present, rs_absent, rs_unknown = _counts(rs_records)
     pod_status = _status_for_selective_get(
-        requested=len(pod_targets), present=pod_present, absent=pod_absent,
-        unknown=pod_unknown, skipped=len(skipped_pods), now=now, ttl_seconds=ttl_seconds,
+        requested=len(pod_targets),
+        present=pod_present,
+        absent=pod_absent,
+        unknown=pod_unknown,
+        skipped=len(skipped_pods),
+        now=now,
+        ttl_seconds=ttl_seconds,
     )
     rs_status = _status_for_selective_get(
-        requested=len(rs_targets), present=rs_present, absent=rs_absent,
-        unknown=rs_unknown, skipped=len(skipped_rs), now=now, ttl_seconds=ttl_seconds,
+        requested=len(rs_targets),
+        present=rs_present,
+        absent=rs_absent,
+        unknown=rs_unknown,
+        skipped=len(skipped_rs),
+        now=now,
+        ttl_seconds=ttl_seconds,
     )
 
     service_routes: dict[tuple[str, str], dict[str, Any]] = {}
@@ -487,10 +659,16 @@ def build_routing_ownership(
                 "endpoint_slices": [],
                 "paths": [],
                 "resolved_workloads": [],
-                "scope_completeness": "COMPLETE" if endpoint_status["status"] == "COMPLETE" else "PARTIAL",
+                "scope_completeness": (
+                    "COMPLETE"
+                    if endpoint_status["status"] == "COMPLETE"
+                    else "PARTIAL"
+                ),
             },
         )
-        route["endpoint_slices"].append(_label("EndpointSlice", namespace, slice_name))
+        route["endpoint_slices"].append(
+            _label("EndpointSlice", namespace, slice_name)
+        )
         service = resources.get(("Service", namespace, service_name))
         service_evidence_id = None
         if service is not None:
@@ -527,7 +705,13 @@ def build_routing_ownership(
                 route["paths"].append(path)
                 continue
 
-            pod_key = (target["namespace"], target["name"])
+            target_namespace = target.get("namespace")
+            if not target_namespace:
+                path["resolution"] = "POD_OBSERVATION_UNKNOWN"
+                route["scope_completeness"] = "PARTIAL"
+                route["paths"].append(path)
+                continue
+            pod_key = (target_namespace, target["name"])
             if pod_key in skipped_pods:
                 path["resolution"] = "POD_GET_BOUND_EXCEEDED"
                 route["scope_completeness"] = "PARTIAL"
@@ -548,18 +732,35 @@ def build_routing_ownership(
                 continue
             owners = pod.get("controller_owners", [])
             if len(owners) != 1:
-                path["resolution"] = "POD_CONTROLLER_OWNER_AMBIGUOUS" if len(owners) > 1 else "POD_CONTROLLER_OWNER_UNKNOWN"
+                path["resolution"] = (
+                    "POD_CONTROLLER_OWNER_AMBIGUOUS"
+                    if len(owners) > 1
+                    else "POD_CONTROLLER_OWNER_UNKNOWN"
+                )
                 route["paths"].append(path)
                 continue
             resolved = _resolve_workload(
-                namespace=target["namespace"], owner=owners[0], pod_record=pod,
-                replica_sets=rs_records, skipped_replica_sets=skipped_rs,
-                resources=resources, collections=collections,
+                namespace=target_namespace,
+                owner=owners[0],
+                pod_record=pod,
+                replica_sets=rs_records,
+                skipped_replica_sets=skipped_rs,
+                resources=resources,
+                collections=collections,
             )
             path.update(resolved)
-            path["basis"] = ["ENDPOINTSLICE_SERVICE_NAME_LABEL", "ENDPOINT_TARGET_REF"] + resolved["basis"]
-            path["evidence_ids"] = list(dict.fromkeys(evidence_ids + resolved["evidence_ids"]))
-            if path["resolution"] in {"REPLICASET_GET_BOUND_EXCEEDED", "REPLICASET_OBSERVATION_UNKNOWN", "WORKLOAD_OBSERVATION_UNKNOWN"}:
+            path["basis"] = [
+                "ENDPOINTSLICE_SERVICE_NAME_LABEL",
+                "ENDPOINT_TARGET_REF",
+            ] + resolved["basis"]
+            path["evidence_ids"] = list(
+                dict.fromkeys(evidence_ids + resolved["evidence_ids"])
+            )
+            if path["resolution"] in {
+                "REPLICASET_GET_BOUND_EXCEEDED",
+                "REPLICASET_OBSERVATION_UNKNOWN",
+                "WORKLOAD_OBSERVATION_UNKNOWN",
+            }:
                 route["scope_completeness"] = "PARTIAL"
             route["paths"].append(path)
 
@@ -571,7 +772,12 @@ def build_routing_ownership(
                 continue
             group = groups.setdefault(
                 path["workload"],
-                {"subject": path["workload"], "pod_targets": 0, "basis": [], "evidence_ids": []},
+                {
+                    "subject": path["workload"],
+                    "pod_targets": 0,
+                    "basis": [],
+                    "evidence_ids": [],
+                },
             )
             group["pod_targets"] += 1
             group["basis"].extend(path["basis"])
@@ -579,7 +785,9 @@ def build_routing_ownership(
         for group in groups.values():
             group["basis"] = list(dict.fromkeys(group["basis"]))
             group["evidence_ids"] = list(dict.fromkeys(group["evidence_ids"]))
-        route["resolved_workloads"] = sorted(groups.values(), key=lambda item: item["subject"])
+        route["resolved_workloads"] = sorted(
+            groups.values(), key=lambda item: item["subject"]
+        )
 
         resolutions = [path["resolution"] for path in route["paths"]]
         resolved_count = sum(value == "RESOLVED_WORKLOAD" for value in resolutions)
@@ -609,17 +817,39 @@ def build_routing_ownership(
         "replicaset_gets_executed": len(selected_rs),
         "services_with_endpoint_slices": len(routes),
         "endpoint_paths": len(all_paths),
-        "pod_targets": sum((path.get("target") or {}).get("kind") == "Pod" for path in all_paths),
-        "non_pod_targets": sum(path["resolution"] == "NON_POD_TARGET" for path in all_paths),
-        "target_refs_missing": sum(path["resolution"] == "TARGET_REF_MISSING" for path in all_paths),
-        "resolved_workload_paths": sum(path["resolution"] == "RESOLVED_WORKLOAD" for path in all_paths),
-        "services_with_resolved_workloads": sum(bool(route["resolved_workloads"]) for route in routes),
-        "services_non_pod_only": sum(route["state"] == "NON_POD_ROUTING" for route in routes),
-        "services_unknown_or_partial": sum(route["state"] in {"UNKNOWN", "PARTIAL_ROUTING", "SERVICE_NOT_OBSERVED"} or route["scope_completeness"] == "PARTIAL" for route in routes),
+        "pod_targets": sum(
+            (path.get("target") or {}).get("kind") == "Pod" for path in all_paths
+        ),
+        "non_pod_targets": sum(
+            path["resolution"] == "NON_POD_TARGET" for path in all_paths
+        ),
+        "target_refs_missing": sum(
+            path["resolution"] == "TARGET_REF_MISSING" for path in all_paths
+        ),
+        "resolved_workload_paths": sum(
+            path["resolution"] == "RESOLVED_WORKLOAD" for path in all_paths
+        ),
+        "services_with_resolved_workloads": sum(
+            bool(route["resolved_workloads"]) for route in routes
+        ),
+        "services_non_pod_only": sum(
+            route["state"] == "NON_POD_ROUTING" for route in routes
+        ),
+        "services_unknown_or_partial": sum(
+            route["state"]
+            in {"UNKNOWN", "PARTIAL_ROUTING", "SERVICE_NOT_OBSERVED"}
+            or route["scope_completeness"] == "PARTIAL"
+            for route in routes
+        ),
     }
 
-    overall = _overall_status([endpoint_status["status"], pod_status["status"], rs_status["status"]])
-    if any(route["scope_completeness"] == "PARTIAL" for route in routes) and overall == "COMPLETE":
+    overall = _overall_status(
+        [endpoint_status["status"], pod_status["status"], rs_status["status"]]
+    )
+    if (
+        any(route["scope_completeness"] == "PARTIAL" for route in routes)
+        and overall == "COMPLETE"
+    ):
         overall = "PARTIAL"
     return {
         "routing_ownership_version": ROUTING_OWNERSHIP_VERSION,
@@ -632,7 +862,10 @@ def build_routing_ownership(
             "pods": pod_status,
             "replica_sets": rs_status,
         },
-        "bounds": {"max_pod_gets": max_pod_gets, "max_replicaset_gets": max_replicaset_gets},
+        "bounds": {
+            "max_pod_gets": max_pod_gets,
+            "max_replicaset_gets": max_replicaset_gets,
+        },
         "summary": summary,
         "service_routes": sorted(routes, key=lambda route: route["service"]),
         "unknowns": unknowns,
@@ -666,11 +899,22 @@ def render_routing_ownership_markdown(value: dict[str, Any]) -> str:
         "",
     ]
     for route in value["service_routes"]:
-        workloads = ", ".join(item["subject"] for item in route["resolved_workloads"]) or "none"
-        lines.append(f"- [{route['state']}] {route['service']} paths={len(route['paths'])} resolved_workloads={workloads}")
-        for path in [p for p in route["paths"] if p["resolution"] != "RESOLVED_WORKLOAD"][:10]:
+        workloads = (
+            ", ".join(item["subject"] for item in route["resolved_workloads"])
+            or "none"
+        )
+        lines.append(
+            f"- [{route['state']}] {route['service']} paths={len(route['paths'])} resolved_workloads={workloads}"
+        )
+        for path in [
+            p for p in route["paths"] if p["resolution"] != "RESOLVED_WORKLOAD"
+        ][:10]:
             target = path.get("target")
-            target_label = _label(target["kind"], target.get("namespace"), target["name"]) if target else "targetRef-missing"
+            target_label = (
+                _label(target["kind"], target.get("namespace"), target["name"])
+                if target
+                else "targetRef-missing"
+            )
             lines.append(f"  - {path['resolution']}: {target_label}")
     lines.extend(
         [
@@ -689,15 +933,18 @@ def render_routing_ownership_markdown(value: dict[str, Any]) -> str:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Build bounded Kubernetes EndpointSlice/Pod routing ownership evidence.")
+    parser = argparse.ArgumentParser(
+        description="Build bounded Kubernetes EndpointSlice/Pod routing ownership evidence."
+    )
     parser.add_argument("--snapshot", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--summary-out", type=Path)
     parser.add_argument("--context", dest="kubectl_context")
     parser.add_argument("--max-pod-gets", type=int, default=DEFAULT_MAX_POD_GETS)
-    parser.add_argument("--max-replicaset-gets", type=int, default=DEFAULT_MAX_REPLICASET_GETS)
+    parser.add_argument(
+        "--max-replicaset-gets", type=int, default=DEFAULT_MAX_REPLICASET_GETS
+    )
     args = parser.parse_args()
-    import json
     snapshot = json.loads(args.snapshot.read_text(encoding="utf-8"))
     result = build_routing_ownership(
         snapshot,
