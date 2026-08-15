@@ -1,6 +1,6 @@
 # ADR 0015 — Validate Alert Resource Scope Against Observed Kubernetes Identity
 
-Status: Proposed; pending live acceptance.
+Status: Accepted and live validated on 2026-08-15.
 
 ## Context
 
@@ -59,7 +59,7 @@ Existing unique Prometheus-to-workload attribution remains explicitly an inferen
 
 ## Runtime ordering
 
-The systemd cycle becomes:
+The systemd cycle is:
 
 ```text
 main Kubernetes/observability collection
@@ -96,8 +96,28 @@ before incident grouping runs.
 - No new infrastructure query, RBAC, logs, secrets, credentials, or full Pod object content is introduced.
 - `mutation_allowed=false` remains unchanged.
 
+## Live validation evidence
+
+The accepted management-host gate established:
+
+```text
+156 passed in 0.89s
+alert_attention_version: 0.2
+Prometheus source: COMPLETE
+Alertmanager source: COMPLETE
+Kubernetes scope validation: COMPLETE
+Alertmanager alerts: 11
+Alert attention: 11
+Event correlations: 11
+SERVICE scopes: 0
+NAMESPACE scopes: 9
+PLATFORM scopes: 2
+```
+
+All six current kubelet-labelled alerts retained their original signal labels while synthetic Service identities were removed. There were no automatic rewrites to the real kube-system Service, no label mismatches, no sensitive projected keys, and no raw URL markers.
+
 ## Consequences
 
-The current kubelet alerts should no longer produce nonexistent Service subjects. If their namespace label is a valid Kubernetes namespace, they may become Namespace-scoped while retaining the original `service=kube-prom-stack-kubelet` label as signal context.
+The current kubelet alerts no longer produce nonexistent Service subjects. Their observed namespace dimensions are retained as weaker Namespace scope while the stronger Service claim is explicitly unverified.
 
-Routing ownership is still not integrated into incident impact context in this slice. That remains a separate acceptance-gated step after scope correction is live validated.
+Routing ownership remains a separate accepted evidence plane. Its downstream integration is the next acceptance-gated slice rather than being folded into this identity-correction decision.
