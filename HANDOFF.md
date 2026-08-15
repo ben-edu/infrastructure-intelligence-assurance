@@ -17,6 +17,7 @@ Project Sources remain authoritative for durable goals, roadmap, trust principle
 
 - repo: `ben-edu/infrastructure-intelligence-assurance`
 - stable branch: `main`
+- current stable merge checkpoint: `dfbfb899474c2f4e0c799cad7289d03fecc39de4`
 - management host: `mgmt-automation`
 - checkout: `~/projects/infrastructure-intelligence-assurance`
 - Kubernetes cluster: `k3s-main`
@@ -97,7 +98,7 @@ Configuration coverage is not scrape-health evidence.
 
 ### Milestone 4 — Prometheus runtime intelligence
 
-Accepted and ready for merge through PR #10.
+Accepted and squash-merged through PR #10.
 
 Exact read-only proxy boundary:
 
@@ -153,11 +154,13 @@ Detailed acceptance report:
 docs/reports/2026-08-15-m4-prometheus-runtime-live-test-gate.md
 ```
 
-## Exact next step after PR #10 merge
+## Exact next step
 
 Continue Milestone 4 with a small Alertmanager correlation slice around the 11 real active alerts.
 
-Preferred scope:
+Before implementing RBAC or collector code, verify the exact live Alertmanager Service identity and read-only API path on `mgmt-automation` rather than assuming chart naming.
+
+Preferred slice scope after verification:
 
 - observe existing Alertmanager read-only;
 - capture only safe alert-handling state such as active/silenced/inhibited status where the API supports it;
