@@ -77,11 +77,7 @@ def _responses(*, content=None, content_status=200, version_status=200):
             ],
             None,
         ),
-        ("/api2/json/cluster/backup", None): (
-            200,
-            [],
-            None,
-        ),
+        ("/api2/json/cluster/backup", None): (200, [], None),
         ("/api2/json/nodes/delfan/storage/local/content", (("content", "backup"),)): (
             content_status,
             content if content_status == 200 else None,
@@ -114,6 +110,16 @@ def _build(responses=None):
     )
 
 
+def _assert_no_platform_protection_classification(value):
+    if isinstance(value, dict):
+        assert "protection_status" not in value
+        for child in value.values():
+            _assert_no_platform_protection_classification(child)
+    elif isinstance(value, list):
+        for child in value:
+            _assert_no_platform_protection_classification(child)
+
+
 def test_complete_projection_is_bounded_and_preserves_recovery_point_semantics():
     artifact = _build()
 
@@ -143,9 +149,10 @@ def test_complete_projection_is_bounded_and_preserves_recovery_point_semantics()
         "secret-endpoint",
         "ssl_fingerprint",
         "username",
-        "UNPROTECTED",
     ):
         assert forbidden not in raw
+
+    _assert_no_platform_protection_classification(artifact)
 
 
 def test_complete_empty_content_scope_is_not_failed_observation():
@@ -196,11 +203,17 @@ def test_archive_protected_flag_never_becomes_platform_protection_state():
         }
     ]
     artifact = _build(_responses(content=content))
-    raw = json.dumps(artifact)
     assert artifact["recovery_points"][0]["archive_protection_flag"] is True
-    assert "protection_status" not in raw
-    assert "PROTECTED" not in raw
-    assert "UNPROTECTED" not in raw
+    _assert_no_platform_protection_classification(artifact)
+    assert all(
+        item["local_recovery_point_status"]
+        in {
+            "RECOVERY_POINT_OBSERVED",
+            "NO_RECOVERY_POINT_OBSERVED_IN_COMPLETE_STORAGE_SCOPE",
+            "UNKNOWN",
+        }
+        for item in artifact["guest_storage_coverage"]
+    )
 
 
 def test_markdown_keeps_assurance_boundary_visible():
