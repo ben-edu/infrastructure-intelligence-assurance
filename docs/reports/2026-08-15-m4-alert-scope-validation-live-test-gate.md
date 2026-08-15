@@ -2,11 +2,42 @@
 
 ## Status
 
-Pending management-host live acceptance.
+Pending corrected management-host acceptance.
 
 ## Purpose
 
 Validate that alert label dimensions are no longer treated as authoritative Kubernetes resource identity unless the same-cycle Kubernetes snapshot supports that exact subject.
+
+## First management-host attempt
+
+The first PR #20 run passed the static guards before pytest:
+
+```text
+RBAC changes: none
+query-capable client markers: none
+```
+
+The repository test gate then stopped execution before bootstrap:
+
+```text
+3 failed, 153 passed in 1.56s
+```
+
+All three failures reached fallback scope paths and raised:
+
+```text
+KeyError: 'evidence_id'
+```
+
+Root cause: alert-attention records carry an `evidence_ids` array, not a singular `evidence_id` field. The new scope validator incorrectly referenced `alert["evidence_id"]` when constructing fallback warnings. This was an implementation defect that would also affect live fallback processing; it was not a test-fixture defect.
+
+Correction on the active branch:
+
+- fallback warnings now preserve the existing `alert.evidence_ids` list;
+- no synthetic singular evidence field is introduced;
+- a regression assertion verifies that original alert evidence survives an unverified Service-to-Namespace fallback.
+
+Because pytest failed, `bootstrap-observer.sh` did not execute in this attempt. No PR #20 runtime/systemd acceptance claim is derived from the failed run.
 
 ## Required acceptance evidence
 
@@ -46,6 +77,7 @@ Service/moodle/kube-prom-stack-kubelet
 20. Event correlation is rebuilt from corrected scopes before incident grouping.
 21. Incident candidate cardinality/grouping changes are allowed only as a deterministic consequence of corrected scope identity; no alerts may be silently dropped.
 22. Sensitive/free-form field guards remain clean and `mutation_allowed=false`.
+23. Fallback warnings preserve existing alert `evidence_ids`; no singular synthetic `evidence_id` field is required.
 
 ## Expected interpretation
 
