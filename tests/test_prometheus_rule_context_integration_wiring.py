@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -49,3 +50,37 @@ def test_rule_integration_requires_no_rbac_marker():
     rbac = (ROOT / "deploy" / "kubernetes" / "observer-rbac.yaml").read_text()
     assert "prometheus-rule-integration" not in rbac
     assert "prometheus_rule_context_integration" not in rbac
+
+
+def test_rule_integration_extension_schema_is_strict_for_rule_projection():
+    schema = json.loads(
+        (
+            ROOT
+            / "schemas"
+            / "incident-prometheus-rule-context-integration.schema.json"
+        ).read_text()
+    )
+    assert schema["properties"]["incident_candidates_version"]["const"] == "0.4"
+    assert schema["properties"]["mutation_allowed"]["const"] is False
+    integration = schema["properties"]["prometheus_rule_context_integration"]
+    assert integration["properties"]["version"]["const"] == "0.1"
+    assert integration["properties"]["mode"]["const"] == "EXACT_COMPLETE_ONLY"
+
+    rule = schema["$defs"]["ruleProjection"]
+    assert rule["additionalProperties"] is False
+    projected = set(rule["properties"])
+    for forbidden in (
+        "query",
+        "expr",
+        "expression",
+        "labels",
+        "annotations",
+        "file",
+        "alerts",
+        "lastError",
+        "runbook_url",
+        "dashboard_url",
+        "token",
+        "password",
+    ):
+        assert forbidden not in projected
