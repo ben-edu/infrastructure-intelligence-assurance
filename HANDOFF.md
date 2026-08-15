@@ -15,11 +15,11 @@ This is the compact continuation checkpoint for the Infrastructure Intelligence 
 
 - repository: `ben-edu/infrastructure-intelligence-assurance`
 - stable branch: `main`
-- current main HEAD before PR #35 merge: `0a45be9c3fea71b1c8b009c0a4eae9816e0cb6be`
+- current main HEAD after PR #35 merge: `59924eb93cbed0ecfef6c2dc6ffbd98af031c547`
 - accepted PR #30 foundation merge: `0e6f96a9f1b4adba34c43803a21a70116423b65c`
 - accepted PR #32 discovery merge: `b0f139a531536531cff2a76bf2243c0cc7ca1770`
 - accepted PR #33 PVE source adapter merge: `58dca4289a3c302ef9098564da59b7d312aae71e`
-- post-PR33 Handoff merge: `0a45be9c3fea71b1c8b009c0a4eae9816e0cb6be`
+- accepted PR #35 VM assurance merge: `59924eb93cbed0ecfef6c2dc6ffbd98af031c547`
 - management host: `mgmt-automation`
 - checkout: `~/projects/infrastructure-intelligence-assurance`
 - Kubernetes cluster: `k3s-main`
@@ -77,12 +77,9 @@ Operator confirms there is no PBS today. Future PBS compatibility is mandatory t
 
 ## Accepted implementation — PR #35 VM Backup Assurance integration
 
-- PR: `#35 Milestone 5 derive VM backup assurance from PVE evidence`
-- branch: `feature/m5-vm-backup-assurance-integration`
-- base main: `0a45be9c3fea71b1c8b009c0a4eae9816e0cb6be`
+- merge: `59924eb93cbed0ecfef6c2dc6ffbd98af031c547`
 - package: `0.21.0`
 - artifact: `vm_backup_assurance_version=0.1`
-- status: repository/manual-derived accepted; ready for squash merge
 - query/network client: none
 - Proxmox credential access: none
 - RBAC change: none
@@ -164,7 +161,7 @@ RTO_TARGET_AND_RESULT
 
 Archive presence does not satisfy `LAST_SUCCESSFUL_BACKUP`; task-result evidence is still missing.
 
-## Exact next step after PR #35 merge — bounded PVE backup task-result preflight
+## Exact next step — bounded PVE backup task-result preflight
 
 Reduce a real remaining assurance unknown rather than adding more recovery-point inventory.
 
@@ -176,14 +173,14 @@ The preflight must:
 2. use the existing broad token only as a temporary manual discovery credential, never runtime;
 3. make no backup, restore, snapshot, prune, verify, GC, schedule, ACL, credential, or guest mutation;
 4. project only safe task metadata needed to assess feasibility, such as task type, node, VMID when safely present, start/end time, and normalized success/failure status;
-5. not persist raw task logs, command lines, worker IDs/UPIDs if they contain unnecessary identity detail, user/token identity, raw error text, URLs, or credentials;
+5. not persist raw task logs, command lines, user/token identity, raw error text, URLs, credentials, or complete UPIDs in platform evidence;
 6. distinguish task-history observation failure from no matching task;
 7. determine whether a successful task can support `LAST_SUCCESSFUL_BACKUP` without claiming restore verification;
 8. not infer a task/archive join unless identity/time evidence is sufficient;
-9. preserve the future PBS adapter boundary;
-10. stop at discovery if the API scope or task semantics are not sufficiently clear.
+9. preserve future PBS adapter separation;
+10. stop at discovery if API scope or task semantics are insufficiently clear.
 
-If the preflight proves a safe authoritative task-result path, implement it as a separate source-evidence slice before integrating it into VM assurance.
+If preflight proves a safe authoritative task-result path, implement it as a separate source-evidence slice before integrating it into VM assurance.
 
 Do not wire PVE runtime collection until a dedicated least-privilege observer identity and trusted TLS path are separately accepted.
 
