@@ -25,7 +25,6 @@ def test_routing_context_integration_has_no_query_capable_client():
 
 def test_package_exposes_routing_context_cli_and_no_rbac_edit_is_needed():
     pyproject = (ROOT / "pyproject.toml").read_text()
-    assert 'version = "0.15.0"' in pyproject
     assert 'iia-routing-context = "infra_assurance.routing_context_integration:main"' in pyproject
 
     rbac = (ROOT / "deploy" / "kubernetes" / "observer-rbac.yaml").read_text()

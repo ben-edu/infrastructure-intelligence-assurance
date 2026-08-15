@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/incident-scope-aware-drilldown.schema.json",
+  "title": "Incident Scope-Aware Drill-down Extension",
+  "type": "object",
+  "required": [
+    "incident_candidates_version",
+    "cluster_id",
+    "mutation_allowed",
+    "source_status",
+    "summary",
+    "drilldown_policy",
+    "recommended_next_evidence_targets",
+    "candidates"
+  ],
+  "properties": {
+    "incident_candidates_version": {"const": "0.3"},
+    "cluster_id": {"type": "string", "minLength": 1},
+    "mutation_allowed": {"const": false},
+    "source_status": {
+      "type": "object",
+      "required": ["alert_attention", "kubernetes_events", "routing_ownership"]
+    },
+    "summary": {
+      "type": "object",
+      "required": [
+        "scope_aware_log_recommendations_retained",
+        "scope_aware_log_recommendations_removed",
+        "platform_active_candidates_without_default_log_recommendation"
+      ],
+      "properties": {
+        "scope_aware_log_recommendations_retained": {"type": "integer", "minimum": 0},
+        "scope_aware_log_recommendations_removed": {"type": "integer", "minimum": 0},
+        "platform_active_candidates_without_default_log_recommendation": {"type": "integer", "minimum": 0}
+      }
+    },
+    "drilldown_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "mode",
+        "default_log_scopes",
+        "requires_complete_alert_and_event_evidence"
+      ],
+      "properties": {
+        "version": {"const": "0.1"},
+        "mode": {"const": "SCOPE_AWARE"},
+        "default_log_scopes": {
+          "type": "array",
+          "items": {"enum": ["WORKLOAD", "SERVICE_WITH_PREFERRED_ROUTING"]},
+          "uniqueItems": true
+        },
+        "requires_complete_alert_and_event_evidence": {"const": true}
+      }
+    },
+    "recommended_next_evidence_targets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["target", "candidate_checks"],
+        "properties": {
+          "target": {"type": "string", "minLength": 1},
+          "candidate_checks": {"type": "integer", "minimum": 1}
+        }
+      }
+    },
+    "candidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["scope", "state", "impact_context", "recommended_checks", "caveats"],
+        "properties": {
+          "scope": {
+            "type": "object",
+            "required": ["type", "subject"],
+            "properties": {
+              "type": {"enum": ["WORKLOAD", "NODE", "SERVICE", "NAMESPACE", "PLATFORM"]},
+              "subject": {"type": "string", "minLength": 1}
+            }
+          },
+          "state": {"enum": ["ACTIVE", "SUPPRESSED", "UNKNOWN"]},
+          "recommended_checks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["code", "target", "check", "rationale", "live_verification_required", "evidence_ids"],
+              "properties": {
+                "code": {"type": "string", "minLength": 1},
+                "target": {"type": "string", "minLength": 1},
+                "check": {"type": "string", "minLength": 1},
+                "rationale": {"type": "string", "minLength": 1},
+                "live_verification_required": {"const": true},
+                "evidence_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+              }
+            }
+          },
+          "caveats": {"type": "array", "items": {"type": "string"}}
+        }
+      }
+    }
+  }
+}

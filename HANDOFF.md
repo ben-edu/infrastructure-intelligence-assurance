@@ -4,7 +4,7 @@ This is the compact continuation checkpoint for the Infrastructure Intelligence 
 
 ## Resume protocol
 
-1. Read the Project Sources.
+1. Read Project Sources.
 2. Read `HANDOFF.md` from `main`.
 3. Check open PRs in `ben-edu/infrastructure-intelligence-assurance`.
 4. If an active project PR has a newer `HANDOFF.md`, prefer that branch version for execution state.
@@ -15,7 +15,8 @@ This is the compact continuation checkpoint for the Infrastructure Intelligence 
 
 - repository: `ben-edu/infrastructure-intelligence-assurance`
 - stable branch: `main`
-- accepted code checkpoint after PR #22 merge: `bd496c3a88c63f2ded7180d0dcb459009a778bcd`
+- current main HEAD before PR #24 merge: `0499362ab4703847aca69b7d3692ae42c0c18e47`
+- accepted PR #22 code merge: `bd496c3a88c63f2ded7180d0dcb459009a778bcd`
 - management host: `mgmt-automation`
 - checkout: `~/projects/infrastructure-intelligence-assurance`
 - cluster: `k3s-main`
@@ -23,7 +24,7 @@ This is the compact continuation checkpoint for the Infrastructure Intelligence 
 - oneshot: `infra-assurance-kubernetes.service`
 - timer: every 5 minutes
 
-Milestones 0–3 are live validated for the evidence contract, Kubernetes observation/context/topology/preflight, history/diff, Git declared-state/drift, workload inventory, and Prometheus Operator coverage.
+Milestones 0–3 are live validated for evidence contract, Kubernetes observation/context/topology/preflight, history/diff, Git declared-state/drift, workload inventory, and Prometheus Operator coverage.
 
 Milestone 4 accepted/live-validated slices:
 
@@ -33,7 +34,8 @@ Milestone 4 accepted/live-validated slices:
 - PR #16 — incident candidates/drill-down;
 - PR #18 — bounded EndpointSlice/Pod/ReplicaSet routing ownership;
 - PR #20 — alert resource scope identity validation;
-- PR #22 — routing ownership integration into inventory/incident context, merged at `bd496c3a88c63f2ded7180d0dcb459009a778bcd`.
+- PR #22 — routing ownership integration into inventory/incident context;
+- PR #24 — scope-aware drill-down recommendations; accepted and ready to merge.
 
 Known real drift remains intentionally unresolved:
 
@@ -43,68 +45,50 @@ Git:  k3s-master.soria-academie.fr
 Live: k3s-master.behnam.fr
 ```
 
-## Accepted routing/scope baseline
+## Accepted M4 baseline
 
-PR #18 routing ownership merged at:
-
-```text
-c26688e4f6cfe9d93fd0c91935a4034342b17fc5
-```
-
-Accepted routing source:
-
-```text
-COMPLETE
-EndpointSlices: 79
-Pod exact GETs: 60 / 60 present
-ReplicaSet exact GETs: 37 / 37 present
-resolved workload paths: 75
-services with resolved workloads: 63
-mutation_allowed: false
-```
-
-`Service/monitoring/loki-headless` routes to both `StatefulSet/monitoring/loki` and `DaemonSet/monitoring/loki-canary`.
-
-`Service/kube-system/kube-prom-stack-kubelet` is `NON_POD_ROUTING` with Node targetRefs.
-
-PR #20 alert scope validation merged at:
-
-```text
-62c75f863c053be5e353c15f62523c27a52be9d3
-```
-
-Accepted final scope facts:
+PR #20 final alert-scope semantics:
 
 ```text
 alert_attention_version: 0.2
 Prometheus: COMPLETE
 Alertmanager: COMPLETE
 Kubernetes scope: COMPLETE
-Alertmanager alerts: 11
-Alert attention: 11
-Event correlations: 11
-NAMESPACE scopes: 9
-PLATFORM scopes: 2
-SERVICE scopes: 0
-UNVERIFIED_SIGNAL_DIMENSION: 6
 pseudo Service scopes: none
 automatic kube-system rewrite: none
-label mismatches: none
-forbidden projected keys: none
-raw URL markers: false
+mutation_allowed: false
 ```
 
-## PR #22 accepted routing context integration
-
-Merged commit:
+PR #22 accepted routing integration:
 
 ```text
-bd496c3a88c63f2ded7180d0dcb459009a778bcd
+inventory_version: 0.4
+incident_candidates_version: 0.2
+routing source: COMPLETE
+selector inference links: 77
+routing ownership links: 64
+workloads with routing relation: 51
+resolved Service routes: 63
+NON_POD_ROUTING Services: 1
+routing workloads not in inventory: 0
+non-complete promoted routing relations: none
+mutation_allowed: false
 ```
 
-Package version: `0.15.0`.
+`Service/monitoring/loki-headless` has complete observed routing to both `StatefulSet/monitoring/loki` and `DaemonSet/monitoring/loki-canary`.
 
-No RBAC or new Kubernetes/Prometheus/Alertmanager/Loki query was added.
+`Service/kube-system/kube-prom-stack-kubelet` remains `NON_POD_ROUTING` with no workload routing relation.
+
+## PR #24 accepted scope-aware drill-down
+
+- PR: `#24 Milestone 4 scope-aware drill-down recommendations`
+- branch: `feature/m4-scope-aware-drilldown`
+- base main: `0499362ab4703847aca69b7d3692ae42c0c18e47`
+- package version: `0.16.0`
+- status: repository and live accepted; ready for squash merge
+- no RBAC change
+- no new infrastructure/telemetry query
+- no Loki/OpenTelemetry ingestion
 
 Runtime order:
 
@@ -114,98 +98,95 @@ routing_ownership
 alert_scope_runtime
 incident_runtime
 routing_context_integration
+scope_aware_drilldown
 ```
 
-The integration post-step reads only local artifacts:
+Final contract:
 
 ```text
-inventory.json
-kubernetes-routing-ownership.json
-incident-candidates.json
+incident_candidates_version: 0.3
+drilldown_policy.version: 0.1
+drilldown_policy.mode: SCOPE_AWARE
+mutation_allowed: false
 ```
 
-Selector inference remains separately visible under `relationships.services`. Complete exact routing is added under `relationships.routing_services` only when routing source overall is `COMPLETE`, route state is `RESOLVED_WORKLOAD_ROUTING`, and route scope is `COMPLETE`.
-
-For exact Service incident candidates, complete routing is preferred over selector inference and all real backend controllers are retained. `NON_POD_ROUTING`, `NO_ENDPOINTS_OBSERVED`, partial/unknown states do not create workload ownership. Missing exact routing can retain selector inference as weaker fallback. Non-Service scopes are never promoted through Service routing.
-
-Accepted repository/live facts:
+Accepted repository/live evidence:
 
 ```text
 RBAC changes: none
 query-capable client markers: none
-169 passed in 1.11s
-inventory_version: 0.4
-incident_candidates_version: 0.2
-routing source: COMPLETE
-inventory routing source: COMPLETE
-incident routing source: COMPLETE
-selector inference links: 77
-routing ownership links: 64
-workloads with routing relation: 51
-routing_service_links: 64
-routing_services_resolved: 63
-routing_services_non_pod: 1
-routing_services_unknown_or_partial: 1
-routing_workloads_not_in_inventory: 0
-non-complete promoted routing relations: none
-mutation_allowed: false
+181 passed in 0.99s
+all runtime stages: status=0/SUCCESS
+alert_attention: COMPLETE
+kubernetes_events: COMPLETE
+routing_ownership: COMPLETE
+scope_aware_log_recommendations_retained: 0
+scope_aware_log_recommendations_removed: 1
+platform_active_candidates_without_default_log_recommendation: 1
+Platform candidates with Loki: none
+Service Loki recommendations without preferred routing: none
 forbidden projected keys: none
 raw URL markers: false
 ```
 
-Accepted route-state distribution:
-
-```text
-RESOLVED_WORKLOAD_ROUTING: 63
-NO_ENDPOINTS_OBSERVED: 13
-NON_POD_ROUTING: 1
-UNKNOWN: 1
-```
-
-`Service/monitoring/loki-headless` remains complete observed routing to both:
-
-```text
-StatefulSet/monitoring/loki
-DaemonSet/monitoring/loki-canary
-```
-
-`Service/kube-system/kube-prom-stack-kubelet` remains `NON_POD_ROUTING` with no workload routing relation.
-
-Current live alert/incident scopes at acceptance were unchanged by integration:
+Accepted live candidate set:
 
 ```text
 SUPPRESSED Namespace/keycloak    alerts=2 related_workloads=2
 SUPPRESSED Namespace/monitoring  alerts=5 related_workloads=9
-SUPPRESSED Namespace/moodle      alerts=2 related_workloads=2
-ACTIVE     Platform/k3s-main     alerts=2 related_workloads=0
+SUPPRESSED Namespace/moodle      alerts=2 related_workloads=2 related_warning_events=1
+ACTIVE     Platform/k3s-main     alerts=2 names=KubeCPUOvercommit,Watchdog related_workloads=0
 ```
 
-No Service-scoped incident existed in that live cycle. Service-candidate routing replacement is acceptance-covered by repository regression tests; do not claim it was exercised by the current live alert set.
+The Platform candidate now retains only:
+
+```text
+VERIFY_ALERT_CONDITION_CURRENT -> PROMETHEUS_ALERTMANAGER
+VERIFY_PLATFORM_SIGNAL_INPUTS  -> PROMETHEUS_KUBERNETES
+```
+
+The Moodle candidate preserves `VERIFY_RELATED_EVENT_OBJECT_STATE -> KUBERNETES_OBJECT`.
+
+Current accepted target summary:
+
+```text
+KUBERNETES_OBJECT: 1
+PROMETHEUS_ALERTMANAGER: 1
+PROMETHEUS_KUBERNETES: 1
+```
+
+No eligible active Workload or preferred-routing Service candidate existed in this live cycle, so valid positive Loki-retention behavior remains regression-tested rather than claimed as live-exercised.
 
 Relevant docs:
 
 ```text
-docs/decisions/0016-prefer-observed-routing-over-selector-inference.md
-docs/milestone-4-routing-ownership-integration.md
-docs/reports/2026-08-15-m4-routing-ownership-integration-live-test-gate.md
+docs/decisions/0017-make-drill-down-recommendations-scope-aware.md
+docs/milestone-4-scope-aware-drilldown.md
+docs/reports/2026-08-15-m4-scope-aware-drilldown-live-test-gate.md
 ```
 
-## Exact next step
+## Exact next step after PR #24 merge
 
-Create a separate Milestone 4 scope-aware drill-down recommendation slice.
+Create a small Milestone 4 Prometheus rule/input context slice driven by the current active Platform candidate.
 
-Evidence driving it: the accepted live cycle has active `Platform/k3s-main` alerts `KubeCPUOvercommit` and `Watchdog`, but the current generic active/no-Event rule also emits `LOKI_CANDIDATE`. Platform scope has no concrete Service/Workload log-bearing subject.
+Why this is next:
 
-Requirements:
+- `Platform/k3s-main` currently needs `PROMETHEUS_ALERTMANAGER` and `PROMETHEUS_KUBERNETES` verification;
+- Loki is no longer a justified default evidence source for that scope;
+- the existing Prometheus observer already uses the read-only Kubernetes Service proxy and currently reads `/api/v1/targets` and `/api/v1/alerts`;
+- Prometheus rule context can make `VERIFY_PLATFORM_SIGNAL_INPUTS` concrete without adding a new specialized engine.
 
-1. Derived-only; no new infrastructure query, telemetry source, or RBAC.
-2. Make recommended evidence targets scope-aware.
-3. For Platform scope, prefer Prometheus rule/input and current cluster-state verification.
-4. Do not recommend logs by default when there is no concrete Service/Workload log-bearing subject.
-5. Preserve log recommendations for supported concrete scopes where logs can materially help.
-6. Preserve existing Event/change/drift verification semantics.
-7. Do not add Loki/OpenTelemetry ingestion yet.
-8. Keep recommendations as evidence requests, not remediation or root-cause claims.
+Smallest intended scope:
+
+1. reuse the existing `monitoring/kube-prom-stack-prometheus:9090` Service-proxy access; no RBAC expansion unless live verification disproves this assumption;
+2. read bounded Prometheus rule metadata, preferably `/api/v1/rules`, through the same source boundary;
+3. correlate current active alert names to exact Prometheus rule records; do not join by fuzzy name;
+4. project only safe rule metadata needed for investigation: alert/rule name, group identity, rule type/state/health where available, bounded PromQL expression only after explicit sensitive-label/value review, duration/keep-firing metadata where available, and evidence provenance;
+5. do not persist annotations, dashboards/runbook URLs, arbitrary labels, raw API payloads, credentials, tokens, or connection strings;
+6. distinguish rule observation from evaluation input values: a rule expression is declared/evaluated logic, not proof of the current metric values that triggered it;
+7. if current rule inputs require live metric verification, emit that as a separate required evidence target rather than claiming cause;
+8. integrate rule context first into Platform incident drill-down; do not add Loki/OpenTelemetry in the same slice;
+9. keep `mutation_allowed=false` and live-validate before using rule context in stronger hypothesis/cause language.
 
 ## Trust invariants
 
