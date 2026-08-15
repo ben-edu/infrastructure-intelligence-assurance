@@ -2,11 +2,33 @@
 
 ## Status
 
-Pending management-host live acceptance.
+Pending corrected management-host live acceptance.
 
 ## Scope
 
 Validate bounded read-only EndpointSlice/Pod/ReplicaSet routing ownership evidence before allowing it to influence topology, inventory, or incident candidates.
+
+## First live attempt
+
+The first management-host run stopped at the repository test gate before bootstrap or any infrastructure/RBAC change was applied.
+
+Observed test result:
+
+```text
+1 failed, 145 passed in 0.98s
+```
+
+Failure:
+
+```text
+tests/test_routing_ownership_wiring.py::test_rbac_allows_endpointslice_list_but_only_exact_get_capability_for_pods_and_replicasets
+```
+
+The implementation RBAC was not the cause. The regression test extracted the Pod rule using a text split that continued through later rules in the same ClusterRole and therefore incorrectly saw `list/watch` verbs belonging to other resources.
+
+The test is corrected on the active branch to identify individual ClusterRole rules and assert the exact Pod/ReplicaSet verbs independently.
+
+Because pytest failed, `bootstrap-observer.sh` did not run in this attempt. No live RBAC/runtime acceptance claim is made from it.
 
 ## Required acceptance evidence
 
@@ -23,6 +45,7 @@ ReplicaSet:    get
 4. The observer still cannot:
 
 ```text
+get EndpointSlices directly
 list/watch Pods
 list/watch ReplicaSets
 read Secrets
@@ -53,11 +76,12 @@ max ReplicaSet GETs: 250
 14. Deployment routes use Pod -> ReplicaSet -> Deployment controller owner references, never Pod-name parsing.
 15. StatefulSet/DaemonSet direct controller owner references can resolve without ReplicaSet inference.
 16. Non-Pod targetRefs remain explicitly non-Pod; they are not forced into workload ownership.
-17. `Service/monitoring/loki-headless` is inspected specifically because selector inference was previously ambiguous.
-18. Current Service-scoped `kube-prom-stack-kubelet` incident candidates are inspected specifically to determine whether their actual EndpointSlice targets are Pods, Nodes, or another object class.
-19. Endpoint addresses/IPs, Pod IPs, specs, status payloads, labels, annotations, environment/container configuration, Secret references, UIDs, logs, and service-account tokens are absent from the persisted artifact.
-20. `mutation_allowed=false`.
-21. No previous selector ambiguity is considered resolved until the live artifact supports the stronger relation.
+17. Cluster-scoped targetRefs such as Node retain `namespace=null`.
+18. `Service/monitoring/loki-headless` is inspected specifically because selector inference was previously ambiguous.
+19. Current Service-scoped `kube-prom-stack-kubelet` incident candidates are inspected specifically to determine whether their actual EndpointSlice targets are Pods, Nodes, or another object class.
+20. Endpoint addresses/IPs, Pod IPs, specs, status payloads, labels, annotations, environment/container configuration, Secret references, UIDs, logs, and service-account tokens are absent from the persisted artifact.
+21. `mutation_allowed=false`.
+22. No previous selector ambiguity is considered resolved until the live artifact supports the stronger relation.
 
 ## Expected interpretation
 
