@@ -2,29 +2,24 @@
 
 ## Status
 
-Pending repository and management-host live acceptance.
+Accepted — repository and management-host live acceptance passed.
 
 ## Purpose
 
 Validate that accepted local Prometheus rule context can enrich ACTIVE incident drill-down and refine the generic Platform evidence target without any new infrastructure query, RBAC expansion, sensitive-field exposure, or causal overstatement.
 
-## Required repository evidence
+## Accepted repository evidence
 
-1. Full pytest suite passes.
-2. `deploy/kubernetes/observer-rbac.yaml` has no diff from `main`.
-3. Package version is `0.18.0`.
-4. The integration module contains no query-capable client or subprocess boundary.
-5. Extension schema fixes final incident version `0.4`, integration version `0.1`, mode `EXACT_COMPLETE_ONLY`, and strict safe rule projection.
-6. Tests prove:
-   - complete exact Platform context refines `PROMETHEUS_KUBERNETES` to `PROMETHEUS_RULE_INPUTS`;
-   - `PROMETHEUS_ALERTMANAGER` current-condition verification remains;
-   - source PARTIAL/FAILED retains generic verification;
-   - unmatched/mismatched/missing rule context is explicit and not promoted;
-   - suppressed candidates are not enriched;
-   - cluster/version/mutation guards are enforced;
-   - PromQL/free-form/sensitive rule fields cannot enter the attached projection.
+```text
+RBAC changes: none
+query-capable markers: none
+204 passed in 1.29s
+package version: 0.18.0
+```
 
-## Required runtime order
+The integration module remains derived-only and contains no infrastructure/telemetry query boundary.
+
+## Accepted runtime order
 
 ```text
 kubernetes_runtime
@@ -37,9 +32,9 @@ prometheus_rule_context
 prometheus_rule_context_integration
 ```
 
-All stages must exit `0/SUCCESS`.
+All runtime stages exited `0/SUCCESS`, including `prometheus_rule_context` and `prometheus_rule_context_integration`.
 
-## Final incident checks
+## Accepted final incident contract
 
 ```text
 incident_candidates_version: 0.4
@@ -49,73 +44,90 @@ source_status.prometheus_rule_context: COMPLETE
 mutation_allowed: false
 ```
 
-If the current active Platform candidate remains `KubeCPUOvercommit + Watchdog` and PR #26 rule context remains complete, expected live behavior is:
+The accepted rule source remained:
 
 ```text
+prometheus_rule_context_version: 0.1
+source.status: COMPLETE
+requested: KubeCPUOvercommit, Watchdog
+matched: KubeCPUOvercommit, Watchdog
+unmatched: none
+```
+
+## Accepted active candidate behavior
+
+Current active candidates: `1`.
+
+```text
+PLATFORM Platform/k3s-main
+alerts: KubeCPUOvercommit, Watchdog
 selection: COMPLETE_EXACT_RULE_MATCH
 matched rules: 2
-unmatched alert names: none
+unmatched: none
+```
+
+Accepted safe rule projections:
+
+```text
+Watchdog          | group=general.rules        | state=FIRING | health=OK | duration=0s
+KubeCPUOvercommit | group=kubernetes-resources | state=FIRING | health=OK | duration=600s
+```
+
+Required live verification remains:
+
+```text
+PROMETHEUS_RULE_INPUTS
+```
+
+The Platform recommendation was refined exactly as intended:
+
+```text
 VERIFY_ALERT_CONDITION_CURRENT -> PROMETHEUS_ALERTMANAGER
 VERIFY_PROMETHEUS_RULE_INPUTS  -> PROMETHEUS_RULE_INPUTS
 ```
 
-`VERIFY_PLATFORM_SIGNAL_INPUTS -> PROMETHEUS_KUBERNETES` must no longer remain on that candidate after complete exact integration.
-
-Live alert state is temporal. Different active alert names are acceptable if the integration follows the current accepted rule artifact exactly.
-
-## Fallback checks
-
-If rule source is not COMPLETE or exact coverage is not complete, the integration must retain the generic Platform verification and emit an explicit integration unknown. No partial rule context may silently become causal evidence.
-
-## Safe projection guard
-
-Attached candidate `matched_rules[]` may contain only:
+The previous generic Platform target is absent after complete exact integration:
 
 ```text
-rule_id
-evidence_id
-alertname
-group_name
-rule_type
-state
-health
-duration_seconds
-keep_firing_for_seconds
-evaluation_time_seconds
-last_evaluation
-expression_persisted
+VERIFY_PLATFORM_SIGNAL_INPUTS -> PROMETHEUS_KUBERNETES
 ```
 
-`expression_persisted` must remain `false`.
+## Suppressed candidate guard
 
-The final incident artifact must not introduce:
+No non-ACTIVE candidate was enriched with Prometheus rule context.
+
+## Accepted summary
 
 ```text
-query
-expr
-expression
-labels
-annotations
-file
-alerts
-lastError
-runbook_url
-dashboard_url
-generatorURL
-password
-token
-authorization
-private_key
-privateKey
-secret_payload
+active_candidates_considered_for_prometheus_rule_context: 1
+active_candidates_with_complete_prometheus_rule_context: 1
+platform_checks_refined_to_prometheus_rule_inputs: 1
+prometheus_rule_integration_unknowns: 0
 ```
 
-No raw `http://` or `https://` marker may be introduced by the integration projection.
+Final recommendation target summary matched the final checks exactly:
 
-## Recommendation summary
+```text
+KUBERNETES_OBJECT: 1
+PROMETHEUS_ALERTMANAGER: 1
+PROMETHEUS_RULE_INPUTS: 1
+```
 
-Recalculate `recommended_next_evidence_targets` from final candidate checks. In the expected current Platform case, `PROMETHEUS_RULE_INPUTS` should replace `PROMETHEUS_KUBERNETES` while the Alertmanager target remains.
+## Projection and safety guards
+
+```text
+forbidden projected keys: none
+raw URL markers: false
+```
+
+PromQL/query, labels, annotations, files, embedded alerts, last-error text, URLs, credentials, tokens, private keys, and secret payloads were not introduced by the integration.
+
+Every attached rule retains:
+
+```text
+expression_persisted: false
+```
 
 ## Interpretation
 
-A successful integration proves that the accepted rule-context source exactly matched the current active candidate and that the platform narrowed the next evidence target. It does not prove current PromQL input values, root cause, business impact, or remediation.
+This acceptance proves that complete exact Prometheus rule metadata can narrow the next evidence target for the current active candidate without introducing another telemetry query or claiming cause. The current PromQL input values remain intentionally unobserved. Rule state/health is evidence about the rule, not proof of root cause, business impact, or remediation.
