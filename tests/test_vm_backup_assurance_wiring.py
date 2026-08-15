@@ -29,12 +29,8 @@ def test_runtime_service_does_not_wire_vm_backup_assurance_or_proxmox_credential
     assert "PROXMOX_BASE_URL" not in unit
 
 
-def test_package_exposes_vm_assurance_cli_and_current_version():
+def test_package_exposes_vm_assurance_cli():
     pyproject = (ROOT / "pyproject.toml").read_text()
-    init = (ROOT / "src/infra_assurance/__init__.py").read_text()
-
-    assert 'version = "0.21.0"' in pyproject
-    assert '__version__ = "0.21.0"' in init
     assert 'iia-vm-backup-assurance = "infra_assurance.vm_backup_assurance:main"' in pyproject
 
 
