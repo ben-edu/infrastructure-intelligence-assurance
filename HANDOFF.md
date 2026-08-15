@@ -56,46 +56,13 @@ unprotected_claims: 0
 authoritative_backup_sources_integrated: 0
 ```
 
-The 21 PVC assets without a direct controller relation are not classified as orphaned.
+## Active discovery — PR #32 authoritative backup source
 
-Relevant accepted docs:
-
-```text
-docs/decisions/0020-derive-kubernetes-pvc-backup-assurance-foundation.md
-docs/milestone-5-kubernetes-backup-assurance-foundation.md
-docs/reports/2026-08-15-m5-kubernetes-backup-assurance-foundation-live-test-gate.md
-```
-
-## Active discovery — authoritative backup source
-
-Branch: `docs/m5-backup-source-discovery`.
-
-First bounded management-host discovery completed without triggering backup/restore operations.
-
-Observed backup/recovery CLI capabilities:
-
-```text
-proxmox-backup-client / pvesh / pvesm / vzdump: absent
-pgbackrest / wal-g: absent
-pg_dump / pg_restore / psql: present
-mariadb-backup / mariabackup / mysqldump / mariadb: absent
-restic / borg / kopia / rclone / velero: absent
-```
-
-Relevant systemd unit names observed:
-
-```text
-dpkg-db-backup.service
-dpkg-db-backup.timer
-pg_basebackup@.service
-pg_basebackup@.timer
-postgresql.service
-postgresql@.service
-```
-
-Only `dpkg-db-backup.timer` appeared active/scheduled in the generic timer listing. A `pg_basebackup@` template is capability/declared mechanism evidence only; it does not prove an instantiated backup job, successful backup, retention, or restore verification.
-
-No accepted PBS/Proxmox/database-native backup configuration was found in repository search. No matching SSH host aliases were available on the management host. The first config-variable-name check had an awk syntax error; this affected that subsection only and printed no secret value.
+- PR: `#32 Milestone 5 authoritative backup source discovery`
+- branch: `docs/m5-backup-source-discovery`
+- code/runtime mutation: none
+- backup/restore operations: none
+- credentials created/changed: none
 
 Discovery report:
 
@@ -103,21 +70,55 @@ Discovery report:
 docs/reports/2026-08-15-m5-authoritative-backup-source-discovery.md
 ```
 
-## Exact next step — bounded PostgreSQL backup preflight
+### Management-host generic discovery
 
-PostgreSQL is the only source with a concrete local signal worth investigating next, but it is not yet selected as the authoritative source.
+No PBS/Proxmox/Velero/restic/borg/kopia clients were observed on `mgmt-automation`.
 
-Run a second read-only preflight that makes no database connection and performs no backup/restore operation. Determine:
+Observed PostgreSQL tools:
 
-1. whether any `pg_basebackup@` service/timer instances are enabled, active, or scheduled;
-2. template unit file paths and safe directive structure;
-3. environment/config filenames and variable names only, never values;
-4. local PostgreSQL cluster metadata only;
-5. presence/metadata of plausible local backup directories without reading backup contents;
-6. corrected relevant variable-name discovery for `collector.env` and `/etc/environment`;
-7. whether the resulting observation path can authoritatively prove last success/retention/verification/restores without broad credentials.
+```text
+pg_dump / pg_restore / psql: present
+pgbackrest / wal-g: absent
+```
 
-Do not run `psql`, `pg_basebackup`, `pg_dump`, restore commands, or create/modify schedules or credentials during this preflight.
+### PostgreSQL metadata-only discovery
+
+Current local PostgreSQL runtime:
+
+```text
+cluster: 15/main
+status: online
+systemd: postgresql@15-main.service active/running
+```
+
+`pg_basebackup@.service/.timer` templates exist and describe a weekly `pg_backupcluster` mechanism, but no instantiated service/timer, enabled symlink, or scheduled `pg_basebackup` timer was observed.
+
+No active backup/replication-related PostgreSQL config keys were observed in the bounded scan. No relevant backup/PBS/Proxmox/database environment variable names were observed. `/var/backups` exists but contents were not read and directory existence is not backup evidence.
+
+Conclusion: PostgreSQL on this host is **not selected as an authoritative backup source**. Current evidence proves capability/template presence, not an active backup mechanism or successful recovery evidence.
+
+### Historical Proxmox/PBS context
+
+Historical infrastructure material records two Proxmox VE bare-metal environments and documents PBS as the selected infrastructure backup approach. This is discovery context only, not current live evidence.
+
+Do not infer that PBS is currently configured, reachable, scheduled, healthy, or protecting any VM until live verification succeeds.
+
+## Exact next step — bounded Proxmox/PBS preflight
+
+Verify the current Proxmox/PBS path read-only before designing a collector.
+
+The preflight must:
+
+1. verify current Proxmox VE endpoint reachability and endpoint identity safely;
+2. inspect only existing local metadata for Proxmox observer/API credential names or file paths, never secret values;
+3. determine whether an existing least-privilege read-only API path exists;
+4. distinguish Proxmox VE reachability from PBS presence;
+5. only if a safe authenticated read path already exists, inspect whether PBS-backed storage/backup jobs are configured using bounded safe projections;
+6. never print tokens, passwords, private keys, full sensitive connection strings, or raw config containing them;
+7. do not run backup, restore, prune, verify, garbage collection, snapshot, or schedule changes;
+8. if no safe read identity exists, stop at UNKNOWN and design a dedicated observer identity separately rather than reusing admin access.
+
+Do not implement a PBS collector until this preflight proves a real source and safe observation contract.
 
 ## Trust invariants
 
