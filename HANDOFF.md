@@ -15,8 +15,8 @@ This is the compact continuation checkpoint for the Infrastructure Intelligence 
 
 - repository: `ben-edu/infrastructure-intelligence-assurance`
 - stable branch: `main`
-- current main HEAD before PR #28 merge: `cebdd9fdc96ea7104c409c048d2eaba2f58f2ffc`
-- accepted PR #26 code merge: `d4170dd33731754021e3aea8ca46b84c0163fcf6`
+- current main HEAD after PR #28 merge: `9b32c7657a648c04081c9bcc4f5112872c2ecd2c`
+- accepted PR #28 code merge: `9b32c7657a648c04081c9bcc4f5112872c2ecd2c`
 - management host: `mgmt-automation`
 - checkout: `~/projects/infrastructure-intelligence-assurance`
 - cluster: `k3s-main`
@@ -37,7 +37,7 @@ Milestone 4 accepted/live-validated slices now cover:
 - routing ownership integration;
 - scope-aware drill-down recommendations;
 - bounded Prometheus alert-rule context;
-- exact Prometheus rule-context integration into incident drill-down (PR #28 accepted; pending merge).
+- exact Prometheus rule-context integration into incident drill-down, merged in PR #28 at `9b32c7657a648c04081c9bcc4f5112872c2ecd2c`.
 
 Known intentional drift remains:
 
@@ -47,17 +47,11 @@ Git:  k3s-master.soria-academie.fr
 Live: k3s-master.behnam.fr
 ```
 
-## PR #28 accepted Prometheus rule-context integration
+## Accepted PR #28 Prometheus rule-context integration
 
-- PR: `#28 Milestone 4 integrate Prometheus rule context into incident drill-down`
-- branch: `feature/m4-prometheus-rule-integration`
-- base main: `cebdd9fdc96ea7104c409c048d2eaba2f58f2ffc`
-- package version: `0.18.0`
-- status: repository/live accepted; ready for squash merge
-- RBAC change: none
-- new infrastructure/telemetry query: none
-- Loki/OpenTelemetry: none
-- mutation: none
+Package version: `0.18.0`.
+
+No RBAC change, infrastructure/telemetry query, Loki/OpenTelemetry integration, or mutation was added.
 
 Accepted final contract:
 
@@ -97,7 +91,7 @@ VERIFY_PROMETHEUS_RULE_INPUTS  -> PROMETHEUS_RULE_INPUTS
 
 The previous generic `PROMETHEUS_KUBERNETES` Platform target is removed only because the rule source is COMPLETE and exact coverage is complete. Partial/failed/unmatched/mismatched rule evidence keeps the generic fallback.
 
-Accepted exact rule metadata remains:
+Accepted exact rule metadata:
 
 ```text
 Watchdog          | group=general.rules        | state=FIRING | health=OK | duration=0s
@@ -120,9 +114,9 @@ The Delivery Roadmap requires observability intelligence capabilities such as si
 
 Do not add an arbitrary PromQL executor merely to consume `PROMETHEUS_RULE_INPUTS` unless later evidence demonstrates a clear operator need and a safe bounded design.
 
-After PR #28 merge, treat the current evidence-first Milestone 4 vertical path as sufficiently complete to begin Milestone 5.
+Treat the current evidence-first Milestone 4 vertical path as sufficiently complete to begin Milestone 5.
 
-## Exact next step after PR #28 merge — Milestone 5 first vertical slice
+## Exact next step — Milestone 5 first vertical slice
 
 Create a small read-only Backup and Recovery Assurance foundation slice using evidence already available locally before adding any backup-system credential or API integration.
 
@@ -143,7 +137,7 @@ Smallest intended scope:
 9. define explicit future evidence targets for backup mechanism, last success, retention, failure domain, integrity verification, and restore test;
 10. keep `mutation_allowed=false` and live-validate before any stronger protection classification.
 
-Suggested first assurance vocabulary should remain conservative and compatible with Project Sources, for example:
+Suggested assurance vocabulary remains compatible with Project Sources:
 
 ```text
 PROTECTED
@@ -156,7 +150,7 @@ RPO_VIOLATION
 RTO_UNKNOWN
 ```
 
-For the first derived-only slice, expect `UNKNOWN` protection unless an already accepted source actually proves otherwise.
+For the first derived-only slice, expect `UNKNOWN` protection unless an already accepted authoritative source proves otherwise.
 
 This is intentionally a foundation for later authoritative backup-source integration, not a claim that Kubernetes observation can determine backup success.
 
