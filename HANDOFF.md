@@ -15,8 +15,8 @@ This is the compact continuation checkpoint for the Infrastructure Intelligence 
 
 - repository: `ben-edu/infrastructure-intelligence-assurance`
 - stable branch: `main`
-- current main HEAD before PR #30 merge: `434079ec90edc0cccd94b4e697f92b615aa87cd1`
-- accepted PR #28 code merge: `9b32c7657a648c04081c9bcc4f5112872c2ecd2c`
+- current main HEAD after PR #30 merge: `0e6f96a9f1b4adba34c43803a21a70116423b65c`
+- accepted PR #30 code merge: `0e6f96a9f1b4adba34c43803a21a70116423b65c`
 - management host: `mgmt-automation`
 - checkout: `~/projects/infrastructure-intelligence-assurance`
 - cluster: `k3s-main`
@@ -34,32 +34,21 @@ Git:  k3s-master.soria-academie.fr
 Live: k3s-master.behnam.fr
 ```
 
-## Active accepted work — PR #30 Milestone 5 Kubernetes backup assurance foundation
+## Accepted Milestone 5 foundation — PR #30
 
 - PR: `#30 Milestone 5 Kubernetes backup assurance foundation`
-- branch: `feature/m5-kubernetes-backup-assurance-foundation`
-- base main: `434079ec90edc0cccd94b4e697f92b615aa87cd1`
+- merge: `0e6f96a9f1b4adba34c43803a21a70116423b65c`
 - package version: `0.19.0`
-- status: repository/live accepted; ready for squash merge
 - RBAC change: none
 - new infrastructure/backup/database query: none
 - new credentials: none
 - mutation: none
-
-Purpose: identify Kubernetes PVC stateful assets requiring backup/recovery assurance while representing absent authoritative backup evidence as `UNKNOWN`, never as `UNPROTECTED`.
 
 Accepted artifacts:
 
 ```text
 /var/lib/infra-assurance/evidence/backup-assurance.json
 /var/lib/infra-assurance/evidence/backup-assurance.md
-```
-
-Inputs remain local accepted evidence only:
-
-```text
-/var/lib/infra-assurance/evidence/kubernetes.json
-/var/lib/infra-assurance/evidence/topology.json
 ```
 
 Accepted contract:
@@ -96,7 +85,7 @@ forbidden projected keys: none
 raw URL markers: false
 ```
 
-Every asset retained exactly eight future authoritative evidence targets:
+Every asset retains exactly eight future authoritative evidence targets:
 
 ```text
 BACKUP_MECHANISM
@@ -119,7 +108,7 @@ docs/milestone-5-kubernetes-backup-assurance-foundation.md
 docs/reports/2026-08-15-m5-kubernetes-backup-assurance-foundation-live-test-gate.md
 ```
 
-## Exact next step after PR #30 merge — authoritative backup-source discovery
+## Exact next step — authoritative backup-source discovery
 
 Do not choose or implement a PBS, Proxmox, PostgreSQL, MariaDB, or external-target collector by assumption.
 
