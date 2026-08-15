@@ -15,7 +15,8 @@ This is the compact continuation checkpoint for the Infrastructure Intelligence 
 
 - repository: `ben-edu/infrastructure-intelligence-assurance`
 - stable branch: `main`
-- accepted code checkpoint after PR #24 merge: `a3a2217095fb0f76fcae987c3c07b744f13e082e`
+- current main HEAD after post-PR24 continuity merge: `401e400371e9e223a8e210051d9b96f86592c312`
+- accepted PR #24 code merge: `a3a2217095fb0f76fcae987c3c07b744f13e082e`
 - management host: `mgmt-automation`
 - checkout: `~/projects/infrastructure-intelligence-assurance`
 - cluster: `k3s-main`
@@ -34,7 +35,7 @@ Milestone 4 accepted/live-validated slices:
 - PR #18 — bounded EndpointSlice/Pod/ReplicaSet routing ownership;
 - PR #20 — alert resource scope identity validation;
 - PR #22 — routing ownership integration into inventory/incident context;
-- PR #24 — scope-aware drill-down recommendations, merged at `a3a2217095fb0f76fcae987c3c07b744f13e082e`.
+- PR #24 — scope-aware drill-down recommendations.
 
 Known real drift remains intentionally unresolved:
 
@@ -44,63 +45,9 @@ Git:  k3s-master.soria-academie.fr
 Live: k3s-master.behnam.fr
 ```
 
-## Accepted M4 baseline
+## Accepted M4 baseline relevant to current work
 
-PR #20 final alert-scope semantics:
-
-```text
-alert_attention_version: 0.2
-Prometheus: COMPLETE
-Alertmanager: COMPLETE
-Kubernetes scope: COMPLETE
-pseudo Service scopes: none
-automatic kube-system rewrite: none
-mutation_allowed: false
-```
-
-PR #22 accepted routing integration:
-
-```text
-inventory_version: 0.4
-routing source: COMPLETE
-selector inference links: 77
-routing ownership links: 64
-workloads with routing relation: 51
-resolved Service routes: 63
-NON_POD_ROUTING Services: 1
-routing workloads not in inventory: 0
-non-complete promoted routing relations: none
-mutation_allowed: false
-```
-
-`Service/monitoring/loki-headless` has complete observed routing to both `StatefulSet/monitoring/loki` and `DaemonSet/monitoring/loki-canary`.
-
-`Service/kube-system/kube-prom-stack-kubelet` remains `NON_POD_ROUTING` with no workload routing relation.
-
-## PR #24 accepted scope-aware drill-down
-
-Merged commit:
-
-```text
-a3a2217095fb0f76fcae987c3c07b744f13e082e
-```
-
-Package version: `0.16.0`.
-
-No RBAC, new infrastructure/telemetry query, Loki ingestion, or OpenTelemetry ingestion was added.
-
-Runtime order:
-
-```text
-kubernetes_runtime
-routing_ownership
-alert_scope_runtime
-incident_runtime
-routing_context_integration
-scope_aware_drilldown
-```
-
-Final contract:
+Final incident contract after PR #24:
 
 ```text
 incident_candidates_version: 0.3
@@ -109,26 +56,7 @@ drilldown_policy.mode: SCOPE_AWARE
 mutation_allowed: false
 ```
 
-Accepted repository/live evidence:
-
-```text
-RBAC changes: none
-query-capable client markers: none
-181 passed in 0.99s
-all runtime stages: status=0/SUCCESS
-alert_attention: COMPLETE
-kubernetes_events: COMPLETE
-routing_ownership: COMPLETE
-scope_aware_log_recommendations_retained: 0
-scope_aware_log_recommendations_removed: 1
-platform_active_candidates_without_default_log_recommendation: 1
-Platform candidates with Loki: none
-Service Loki recommendations without preferred routing: none
-forbidden projected keys: none
-raw URL markers: false
-```
-
-Accepted live candidate set:
+Accepted current live candidate set:
 
 ```text
 SUPPRESSED Namespace/keycloak    alerts=2 related_workloads=2
@@ -137,55 +65,140 @@ SUPPRESSED Namespace/moodle      alerts=2 related_workloads=2 related_warning_ev
 ACTIVE     Platform/k3s-main     alerts=2 names=KubeCPUOvercommit,Watchdog related_workloads=0
 ```
 
-The active Platform candidate retains only:
+The active Platform candidate now retains only:
 
 ```text
 VERIFY_ALERT_CONDITION_CURRENT -> PROMETHEUS_ALERTMANAGER
 VERIFY_PLATFORM_SIGNAL_INPUTS  -> PROMETHEUS_KUBERNETES
 ```
 
-The Moodle candidate preserves `VERIFY_RELATED_EVENT_OBJECT_STATE -> KUBERNETES_OBJECT`.
+Default Loki recommendation is absent for Platform scope.
 
-Accepted next-evidence summary:
+## Active work — PR #26 bounded Prometheus rule context
+
+- PR: `#26 Milestone 4 bounded Prometheus rule context`
+- branch: `feature/m4-prometheus-rule-context`
+- base main: `401e400371e9e223a8e210051d9b96f86592c312`
+- package version: `0.17.0`
+- status: Draft; pending repository and management-host live acceptance
+- intended RBAC change: none
+- source: existing `monitoring/kube-prom-stack-prometheus:9090` Kubernetes Service proxy
+- no Loki/OpenTelemetry
+- no incident-candidate mutation/integration in this slice
+
+Runtime order becomes:
 
 ```text
-KUBERNETES_OBJECT: 1
-PROMETHEUS_ALERTMANAGER: 1
-PROMETHEUS_KUBERNETES: 1
+kubernetes_runtime
+routing_ownership
+alert_scope_runtime
+incident_runtime
+routing_context_integration
+scope_aware_drilldown
+prometheus_rule_context
 ```
 
-No eligible active Workload or preferred-routing Service candidate existed in this live cycle, so valid positive Loki-retention behavior remains regression-tested rather than claimed as live-exercised.
-
-Relevant docs:
+Final new artifacts:
 
 ```text
-docs/decisions/0017-make-drill-down-recommendations-scope-aware.md
-docs/milestone-4-scope-aware-drilldown.md
-docs/reports/2026-08-15-m4-scope-aware-drilldown-live-test-gate.md
+/var/lib/infra-assurance/evidence/prometheus-rule-context.json
+/var/lib/infra-assurance/evidence/prometheus-rule-context.md
+```
+
+Contract:
+
+```text
+prometheus_rule_context_version: 0.1
+mutation_allowed: false
+source.operation: GET_RULES_BY_EXACT_ACTIVE_ALERTNAME
+max_active_alert_names: 20
+```
+
+### Query minimization
+
+Only distinct safe alert names from ACTIVE incident candidates are requested. Suppressed candidates are excluded.
+
+The Rules API request uses:
+
+```text
+type=alert
+exclude_alerts=true
+rule_name[]=<exact current active alert name>
+```
+
+No fuzzy matching is used. If more than 20 active alert names exist, request scope is truncated deterministically and source status becomes `PARTIAL`.
+
+If there are no ACTIVE alert names, the slice performs no Rules API request for that cycle.
+
+### Safe projection
+
+Persist only compact rule identity/state metadata and provenance:
+
+- alertname;
+- sanitized group name;
+- ALERTING type;
+- normalized state/health;
+- duration / keep-firing / evaluation-time numeric metadata where available;
+- last-evaluation timestamp where present;
+- observation/evidence/provenance fields.
+
+Every persisted rule records:
+
+```text
+expression_persisted: false
+```
+
+Do not persist PromQL expression/query, labels, annotations, file paths, embedded active alerts, last-error text, dashboards/runbook URLs, raw API payloads, credentials, tokens, or connection strings.
+
+### Correlation and interpretation
+
+ACTIVE candidate alert names join to rule records by exact alert name only.
+
+An exact rule match means Prometheus returned rule metadata for that current alert name. It is not proof of the current metric values or root cause.
+
+Matched rule context therefore emits separate required live verification:
+
+```text
+PROMETHEUS_RULE_INPUTS
+```
+
+The new artifact remains independent in PR #26. Do not attach it to `incident-candidates.json` until this source passes live acceptance.
+
+### Failure semantics
+
+- Rules API request succeeds without truncation: `COMPLETE`;
+- alert-name bound truncation: `PARTIAL`;
+- Service-proxy/Rules API failure: `FAILED_TO_OBSERVE`;
+- unmatched names remain explicit; no fuzzy substitution;
+- observation failure is not absence.
+
+Relevant files:
+
+```text
+src/infra_assurance/prometheus_rule_context.py
+schemas/prometheus-rule-context.schema.json
+docs/decisions/0018-collect-bounded-prometheus-rule-context.md
+docs/milestone-4-prometheus-rule-context.md
+docs/reports/2026-08-15-m4-prometheus-rule-context-live-test-gate.md
 ```
 
 ## Exact next step
 
-Create a small Milestone 4 Prometheus rule/input context slice driven by the current active Platform candidate.
+Run PR #26 repository/live gate on `mgmt-automation`:
 
-Why this is next:
+1. verify no RBAC diff vs `origin/main`;
+2. run full pytest;
+3. if green, bootstrap observer;
+4. confirm `prometheus_rule_context` is the final post-step and exits `0/SUCCESS`;
+5. validate rule-context schema/trust fields;
+6. verify request scope equals current ACTIVE incident alert names only and remains bounded;
+7. if `KubeCPUOvercommit` / `Watchdog` remain active, inspect their exact rule matches;
+8. verify PromQL/free-form/sensitive fields and raw URLs are absent;
+9. verify every rule says `expression_persisted=false`;
+10. verify matched candidates require separate `PROMETHEUS_RULE_INPUTS` live verification;
+11. confirm incident artifact remains v0.3 and unmodified by rule-context collection.
 
-- `Platform/k3s-main` currently needs `PROMETHEUS_ALERTMANAGER` and `PROMETHEUS_KUBERNETES` verification;
-- Loki is no longer a justified default evidence source for that scope;
-- the existing Prometheus observer already uses the read-only Kubernetes Service proxy and reads `/api/v1/targets` and `/api/v1/alerts`;
-- Prometheus rule context can make `VERIFY_PLATFORM_SIGNAL_INPUTS` concrete without replacing Prometheus or adding another telemetry engine.
-
-Smallest intended scope:
-
-1. reuse existing `monitoring/kube-prom-stack-prometheus:9090` Service-proxy access; no RBAC expansion unless live verification disproves this assumption;
-2. read bounded Prometheus rule metadata, preferably `/api/v1/rules`, through the same source boundary;
-3. correlate current active alert names to exact Prometheus rule records; no fuzzy name joins;
-4. project only safe rule metadata needed for investigation; annotations, dashboards/runbook URLs, arbitrary labels, raw API payloads, credentials, tokens, and connection strings remain excluded;
-5. treat PromQL expression as rule logic, not proof of current triggering metric values;
-6. if current input values require live metric verification, emit a separate required evidence target instead of claiming cause;
-7. integrate rule context first into Platform incident drill-down;
-8. do not add Loki/OpenTelemetry in the same slice;
-9. keep `mutation_allowed=false` and live-validate before any stronger hypothesis/cause language.
+Do not merge PR #26 before live acceptance.
 
 ## Trust invariants
 
