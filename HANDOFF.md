@@ -17,7 +17,7 @@ Project Sources remain authoritative for durable goals, roadmap, trust principle
 
 - repo: `ben-edu/infrastructure-intelligence-assurance`
 - stable branch: `main`
-- stable main before PR #14 merge: `7f271d8f4fcd1e4408bc4b0e864b3fffe4c4c11e`
+- stable main checkpoint: `c97d5197bf278192055d87bde7f47705280038ad`
 - management host: `mgmt-automation`
 - checkout: `~/projects/infrastructure-intelligence-assurance`
 - Kubernetes cluster: `k3s-main`
@@ -65,13 +65,9 @@ Accepted runtime included 21 active targets, all UP, with 11 target paths attrib
 
 ### Milestone 4 — Alertmanager handling correlation
 
-PR #13 is squash-merged at:
+PR #13 is squash-merged and live accepted.
 
-```text
-7f271d8f4fcd1e4408bc4b0e864b3fffe4c4c11e
-```
-
-Accepted run:
+Accepted run included:
 
 ```text
 pytest: 112 passed in 0.84s
@@ -100,15 +96,13 @@ Prometheus/Alertmanager correlation does not imply workload ownership.
 
 ### Milestone 4 — Kubernetes Event correlation
 
-PR #14 implementation is live accepted and ready to merge.
-
-Branch:
+PR #14 is squash-merged at:
 
 ```text
-feature/m4-kubernetes-event-correlation
+c97d5197bf278192055d87bde7f47705280038ad
 ```
 
-Tested head:
+Live acceptance used implementation head:
 
 ```text
 0e656734eb53b8b3f5789313ed29b3d8a74c9121
@@ -144,7 +138,7 @@ max_events: 500
 window_truncated: false
 ```
 
-Current live Event evidence in the acceptance run:
+Current live Event evidence in the accepted run:
 
 ```text
 events_seen_from_api: 1
@@ -158,17 +152,15 @@ count: 758740
 
 The occurrence count is retained as Kubernetes-reported structured evidence. It is not interpreted as severity or root cause.
 
-The alert-attention projection contained 10 records in this run. This differs from the earlier 11-alert snapshot because alert state is time-varying. Event correlation used the same-cycle current attention projection and preserved cardinality:
+The same runtime cycle contained 10 alert-attention records and 10 Event-correlation records:
 
 ```text
-alert attention records: 10
-event correlation records: 10
 attention_with_related_warning_events: 1
 attention_without_direct_warning_match: 9
 attention_event_correlation_unknown: 0
 ```
 
-The one relation is:
+The one relation was:
 
 ```text
 attention: Namespace/moodle
@@ -179,9 +171,7 @@ basis:
   RECENT_KUBERNETES_WARNING_EVENT
 ```
 
-This is supporting namespace context only. Pod-name controller inference is not implemented.
-
-Both current platform-scoped alert-attention records had `NO_DIRECT_EVENT_MATCH`; platform alerts are not broadly matched to cluster Events.
+This is supporting namespace context only. Pod-name controller inference is not implemented. Platform-scoped alert-attention records were not broadly matched to cluster Events.
 
 Sensitive/free-form guard passed:
 
@@ -190,15 +180,13 @@ forbidden projected keys: none
 raw URL markers: false
 ```
 
-Persisted Event evidence excludes message/note text, source/reporting host, arbitrary annotations/labels, raw UID, credentials, and Secret values. Unsafe/free-form Event reasons are redacted.
-
 Detailed report:
 
 ```text
 docs/reports/2026-08-15-m4-kubernetes-event-correlation-live-test-gate.md
 ```
 
-## Exact next step after PR #14 merge
+## Exact next step
 
 Continue Milestone 4 with a derived incident-grouping and drill-down slice before adding another telemetry engine.
 
