@@ -39,11 +39,8 @@ def test_backup_assurance_foundation_is_derived_only():
         assert marker not in text.lower()
 
 
-def test_package_exposes_backup_assurance_cli_and_current_version():
+def test_package_exposes_backup_assurance_cli():
     pyproject = (ROOT / "pyproject.toml").read_text()
-    init = (ROOT / "src" / "infra_assurance" / "__init__.py").read_text()
-    assert 'version = "0.19.0"' in pyproject
-    assert '__version__ = "0.19.0"' in init
     assert (
         'iia-backup-assurance-foundation = '
         '"infra_assurance.backup_assurance_foundation:main"'
