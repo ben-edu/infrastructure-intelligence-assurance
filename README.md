@@ -8,15 +8,9 @@ Milestone 0 — Evidence Contract is complete.
 
 Milestone 1 — Kubernetes evidence, topology, and read-only planning preflight is complete and live-validated.
 
-Milestone 2 now provides:
+Milestone 2 — bounded history, trust-aware diff, dedicated Git declared-state observation, and declared-vs-observed drift are complete and live-validated.
 
-- bounded immutable Kubernetes snapshot history;
-- trust-aware previous/current diff;
-- evidence expiration and failed-collection signaling in comparisons;
-- a dedicated read-only Git declared-state observer;
-- safe normalization of supported Kubernetes declarations;
-- declared-vs-observed drift evaluation without evidence-plane conflation;
-- compact change context for operator/AI consumption.
+Milestone 3 now starts with a workload-centric operational inventory that joins existing evidence without creating a new source of truth.
 
 The live loop runs on the management host every five minutes.
 
@@ -33,7 +27,8 @@ Kubernetes API                     \
   -> dedicated read-only identity   \
   -> normalized observed evidence    -> declared-vs-observed drift
   -> freshness / trust              -> compact change context
-  -> topology / history / diff      -> planning / AI consumption
+  -> topology / history / diff      -> workload operational inventory
+                                      -> planning / AI consumption
 ```
 
 Current-state and task artifacts remain separate from immutable history.
@@ -50,6 +45,8 @@ Current-state and task artifacts remain separate from immutable history.
 /var/lib/infra-assurance/evidence/drift.md
 /var/lib/infra-assurance/evidence/change-context.json
 /var/lib/infra-assurance/evidence/change-context.md
+/var/lib/infra-assurance/evidence/inventory.json
+/var/lib/infra-assurance/evidence/inventory.md
 /var/lib/infra-assurance/evidence/preflight.json
 /var/lib/infra-assurance/evidence/preflight.md
 ```
@@ -70,6 +67,33 @@ Normalized Git declared state:
 ```
 
 The default Kubernetes history retention is 288 snapshots, approximately 24 hours at the current five-minute cadence. This remains replaceable local storage, not a final long-term database decision.
+
+## Workload operational inventory
+
+The first Dynamic Operational Inventory / CMDB projection covers currently observed:
+
+```text
+Deployment
+StatefulSet
+DaemonSet
+```
+
+Each workload entity combines traceable pointers and compact state from the existing evidence planes:
+
+- current observed state and freshness;
+- safe replica/scheduling fields and image references;
+- direct Git declared coverage and workload comparison where available;
+- Service selector-match relationships;
+- composed Ingress route candidates;
+- direct PVC references;
+- latest related snapshot changes;
+- related topology ambiguity and drift attention.
+
+This inventory is derived state. Kubernetes evidence, Git-declared evidence, topology, history, and drift remain the supporting source artifacts.
+
+A Service-to-workload relationship remains a selector-based inference. An Ingress route candidate composes an observed Ingress-to-Service reference with that inference and does not prove current Pod or EndpointSlice routing.
+
+A workload missing from the configured Git scope is `OUTSIDE_DECLARED_SCOPE`, not automatically unmanaged or drifted. A namespace is not automatically treated as an application or ownership boundary.
 
 ## Git declared-state source
 
@@ -131,9 +155,22 @@ Raw Kubernetes Secret values are never collected and the Kubernetes observer RBA
 sudo CLUSTER_ID=k3s-main ./scripts/bootstrap-observer.sh
 ```
 
-The bootstrap creates the dedicated Git deploy key if it does not already exist and prints its public half. Register that public key on `ben-edu/api-cluster-infra` as a read-only deploy key. No additional Kubernetes permission is required.
+The existing five-minute collector refreshes Git declared evidence before each Kubernetes observation and then emits the current projections.
 
-After the deploy key is registered, the existing five-minute collector automatically refreshes Git declared evidence before each Kubernetes observation.
+## Query workload inventory
+
+```bash
+sudo -u infra-assurance iia-inventory summary
+sudo -u infra-assurance iia-inventory list
+sudo -u infra-assurance iia-inventory list --attention-only
+sudo -u infra-assurance iia-inventory list --namespace validation
+sudo -u infra-assurance iia-inventory show \
+  --namespace validation \
+  --kind Deployment \
+  --name nginx-validation
+```
+
+The inventory CLI reads the generated artifact only and performs no additional infrastructure query.
 
 ## Inspect Git source status
 
@@ -177,4 +214,6 @@ See:
 - `docs/decisions/0005-bounded-file-history-and-trust-aware-diff.md` for history/diff semantics;
 - `docs/decisions/0006-git-declared-drift-without-plane-conflation.md` for drift semantics;
 - `docs/decisions/0007-dedicated-git-declared-observer.md` for the Git observer boundary;
-- `docs/milestone-2-history-diff-drift.md` for the current Milestone 2 architecture.
+- `docs/decisions/0008-workload-centric-operational-inventory.md` for the first CMDB projection boundary;
+- `docs/milestone-2-history-diff-drift.md` for the Milestone 2 architecture;
+- `docs/milestone-3-workload-operational-inventory.md` for the current Milestone 3 slice.

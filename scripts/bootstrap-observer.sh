@@ -19,6 +19,7 @@ OBSERVER_KUBECONFIG="${CONFIG_DIR}/kubeconfig"
 PREFLIGHT_BIN="/usr/local/bin/iia-k8s-preflight"
 HISTORY_BIN="/usr/local/bin/iia-k8s-history"
 GIT_SOURCE_BIN="/usr/local/bin/iia-git-source"
+INVENTORY_BIN="/usr/local/bin/iia-inventory"
 PREFLIGHT_EXAMPLE="${CONFIG_DIR}/examples/hypothetical-app-deployment.json"
 
 GIT_CONFIG="${CONFIG_DIR}/git-source.json"
@@ -191,6 +192,15 @@ EOF
 chown root:root "${GIT_SOURCE_BIN}"
 chmod 0755 "${GIT_SOURCE_BIN}"
 
+cat > "${INVENTORY_BIN}" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+export PYTHONPATH=/opt/infra-assurance/src
+exec /usr/bin/python3 -m infra_assurance.inventory_cli "$@"
+EOF
+chown root:root "${INVENTORY_BIN}"
+chmod 0755 "${INVENTORY_BIN}"
+
 cat > "${CONFIG_DIR}/collector.env" <<EOF
 IIA_CLUSTER_ID=${CLUSTER_ID}
 IIA_HISTORY_RETENTION=${HISTORY_RETENTION}
@@ -229,9 +239,12 @@ echo "History:          ${STATE_DIR}/history/kubernetes"
 echo "Latest diff:      ${STATE_DIR}/evidence/diff.json"
 echo "Latest drift:     ${STATE_DIR}/evidence/drift.json"
 echo "Change context:   ${STATE_DIR}/evidence/change-context.json"
+echo "Inventory JSON:   ${STATE_DIR}/evidence/inventory.json"
+echo "Inventory context:${STATE_DIR}/evidence/inventory.md"
 echo "Preflight CLI:    ${PREFLIGHT_BIN}"
 echo "History CLI:      ${HISTORY_BIN}"
 echo "Git source CLI:   ${GIT_SOURCE_BIN}"
+echo "Inventory CLI:    ${INVENTORY_BIN}"
 echo "Git source:       github.com/ben-edu/api-cluster-infra"
 echo "Declared state:   ${DECLARED_CURRENT_DIR}"
 echo "Git source status:${DECLARED_SOURCE_STATUS}"
