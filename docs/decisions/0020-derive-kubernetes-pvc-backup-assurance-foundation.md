@@ -1,6 +1,6 @@
 # ADR 0020 — Derive Kubernetes PVC Backup-Assurance Foundation Before Backup-System Integration
 
-Status: Proposed; pending repository and management-host live acceptance.
+Status: Accepted; repository and management-host live validation passed on 2026-08-15.
 
 ## Context
 
@@ -88,8 +88,33 @@ volume_name
 
 Do not use labels, annotations, naming conventions, snapshots, or storage metadata as backup-protection evidence.
 
+## Accepted evidence
+
+Repository/live validation established:
+
+```text
+217 tests passed
+RBAC changes: none
+query / external-source markers: none
+package: 0.19.0
+backup_assurance_foundation: 0/SUCCESS
+PVC collection: COMPLETE / CURRENT
+workload/PVC relationship scope: COMPLETE
+PVC assets: 37
+exact same-cycle asset-set match: true
+assets with direct controller reference: 16
+protection UNKNOWN: 37
+restore verification UNKNOWN: 37
+unprotected_claims: 0
+authoritative_backup_sources_integrated: 0
+forbidden projected keys: none
+raw URL markers: false
+```
+
+The 21 PVC assets without a direct controller relation were not classified as orphaned.
+
 ## Consequences
 
 The operator gains a clear inventory of stateful Kubernetes assets that need assurance and a precise list of missing backup evidence without premature credential expansion or false protection claims.
 
-The slice is intentionally a semantic and asset-discovery foundation for later authoritative backup-source integrations such as PBS/Proxmox or database-native tooling where justified by live infrastructure evidence.
+The next slice should integrate one bounded authoritative backup evidence source. It must preserve source-specific provenance and failure semantics and must not silently convert missing source coverage into `UNPROTECTED`.
