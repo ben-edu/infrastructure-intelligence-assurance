@@ -1,0 +1,83 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/incident-routing-integration.schema.json",
+  "title": "Incident Candidate Routing Integration Extension",
+  "type": "object",
+  "required": ["incident_candidates_version", "cluster_id", "mutation_allowed", "source_status", "summary", "candidates"],
+  "properties": {
+    "incident_candidates_version": {"const": "0.2"},
+    "cluster_id": {"type": "string", "minLength": 1},
+    "mutation_allowed": {"const": false},
+    "source_status": {
+      "type": "object",
+      "required": ["routing_ownership"],
+      "properties": {
+        "routing_ownership": {"enum": ["COMPLETE", "PARTIAL", "FAILED_TO_OBSERVE"]}
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": ["service_candidates_with_preferred_routing", "service_candidates_without_workload_routing_claim"],
+      "properties": {
+        "service_candidates_with_preferred_routing": {"type": "integer", "minimum": 0},
+        "service_candidates_without_workload_routing_claim": {"type": "integer", "minimum": 0}
+      }
+    },
+    "candidates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["scope", "impact_context"],
+        "properties": {
+          "scope": {
+            "type": "object",
+            "required": ["type", "subject"],
+            "properties": {
+              "type": {"enum": ["WORKLOAD", "NODE", "SERVICE", "NAMESPACE", "PLATFORM"]},
+              "subject": {"type": "string"}
+            }
+          },
+          "impact_context": {
+            "type": "object",
+            "properties": {
+              "service_routing": {"$ref": "#/$defs/serviceRouting"}
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "serviceRouting": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_status", "service", "state", "scope_completeness", "selection", "resolved_workloads", "evidence_ids"],
+      "properties": {
+        "source_status": {"enum": ["COMPLETE", "PARTIAL", "FAILED_TO_OBSERVE"]},
+        "service": {"type": "string", "pattern": "^Service/"},
+        "state": {
+          "enum": [
+            "NOT_OBSERVED",
+            "RESOLVED_WORKLOAD_ROUTING",
+            "PARTIAL_ROUTING",
+            "NON_POD_ROUTING",
+            "NO_ENDPOINTS_OBSERVED",
+            "SERVICE_NOT_OBSERVED",
+            "UNKNOWN"
+          ]
+        },
+        "scope_completeness": {"enum": ["COMPLETE", "PARTIAL", "UNKNOWN"]},
+        "selection": {
+          "enum": [
+            "PREFERRED_ROUTING_EVIDENCE",
+            "SELECTOR_INFERENCE_FALLBACK",
+            "ROUTING_SOURCE_INCOMPLETE",
+            "NO_WORKLOAD_ROUTING_CLAIM"
+          ]
+        },
+        "resolved_workloads": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "evidence_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+      }
+    }
+  }
+}
