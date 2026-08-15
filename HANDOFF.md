@@ -15,10 +15,10 @@ This is the compact continuation checkpoint for the Infrastructure Intelligence 
 
 - repository: `ben-edu/infrastructure-intelligence-assurance`
 - stable branch: `main`
-- current main HEAD before PR #38: `e1fd2832f7f93a2b38b6c5d30ab57855444ea6cf`
+- current main HEAD before PR #38 merge: `e1fd2832f7f93a2b38b6c5d30ab57855444ea6cf`
 - accepted PR #30 foundation merge: `0e6f96a9f1b4adba34c43803a21a70116423b65c`
 - accepted PR #32 discovery merge: `b0f139a531536531cff2a76bf2243c0cc7ca1770`
-- accepted PR #33 PVE source adapter merge: `58dca4289a3c302ef9098564da59b7d312aae71e`
+- accepted PR #33 PVE recovery-point adapter merge: `58dca4289a3c302ef9098564da59b7d312aae71e`
 - accepted PR #35 VM assurance merge: `59924eb93cbed0ecfef6c2dc6ffbd98af031c547`
 - post-PR35 Handoff merge: `fc1e22d0ab9fc380caf10c6e9598e59874860b67`
 - management host: `mgmt-automation`
@@ -26,7 +26,7 @@ This is the compact continuation checkpoint for the Infrastructure Intelligence 
 - Kubernetes cluster: `k3s-main`
 - PVE collectors remain manual-only; no systemd credential wiring
 
-A connector housekeeping mistake briefly created `__do_not_create__` on `main` and immediately deleted it in the next commit. Current `main` therefore advanced to `e1fd283...` with no net project-content diff from that sentinel add/delete pair. No runtime or infrastructure state was affected.
+A connector housekeeping mistake briefly created `__do_not_create__` on `main` and immediately deleted it. Current `main` therefore advanced to `e1fd283...` with no net project-content change from that add/delete pair. No runtime or infrastructure state was affected.
 
 Milestones 0–3 are live validated. Milestone 4 evidence-first vertical path is accepted and sufficiently complete. Milestone 5 is active.
 
@@ -60,17 +60,6 @@ VMIDs with no recovery point in complete local scope: 102,103,104,105,110,9000
 credential_runtime_approved: false
 ```
 
-Latest observed retained recovery points:
-
-```text
-100 -> 2026-05-08T06:13:59Z
-101 -> 2026-05-08T10:36:12Z
-106 -> 2026-08-14T16:13:14Z
-107 -> 2026-08-14T16:40:35Z
-108 -> 2026-04-15T12:30:02Z
-109 -> 2026-04-13T10:34:52Z
-```
-
 Accepted VM Backup Assurance from PR #35:
 
 ```text
@@ -84,57 +73,20 @@ unprotected claims: 0
 Kubernetes PVC assets modified: 0
 ```
 
-Archive presence does not satisfy `LAST_SUCCESSFUL_BACKUP` task-result semantics.
+Archive presence alone does not satisfy `LAST_SUCCESSFUL_BACKUP`.
 
 The existing BM2 token is broad/admin-like, env file mode `0644`, TLS verification false, and remains discovery-only. Runtime PVE collection is blocked until a separate least-privilege observer identity and trusted TLS path are accepted.
 
 Operator confirms there is no PBS today. Future PBS compatibility remains mandatory through separate source adapters with explicit provenance and common assurance dimensions.
 
-## Accepted task-result preflight — 2026-08-15
-
-A bounded manual GET-only BM2 task-history preflight proved a safe next source path.
-
-Observed returned scope:
-
-```text
-request mode: SERVER_FILTERED_VZDUMP
-HTTP status: 200
-rows returned: 22
-vzdump rows selected: 22
-limit: 500
-limit saturated: false
-historical completeness: NOT_ESTABLISHED
-normalized SUCCESS: 22
-tasks with numeric VMID: 22
-returned timestamp range: 2026-02-24T10:36:47Z .. 2026-08-14T17:39:32Z
-```
-
-Recovery-point correlation preflight:
-
-```text
-retained recovery points evaluated: 12
-strict same-VMID candidates within 0-1 seconds: 9
-old points outside returned task history: 3
-```
-
-The three old retained points that must not be nearest-task matched are:
-
-```text
-VMID 106 -> 2025-11-24T08:50:52Z
-VMID 107 -> 2025-11-21T10:19:36Z
-VMID 108 -> 2025-11-21T10:29:32Z
-```
-
-A successful returned task is authoritative evidence that the PVE `vzdump` task record completed `OK`. It is not restore or integrity verification.
-
-## Active implementation — PR #38 bounded PVE backup task results
+## Active accepted work — PR #38 bounded PVE backup task results
 
 - PR: `#38 Milestone 5 observe bounded PVE backup task results`
 - branch: `feature/m5-pve-backup-task-results`
 - base main: `e1fd2832f7f93a2b38b6c5d30ab57855444ea6cf`
 - package: `0.22.0`
-- output contract: `pve_backup_task_results_version=0.1`
-- status: Draft; repository/manual live gate pending
+- artifact: `pve_backup_task_results_version=0.1`
+- status: repository/manual live accepted; ready for squash merge
 - RBAC change: none
 - systemd change: none
 - runtime credential wiring: none
@@ -152,27 +104,33 @@ docs/milestone-5-pve-backup-task-results.md
 docs/reports/2026-08-15-m5-pve-backup-task-results-live-test-gate.md
 ```
 
-### Query boundary
-
-Preferred:
+Accepted repository/live gate:
 
 ```text
-GET /api2/json/nodes/<node>/tasks?typefilter=vzdump&limit=<bounded>
+249 passed in 1.61s
+source recovery-point artifact unchanged: true
+source status: COMPLETE
+operation: GET_BOUNDED_VZDUMP_TASK_RESULTS
+request mode: SERVER_FILTERED_VZDUMP
+HTTP status: 200
+rows returned: 22
+successful task results: 22
+strict recovery-point/task matches: 9
+recovery points without strict match in returned history: 3
+limit: 500
+limit saturated: false
+historical completeness: NOT_ESTABLISHED
+runtime credential approved: false
+credential file mode secure: false
+TLS verification: false
+discovery override used: true
+forbidden projected keys: none
+raw URL markers: false
+credential material projection: none
+restore/integrity/RPO/RTO promotion: none
 ```
 
-Only if that returns HTTP 400:
-
-```text
-GET /api2/json/nodes/<node>/tasks?limit=<bounded>
-```
-
-and filter locally.
-
-No task-log endpoint is allowed.
-
-### Safe task projection
-
-Persist only:
+Safe task projection is limited to:
 
 ```text
 task_result_id
@@ -184,61 +142,57 @@ end_time
 result
 ```
 
-Never persist complete UPIDs, raw task logs, user/token identity, raw status/error strings, command lines, URLs, raw payloads, or credentials.
-
-### Strict recovery-point correlation
-
-A retained recovery point may become `STRICT_SUCCESS_TASK_MATCH` only when:
+Strict recovery-point/task correlation is accepted only when:
 
 ```text
 same VMID
-successful VZDUMP result
+successful VZDUMP task
 absolute(recovery_point.created_at - task.start_time) <= 2 seconds
 ```
 
-Basis:
+Current strict matches have deltas of 0 or 1 second.
+
+The three older retained recovery points remain unmatched:
 
 ```text
-VMID
-RECOVERY_POINT_CREATED_AT
-VZDUMP_START_TIME
+VMID 106 -> 2025-11-24T08:50:52Z
+VMID 107 -> 2025-11-21T10:19:36Z
+VMID 108 -> 2025-11-21T10:29:32Z
 ```
 
-Anything outside that threshold is `NO_STRICT_MATCH_IN_RETURNED_HISTORY`.
+They are `NO_STRICT_MATCH_IN_RETURNED_HISTORY`, not failed-backup evidence. No nearest-task heuristic is allowed outside the threshold.
 
-Do not use nearest-task heuristics outside the threshold. Missing historical matches are not failed-backup evidence because `historical_completeness=NOT_ESTABLISHED`.
+`SUCCESS` means only that the returned PVE `vzdump` task record completed with normalized source status `OK`. It does not establish restore verification, integrity verification, RPO, RTO, or universal protection.
 
-### Credential boundary
+## Exact next step after PR #38 merge — derived LAST_SUCCESSFUL_BACKUP integration
 
-Normal collector execution still rejects group/world-readable credential files and disabled TLS verification. Manual live acceptance may use the existing discovery credential only with explicit override flags.
+Build a derived-only VM assurance integration that consumes local accepted artifacts:
 
-`runtime_credential_approved=false` is invariant in this artifact.
+```text
+VM Backup Assurance v0.1
+PVE Backup Task Results v0.1
+```
 
-## Exact acceptance requirements for PR #38
+No new Proxmox query, credential access, RBAC change, systemd wiring, or infrastructure mutation is allowed.
 
-1. full pytest passes;
-2. package version `0.22.0` and task-results CLI are present;
-3. no RBAC/systemd diff;
-4. source recovery-point artifact validates and remains unchanged during collection;
-5. task query is GET-only and bounded;
-6. current BM2 source returns COMPLETE task observation;
-7. output validates against schema;
-8. no complete UPID, task log, user/token identity, raw error/status, command line, URL, credential, or raw payload is projected;
-9. current 12 retained recovery points produce strict matches only within the 2-second contract;
-10. the three pre-2026 returned-history points remain unmatched, not attached to distant tasks;
-11. task-history completeness remains `NOT_ESTABLISHED`;
-12. no restore/integrity/RPO/RTO claim is created;
-13. runtime credential remains unapproved and unwired.
+The integration should strengthen only `LAST_SUCCESSFUL_BACKUP` where current VM assurance recovery-point evidence is backed by `STRICT_SUCCESS_TASK_MATCH`.
 
-On PASS: mark ADR 0023/report Accepted, update Handoff, ready and squash-merge PR #38.
+Required semantics:
 
-On FAIL: diagnose the exact implementation defect and rerun only the focused failed gate when safe.
+1. join only exact source identity + VMID + recovery-point identity already correlated by the accepted task-result artifact;
+2. do not recalculate a looser time heuristic in the derived layer;
+3. for a VM with one or more strict matched successful retained recovery points, set `last_successful_backup_status=OBSERVED` and expose the latest strictly supported successful backup timestamp plus bounded evidence IDs;
+4. if a VM has recovery points but none with strict task-result support, leave `last_successful_backup_status=UNKNOWN`;
+5. complete selected-source negative recovery-point evidence remains scoped negative for recovery points only and must not become `UNPROTECTED`;
+6. unmatched historical task evidence is not a failed backup;
+7. `protection_status` remains `UNKNOWN` for all VMs in this slice;
+8. restore verification, integrity verification, failure domain, scheduled protection, RPO, and RTO remain unchanged/unknown;
+9. `LAST_SUCCESSFUL_BACKUP` required-evidence dimension may become `OBSERVED` only for strictly supported VMs;
+10. source artifact freshness remains explicit; do not invent TTL/currentness;
+11. Kubernetes PVC assurance remains untouched;
+12. future PBS evidence must be able to satisfy the same common dimension without redesigning VM assurance.
 
-## Exact next step after PR #38 acceptance
-
-If the task-result source is accepted, build a **derived-only VM assurance integration** that consumes local accepted VM assurance + task-result artifacts and strengthens only `LAST_SUCCESSFUL_BACKUP` where authoritative successful task evidence exists.
-
-Do not strengthen restore, integrity, RPO or RTO. Do not treat unmatched historical points as failures. Do not add new PVE queries in that derived integration.
+Implement this as a separate derived artifact/versioned integration first. Do not wire runtime PVE collection until least-privilege identity and trusted TLS are accepted.
 
 ## Milestone 5 roadmap coverage still open
 
@@ -246,7 +200,7 @@ Do not strengthen restore, integrity, RPO or RTO. Do not treat unmatched histori
 PostgreSQL
 MariaDB
 PVC assurance beyond foundation
-VM backup task-result integration
+VM last-successful-backup integration
 PBS (future; not present today)
 external backup targets
 failure-domain evidence
