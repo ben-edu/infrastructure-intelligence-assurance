@@ -1,0 +1,193 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/prometheus-rule-context.schema.json",
+  "title": "Prometheus Rule Context",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "prometheus_rule_context_version",
+    "cluster_id",
+    "generated_at",
+    "mutation_allowed",
+    "source",
+    "bounds",
+    "summary",
+    "requested_alert_names",
+    "matched_alert_names",
+    "unmatched_alert_names",
+    "rules",
+    "candidate_context",
+    "unknowns",
+    "errors",
+    "caveats"
+  ],
+  "properties": {
+    "prometheus_rule_context_version": {"const": "0.1"},
+    "cluster_id": {"type": "string", "minLength": 1},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "mutation_allowed": {"const": false},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "access", "namespace", "service", "port", "operation", "queried", "status", "collector", "collector_version"],
+      "properties": {
+        "type": {"const": "prometheus_http_api"},
+        "access": {"const": "kubernetes_service_proxy"},
+        "namespace": {"type": "string", "minLength": 1},
+        "service": {"type": "string", "minLength": 1},
+        "port": {"type": "integer", "minimum": 1, "maximum": 65535},
+        "operation": {"const": "GET_RULES_BY_EXACT_ACTIVE_ALERTNAME"},
+        "queried": {"type": "boolean"},
+        "status": {"enum": ["COMPLETE", "PARTIAL", "FAILED_TO_OBSERVE"]},
+        "collector": {"const": "infra_assurance.prometheus_rule_context"},
+        "collector_version": {"const": "0.1"}
+      }
+    },
+    "bounds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_active_alert_names", "active_alert_names_total", "active_alert_names_requested", "active_alert_names_truncated"],
+      "properties": {
+        "max_active_alert_names": {"type": "integer", "minimum": 1},
+        "active_alert_names_total": {"type": "integer", "minimum": 0},
+        "active_alert_names_requested": {"type": "integer", "minimum": 0},
+        "active_alert_names_truncated": {"type": "boolean"}
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "active_alert_names_requested",
+        "alert_names_matched_to_rules",
+        "alert_names_unmatched",
+        "rule_records",
+        "rule_health_ok",
+        "rule_health_error",
+        "rule_health_unknown",
+        "rules_firing",
+        "rules_pending",
+        "rules_inactive",
+        "rules_state_unknown",
+        "active_candidates",
+        "active_candidates_with_rule_match"
+      ],
+      "properties": {
+        "active_alert_names_requested": {"type": "integer", "minimum": 0},
+        "alert_names_matched_to_rules": {"type": "integer", "minimum": 0},
+        "alert_names_unmatched": {"type": "integer", "minimum": 0},
+        "rule_records": {"type": "integer", "minimum": 0},
+        "rule_health_ok": {"type": "integer", "minimum": 0},
+        "rule_health_error": {"type": "integer", "minimum": 0},
+        "rule_health_unknown": {"type": "integer", "minimum": 0},
+        "rules_firing": {"type": "integer", "minimum": 0},
+        "rules_pending": {"type": "integer", "minimum": 0},
+        "rules_inactive": {"type": "integer", "minimum": 0},
+        "rules_state_unknown": {"type": "integer", "minimum": 0},
+        "active_candidates": {"type": "integer", "minimum": 0},
+        "active_candidates_with_rule_match": {"type": "integer", "minimum": 0}
+      }
+    },
+    "requested_alert_names": {"type": "array", "items": {"$ref": "#/$defs/safeName"}, "uniqueItems": true},
+    "matched_alert_names": {"type": "array", "items": {"$ref": "#/$defs/safeName"}, "uniqueItems": true},
+    "unmatched_alert_names": {"type": "array", "items": {"$ref": "#/$defs/safeName"}, "uniqueItems": true},
+    "rules": {"type": "array", "items": {"$ref": "#/$defs/rule"}},
+    "candidate_context": {"type": "array", "items": {"$ref": "#/$defs/candidateContext"}},
+    "unknowns": {"type": "array", "items": {"$ref": "#/$defs/diagnostic"}},
+    "errors": {"type": "array", "items": {"$ref": "#/$defs/error"}},
+    "caveats": {"type": "array", "items": {"type": "string", "minLength": 1}}
+  },
+  "$defs": {
+    "safeName": {"type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,200}$"},
+    "evidenceIds": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rule_id",
+        "evidence_id",
+        "observed_at",
+        "expires_at",
+        "alertname",
+        "group_name",
+        "rule_type",
+        "state",
+        "health",
+        "duration_seconds",
+        "keep_firing_for_seconds",
+        "evaluation_time_seconds",
+        "last_evaluation",
+        "expression_persisted"
+      ],
+      "properties": {
+        "rule_id": {"type": "string", "pattern": "^prom-rule-[a-f0-9]{24}$"},
+        "evidence_id": {"type": "string", "minLength": 1},
+        "observed_at": {"type": "string", "format": "date-time"},
+        "expires_at": {"type": "string", "format": "date-time"},
+        "alertname": {"$ref": "#/$defs/safeName"},
+        "group_name": {"$ref": "#/$defs/safeName"},
+        "rule_type": {"const": "ALERTING"},
+        "state": {"enum": ["FIRING", "PENDING", "INACTIVE", "UNKNOWN"]},
+        "health": {"enum": ["OK", "ERROR", "UNKNOWN"]},
+        "duration_seconds": {"type": ["number", "null"], "minimum": 0},
+        "keep_firing_for_seconds": {"type": ["number", "null"], "minimum": 0},
+        "evaluation_time_seconds": {"type": ["number", "null"], "minimum": 0},
+        "last_evaluation": {"type": ["string", "null"]},
+        "expression_persisted": {"const": false}
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "subject"],
+      "properties": {
+        "type": {"enum": ["WORKLOAD", "NODE", "SERVICE", "NAMESPACE", "PLATFORM"]},
+        "subject": {"type": "string", "minLength": 1}
+      }
+    },
+    "requiredVerification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target", "statement"],
+      "properties": {
+        "target": {"const": "PROMETHEUS_RULE_INPUTS"},
+        "statement": {"type": "string", "minLength": 1}
+      }
+    },
+    "candidateContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["candidate_id", "scope", "alert_names", "matched_rule_ids", "unmatched_alert_names", "basis", "evidence_ids", "required_live_verification"],
+      "properties": {
+        "candidate_id": {"type": ["string", "null"]},
+        "scope": {"$ref": "#/$defs/scope"},
+        "alert_names": {"type": "array", "items": {"$ref": "#/$defs/safeName"}, "uniqueItems": true},
+        "matched_rule_ids": {"type": "array", "items": {"type": "string", "pattern": "^prom-rule-[a-f0-9]{24}$"}, "uniqueItems": true},
+        "unmatched_alert_names": {"type": "array", "items": {"$ref": "#/$defs/safeName"}, "uniqueItems": true},
+        "basis": {"type": "array", "items": {"const": "EXACT_ALERTNAME_PROMETHEUS_RULE_MATCH"}, "uniqueItems": true},
+        "evidence_ids": {"$ref": "#/$defs/evidenceIds"},
+        "required_live_verification": {"type": "array", "items": {"$ref": "#/$defs/requiredVerification"}}
+      }
+    },
+    "diagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "subject", "statement", "evidence_ids"],
+      "properties": {
+        "code": {"type": "string", "minLength": 1},
+        "subject": {"type": ["string", "null"]},
+        "statement": {"type": "string", "minLength": 1},
+        "evidence_ids": {"$ref": "#/$defs/evidenceIds"}
+      }
+    },
+    "error": {
+      "type": "object",
+      "required": ["scope", "code", "summary"],
+      "properties": {
+        "scope": {"const": "rules"},
+        "code": {"type": "string", "minLength": 1},
+        "summary": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}
