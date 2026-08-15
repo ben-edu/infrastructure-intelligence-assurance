@@ -11,30 +11,26 @@ This is the compact continuation checkpoint for the Infrastructure Intelligence 
 5. Read only the ADR, milestone doc, and live-test report relevant to the active slice.
 6. Prefer repository/live evidence over chat reconstruction.
 
-## Stable repository/runtime
+## Stable checkpoint
 
-- repo: `ben-edu/infrastructure-intelligence-assurance`
+- repository: `ben-edu/infrastructure-intelligence-assurance`
 - stable branch: `main`
-- stable main checkpoint before active PR: `e24b86e7431cecaea01a6984b57f6b2185390f73`
+- stable main before active PR: `e24b86e7431cecaea01a6984b57f6b2185390f73`
 - management host: `mgmt-automation`
 - checkout: `~/projects/infrastructure-intelligence-assurance`
-- Kubernetes cluster: `k3s-main`
+- cluster: `k3s-main`
 - runtime user: `infra-assurance`
-- systemd oneshot: `infra-assurance-kubernetes.service`
+- oneshot: `infra-assurance-kubernetes.service`
 - timer: every 5 minutes
 
-The oneshot being `inactive (dead)` after `status=0/SUCCESS` is expected.
-
-## Accepted implementation checkpoint
-
-Milestones 0–3 are live validated for the evidence contract, Kubernetes read-only inventory/context, topology/preflight, bounded history/diff, Git declared-state/drift, workload inventory, and Prometheus Operator configuration coverage.
+Milestones 0–3 are live validated for the evidence contract, Kubernetes observation/context/topology/preflight, history/diff, Git declared-state/drift, workload inventory, and Prometheus Operator coverage.
 
 Milestone 4 accepted slices:
 
-- PR #10 — Prometheus runtime, exact read-only proxy `monitoring/kube-prom-stack-prometheus:9090`.
-- PR #13 — Alertmanager handling correlation, exact read-only proxy `monitoring/kube-prom-stack-alertmanager:9093`.
-- PR #14 — Kubernetes Event correlation with no Pod-name ownership inference.
-- PR #16 — incident candidates/drill-down, merged at `12ad053332bdbff39b2e580cd33cd6715e675748`.
+- PR #10 — Prometheus runtime;
+- PR #13 — Alertmanager handling correlation;
+- PR #14 — Kubernetes Event correlation;
+- PR #16 — incident candidates/drill-down.
 
 PR #16 accepted live result:
 
@@ -49,8 +45,6 @@ scope: 3 Namespace / 1 Platform / 3 Service
 mutation_allowed: false
 ```
 
-The three current Service candidates require stronger Kubernetes routing evidence before workload ownership should be inferred.
-
 Known real drift remains intentionally unresolved:
 
 ```text
@@ -59,18 +53,17 @@ Git:  k3s-master.soria-academie.fr
 Live: k3s-master.behnam.fr
 ```
 
-## Active work — PR #18 routing ownership evidence
+## Active work — PR #18
 
 - PR: `#18 Milestone 4 bounded EndpointSlice and Pod routing ownership`
 - branch: `feature/m4-endpointslice-pod-ownership`
 - package version: `0.13.0`
-- status: Draft; do not merge until corrected management-host live acceptance passes
+- status: Draft
+- live acceptance: not complete
 
-### Goal
+Goal: strengthen Service routing/controller evidence before allowing stronger routing ownership to influence topology, inventory, or incident candidates.
 
-Produce stronger Service routing/controller evidence without broad Pod enumeration, then validate it before any downstream topology/inventory/incident integration.
-
-### Least-privilege design
+### Least-privilege observation design
 
 ```text
 EndpointSlices: list
@@ -83,9 +76,9 @@ Secrets:        denied
 mutation:       denied
 ```
 
-Pod GETs are exact-name and only follow EndpointSlice Pod targetRefs. ReplicaSet GETs are exact-name and only follow selected Pod controller ownerReferences.
+Pod GETs are exact-name and follow only Pod targetRefs observed in EndpointSlices. ReplicaSet GETs are exact-name and follow only controller ownerReferences observed on those selected Pods.
 
-Default per-cycle bounds:
+Default bounds:
 
 ```text
 max Pod GETs:        500
@@ -115,32 +108,33 @@ Artifacts:
 
 PR #18 deliberately does not feed this artifact into incident candidates yet.
 
-### First management-host gate attempt
+### Management-host gate history
 
-The first PR #18 run stopped at pytest before bootstrap:
+First attempt stopped before bootstrap:
 
 ```text
 1 failed, 145 passed in 0.98s
 ```
 
-Failed test:
+Cause: regression-test parsing bug. The test accidentally included later ClusterRole rules and attributed unrelated `list/watch` verbs to the Pod rule. No infrastructure/RBAC change was applied in that attempt.
+
+The test was corrected to inspect individual RBAC rule blocks.
+
+Corrected repository test gate then passed on `mgmt-automation`:
 
 ```text
-tests/test_routing_ownership_wiring.py::test_rbac_allows_endpointslice_list_but_only_exact_get_capability_for_pods_and_replicasets
+146 passed in 0.92s
 ```
 
-Cause: regression-test parsing bug, not an RBAC implementation defect. The test split the ClusterRole text at the document boundary and accidentally included later rules, so `list/watch` verbs from unrelated resources were attributed to the Pod rule.
+Tested branch checkpoint before the report/Handoff bookkeeping commits:
 
-Correction already committed on the active branch:
+```text
+44a13b0 record first PR 18 live gate failure
+```
 
-- parse individual ClusterRole rule blocks;
-- assert Pod rule independently as `verbs: ["get"]`;
-- assert ReplicaSet rule independently as `verbs: ["get"]`;
-- assert EndpointSlice rule independently as `verbs: ["list"]`.
+Therefore repository-level tests are green. Bootstrap/live Kubernetes acceptance has not yet been run for PR #18.
 
-Because pytest failed, `bootstrap-observer.sh` did not execute in the first attempt. No live RBAC/runtime acceptance claim is made yet.
-
-Detailed gate report:
+Detailed report:
 
 ```text
 docs/reports/2026-08-15-m4-routing-ownership-live-test-gate.md
@@ -148,22 +142,23 @@ docs/reports/2026-08-15-m4-routing-ownership-live-test-gate.md
 
 ## Exact next step
 
-Fetch the active branch normally (do not force-rewrite it; the management host has already tested this branch), rerun the full pytest suite, and only if green continue with bootstrap and the existing PR #18 routing-ownership acceptance block.
+Do not rerun pytest unnecessarily. Fetch the active branch normally, then run `bootstrap-observer.sh` and the remaining live routing acceptance checks.
 
-Key live acceptance checks remain:
+Required live checks:
 
-1. EndpointSlice list yes, direct get no;
-2. Pod get yes, list/watch no;
-3. ReplicaSet get yes, list/watch no;
-4. Secrets/mutation no;
-5. source status and GET bounds explicit;
-6. `Service/monitoring/loki-headless` live routing inspected;
-7. current `kube-prom-stack-kubelet` Service routing inspected;
-8. cluster-scoped Node target namespace remains null;
-9. sensitive/full-object fields absent;
-10. incident candidates still do not consume routing ownership.
+1. EndpointSlice list = yes, direct get = no;
+2. Pod get = yes, list/watch = no;
+3. ReplicaSet get = yes, list/watch = no;
+4. Secrets/mutation = no;
+5. observer and both ExecStartPost steps succeed;
+6. routing source status/bounds and exact GET counts are explicit;
+7. `Service/monitoring/loki-headless` routing is inspected;
+8. current Service-scoped incident candidates, especially kubelet-related ones, are inspected;
+9. Node targetRefs preserve `namespace=null`;
+10. sensitive/full-object fields remain absent;
+11. incident candidates still do not consume routing ownership.
 
-If accepted, the next slice may integrate complete routing ownership into topology/inventory/incident context, preferring the stronger relation only where live evidence supports it.
+If accepted, update the live report/Handoff, mark PR #18 ready, squash merge it, and then create a separate integration slice that uses stronger routing evidence only where current evidence supports it.
 
 Do not add Loki/OpenTelemetry in PR #18.
 
@@ -179,3 +174,7 @@ Do not add Loki/OpenTelemetry in PR #18.
 - specialized systems remain authoritative;
 - no passwords, tokens, private keys, raw Kubernetes Secret values, sensitive Terraform state, or complete sensitive connection strings enter evidence/AI context;
 - current generated operational artifacts keep `mutation_allowed=false`.
+
+## Maintenance rule
+
+Keep this file compact. Update it only for accepted/merged slices, active PR changes, material live-gate outcomes, important blockers/risks, exact next-step changes, or runtime identity changes needed for continuation. Do not append transcripts or raw command logs.
