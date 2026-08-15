@@ -1,5 +1,9 @@
 # Milestone 4 — Prometheus Rule Context Integration
 
+## Status
+
+Accepted after repository and management-host live validation.
+
 ## Goal
 
 Make the accepted bounded Prometheus rule evidence from PR #26 directly useful in incident drill-down without adding a new infrastructure query.
@@ -13,7 +17,7 @@ Make the accepted bounded Prometheus rule evidence from PR #26 directly useful i
 
 The post-step runs after rule-context collection and rewrites only the local incident artifact and its Markdown summary.
 
-## Output contract
+## Accepted output contract
 
 ```text
 incident_candidates_version: 0.4
@@ -22,7 +26,7 @@ prometheus_rule_context_integration.mode: EXACT_COMPLETE_ONLY
 mutation_allowed: false
 ```
 
-`source_status.prometheus_rule_context` records the accepted rule source status used by the integration.
+`source_status.prometheus_rule_context` records the rule source status used by the integration.
 
 ## Promotion rule
 
@@ -117,4 +121,31 @@ prometheus_rule_context
 prometheus_rule_context_integration
 ```
 
-Live acceptance is required before merge.
+## Accepted repository/live evidence
+
+```text
+RBAC changes: none
+query-capable markers: none
+204 passed in 1.29s
+all runtime stages: status=0/SUCCESS
+rule source: COMPLETE
+active candidate: Platform/k3s-main
+active alert names: KubeCPUOvercommit, Watchdog
+selection: COMPLETE_EXACT_RULE_MATCH
+matched rules: 2
+unmatched: none
+PROMETHEUS_ALERTMANAGER preserved
+PROMETHEUS_RULE_INPUTS selected
+PROMETHEUS_KUBERNETES removed from eligible Platform candidate
+non-active candidates enriched: none
+integration unknowns: none
+target summary matches checks: true
+forbidden projected keys: none
+raw URL markers: false
+```
+
+## Milestone interpretation
+
+Milestone 4 now has accepted evidence for runtime signals, alert handling, Kubernetes Events, incident grouping, impact context, validated scope identities, observed routing ownership, scope-aware drill-down, bounded Prometheus rule metadata, and exact rule-context integration.
+
+The final `PROMETHEUS_RULE_INPUTS` recommendation is intentionally a live verification target delegated to the authoritative metrics engine. Automatically evaluating arbitrary PromQL is not required to close this evidence-first Milestone 4 slice and would be a separate design decision if later operational evidence justifies it.
