@@ -1,0 +1,240 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/kubernetes-routing-ownership.schema.json",
+  "title": "Kubernetes Routing Ownership",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "routing_ownership_version",
+    "cluster_id",
+    "generated_at",
+    "mutation_allowed",
+    "source_status",
+    "bounds",
+    "summary",
+    "service_routes",
+    "unknowns",
+    "errors"
+  ],
+  "properties": {
+    "routing_ownership_version": {"const": "0.1"},
+    "cluster_id": {"type": "string", "minLength": 1},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "mutation_allowed": {"const": false},
+    "source_status": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["overall", "endpoint_slices", "pods", "replica_sets"],
+      "properties": {
+        "overall": {"enum": ["COMPLETE", "PARTIAL", "FAILED_TO_OBSERVE"]},
+        "endpoint_slices": {"$ref": "#/$defs/listSource"},
+        "pods": {"$ref": "#/$defs/selectiveGetSource"},
+        "replica_sets": {"$ref": "#/$defs/selectiveGetSource"}
+      }
+    },
+    "bounds": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["max_pod_gets", "max_replicaset_gets"],
+      "properties": {
+        "max_pod_gets": {"type": "integer", "minimum": 1},
+        "max_replicaset_gets": {"type": "integer", "minimum": 1}
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "endpoint_slices",
+        "pod_gets_requested",
+        "pod_gets_executed",
+        "replicaset_gets_requested",
+        "replicaset_gets_executed",
+        "services_with_endpoint_slices",
+        "endpoint_paths",
+        "pod_targets",
+        "non_pod_targets",
+        "target_refs_missing",
+        "resolved_workload_paths",
+        "services_with_resolved_workloads",
+        "services_non_pod_only",
+        "services_unknown_or_partial"
+      ],
+      "properties": {
+        "endpoint_slices": {"type": "integer", "minimum": 0},
+        "pod_gets_requested": {"type": "integer", "minimum": 0},
+        "pod_gets_executed": {"type": "integer", "minimum": 0},
+        "replicaset_gets_requested": {"type": "integer", "minimum": 0},
+        "replicaset_gets_executed": {"type": "integer", "minimum": 0},
+        "services_with_endpoint_slices": {"type": "integer", "minimum": 0},
+        "endpoint_paths": {"type": "integer", "minimum": 0},
+        "pod_targets": {"type": "integer", "minimum": 0},
+        "non_pod_targets": {"type": "integer", "minimum": 0},
+        "target_refs_missing": {"type": "integer", "minimum": 0},
+        "resolved_workload_paths": {"type": "integer", "minimum": 0},
+        "services_with_resolved_workloads": {"type": "integer", "minimum": 0},
+        "services_non_pod_only": {"type": "integer", "minimum": 0},
+        "services_unknown_or_partial": {"type": "integer", "minimum": 0}
+      }
+    },
+    "service_routes": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/serviceRoute"}
+    },
+    "unknowns": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/unknown"}
+    },
+    "errors": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/error"}
+    }
+  },
+  "$defs": {
+    "status": {"enum": ["COMPLETE", "PARTIAL", "FAILED_TO_OBSERVE"]},
+    "listSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "mode", "observed_at", "expires_at", "item_count", "evidence_id"],
+      "properties": {
+        "status": {"$ref": "#/$defs/status"},
+        "mode": {"const": "LIST_PROJECTED"},
+        "observed_at": {"type": ["string", "null"], "format": "date-time"},
+        "expires_at": {"type": ["string", "null"], "format": "date-time"},
+        "item_count": {"type": ["integer", "null"], "minimum": 0},
+        "evidence_id": {"type": "string", "minLength": 1}
+      }
+    },
+    "selectiveGetSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "mode", "observed_at", "expires_at", "requested", "present", "absent", "unknown", "skipped_by_bound"],
+      "properties": {
+        "status": {"$ref": "#/$defs/status"},
+        "mode": {"const": "SELECTIVE_GET_PROJECTED"},
+        "observed_at": {"type": "string", "format": "date-time"},
+        "expires_at": {"type": "string", "format": "date-time"},
+        "requested": {"type": "integer", "minimum": 0},
+        "present": {"type": "integer", "minimum": 0},
+        "absent": {"type": "integer", "minimum": 0},
+        "unknown": {"type": "integer", "minimum": 0},
+        "skipped_by_bound": {"type": "integer", "minimum": 0}
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["api_group", "kind", "namespace", "name"],
+      "properties": {
+        "api_group": {"type": "string"},
+        "kind": {"type": "string", "minLength": 1},
+        "namespace": {"type": "string", "minLength": 1},
+        "name": {"type": "string", "minLength": 1}
+      }
+    },
+    "owner": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["api_group", "kind", "namespace", "name"],
+      "properties": {
+        "api_group": {"type": "string"},
+        "kind": {"type": "string", "minLength": 1},
+        "namespace": {"type": "string", "minLength": 1},
+        "name": {"type": "string", "minLength": 1}
+      }
+    },
+    "conditions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["ready", "serving", "terminating"],
+      "properties": {
+        "ready": {"type": ["boolean", "null"]},
+        "serving": {"type": ["boolean", "null"]},
+        "terminating": {"type": ["boolean", "null"]}
+      }
+    },
+    "path": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["endpoint_slice", "target", "conditions", "resolution", "immediate_owner", "workload", "basis", "evidence_ids"],
+      "properties": {
+        "endpoint_slice": {"type": "string", "minLength": 1},
+        "target": {"anyOf": [{"$ref": "#/$defs/target"}, {"type": "null"}]},
+        "conditions": {"$ref": "#/$defs/conditions"},
+        "resolution": {
+          "enum": [
+            "UNKNOWN",
+            "TARGET_REF_MISSING",
+            "NON_POD_TARGET",
+            "POD_GET_BOUND_EXCEEDED",
+            "POD_OBSERVATION_UNKNOWN",
+            "POD_NOT_FOUND",
+            "POD_CONTROLLER_OWNER_UNKNOWN",
+            "POD_CONTROLLER_OWNER_AMBIGUOUS",
+            "REPLICASET_GET_BOUND_EXCEEDED",
+            "REPLICASET_OBSERVATION_UNKNOWN",
+            "REPLICASET_NOT_FOUND",
+            "REPLICASET_CONTROLLER_OWNER_UNKNOWN",
+            "REPLICASET_CONTROLLER_OWNER_AMBIGUOUS",
+            "UNSUPPORTED_REPLICASET_CONTROLLER_KIND",
+            "UNSUPPORTED_POD_CONTROLLER_KIND",
+            "WORKLOAD_NOT_OBSERVED",
+            "WORKLOAD_OBSERVATION_UNKNOWN",
+            "RESOLVED_WORKLOAD"
+          ]
+        },
+        "immediate_owner": {"anyOf": [{"$ref": "#/$defs/owner"}, {"type": "null"}]},
+        "workload": {"type": ["string", "null"]},
+        "basis": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+        "evidence_ids": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
+      }
+    },
+    "resolvedWorkload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["subject", "pod_targets", "basis", "evidence_ids"],
+      "properties": {
+        "subject": {"type": "string", "minLength": 1},
+        "pod_targets": {"type": "integer", "minimum": 1},
+        "basis": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+        "evidence_ids": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true}
+      }
+    },
+    "serviceRoute": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["service", "service_observation", "endpoint_slices", "paths", "resolved_workloads", "scope_completeness", "state"],
+      "properties": {
+        "service": {"type": "string", "minLength": 1},
+        "service_observation": {"enum": ["PRESENT", "ABSENT_FROM_COMPLETE_OBSERVATION", "UNKNOWN"]},
+        "endpoint_slices": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+        "paths": {"type": "array", "items": {"$ref": "#/$defs/path"}},
+        "resolved_workloads": {"type": "array", "items": {"$ref": "#/$defs/resolvedWorkload"}},
+        "scope_completeness": {"enum": ["COMPLETE", "PARTIAL"]},
+        "state": {"enum": ["RESOLVED_WORKLOAD_ROUTING", "PARTIAL_ROUTING", "NON_POD_ROUTING", "NO_ENDPOINTS_OBSERVED", "SERVICE_NOT_OBSERVED", "UNKNOWN"]}
+      }
+    },
+    "unknown": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "subject", "statement", "evidence_ids"],
+      "properties": {
+        "code": {"type": "string", "minLength": 1},
+        "subject": {"type": "string", "minLength": 1},
+        "statement": {"type": "string", "minLength": 1},
+        "evidence_ids": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      }
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "code", "summary"],
+      "properties": {
+        "source": {"enum": ["endpoint_slices", "pods", "replica_sets"]},
+        "subject": {"type": "string"},
+        "code": {"type": "string", "minLength": 1},
+        "summary": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}
