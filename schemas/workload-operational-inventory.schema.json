@@ -1,0 +1,207 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/workload-operational-inventory.schema.json",
+  "title": "Workload Operational Inventory",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "inventory_version",
+    "cluster_id",
+    "generated_at",
+    "mutation_allowed",
+    "scope",
+    "summary",
+    "namespace_counts",
+    "entities"
+  ],
+  "properties": {
+    "inventory_version": {"const": "0.1"},
+    "cluster_id": {"type": "string", "minLength": 1},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "mutation_allowed": {"const": false},
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entity_type", "workload_kinds"],
+      "properties": {
+        "entity_type": {"const": "KUBERNETES_WORKLOAD"},
+        "workload_kinds": {
+          "type": "array",
+          "items": {"enum": ["Deployment", "StatefulSet", "DaemonSet"]},
+          "uniqueItems": true
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workloads_total",
+        "namespaces_total",
+        "declared_workloads",
+        "workloads_in_sync",
+        "workloads_outside_declared_scope",
+        "workloads_with_attention",
+        "workloads_changed_in_latest_diff",
+        "service_links",
+        "ingress_route_candidates",
+        "pvc_links",
+        "related_drift_subjects"
+      ],
+      "properties": {
+        "workloads_total": {"type": "integer", "minimum": 0},
+        "namespaces_total": {"type": "integer", "minimum": 0},
+        "declared_workloads": {"type": "integer", "minimum": 0},
+        "workloads_in_sync": {"type": "integer", "minimum": 0},
+        "workloads_outside_declared_scope": {"type": "integer", "minimum": 0},
+        "workloads_with_attention": {"type": "integer", "minimum": 0},
+        "workloads_changed_in_latest_diff": {"type": "integer", "minimum": 0},
+        "service_links": {"type": "integer", "minimum": 0},
+        "ingress_route_candidates": {"type": "integer", "minimum": 0},
+        "pvc_links": {"type": "integer", "minimum": 0},
+        "related_drift_subjects": {"type": "integer", "minimum": 0}
+      }
+    },
+    "namespace_counts": {
+      "type": "object",
+      "additionalProperties": {"type": "integer", "minimum": 0}
+    },
+    "entities": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/entity"}
+    }
+  },
+  "$defs": {
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["system", "cluster", "api_group", "kind", "namespace", "name"],
+      "properties": {
+        "system": {"const": "kubernetes"},
+        "cluster": {"type": "string"},
+        "api_group": {"type": "string"},
+        "kind": {"enum": ["Deployment", "StatefulSet", "DaemonSet"]},
+        "namespace": {"type": ["string", "null"]},
+        "name": {"type": "string"}
+      }
+    },
+    "observed": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "existence",
+        "observation_status",
+        "freshness",
+        "observed_at",
+        "expires_at",
+        "evidence_id",
+        "attributes"
+      ],
+      "properties": {
+        "existence": {"const": "PRESENT"},
+        "observation_status": {"const": "COMPLETE"},
+        "freshness": {"enum": ["CURRENT", "STALE", "UNKNOWN"]},
+        "observed_at": {"type": ["string", "null"]},
+        "expires_at": {"type": ["string", "null"]},
+        "evidence_id": {"type": "string"},
+        "attributes": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "desired_replicas": {"type": "integer"},
+            "ready_replicas": {"type": "integer"},
+            "desired_scheduled": {"type": "integer"},
+            "current_scheduled": {"type": "integer"},
+            "number_ready": {"type": "integer"},
+            "images": {"type": "array", "items": {"type": "string"}}
+          }
+        }
+      }
+    },
+    "declared": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["coverage", "comparison", "evidence_id", "source_id", "revision"],
+      "properties": {
+        "coverage": {
+          "enum": [
+            "DECLARED",
+            "OUTSIDE_DECLARED_SCOPE",
+            "DECLARED_COVERAGE_INCOMPLETE",
+            "DECLARED_SOURCE_UNAVAILABLE"
+          ]
+        },
+        "comparison": {"type": ["string", "null"], "enum": ["IN_SYNC", "DRIFT", "UNKNOWN", null]},
+        "evidence_id": {"type": ["string", "null"]},
+        "source_id": {"type": ["string", "null"]},
+        "revision": {"type": ["string", "null"]}
+      }
+    },
+    "relation": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["subject", "basis", "evidence_ids"],
+      "properties": {
+        "subject": {"type": "string"},
+        "basis": {"type": "string"},
+        "evidence_ids": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "attention": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["source", "code", "severity", "subject", "statement", "evidence_ids"],
+      "properties": {
+        "source": {"enum": ["topology", "drift", "history", "observed"]},
+        "code": {"type": "string"},
+        "severity": {"type": "string"},
+        "subject": {"type": ["string", "null"]},
+        "statement": {"type": "string"},
+        "evidence_ids": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "entity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entity_id",
+        "entity_type",
+        "subject",
+        "observed",
+        "declared",
+        "relationships",
+        "recent_change",
+        "attention",
+        "evidence_ids"
+      ],
+      "properties": {
+        "entity_id": {"type": "string", "minLength": 1},
+        "entity_type": {"const": "KUBERNETES_WORKLOAD"},
+        "subject": {"$ref": "#/$defs/subject"},
+        "observed": {"$ref": "#/$defs/observed"},
+        "declared": {"$ref": "#/$defs/declared"},
+        "relationships": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["services", "ingress_route_candidates", "persistent_volume_claims"],
+          "properties": {
+            "services": {"type": "array", "items": {"$ref": "#/$defs/relation"}},
+            "ingress_route_candidates": {"type": "array", "items": {"$ref": "#/$defs/relation"}},
+            "persistent_volume_claims": {"type": "array", "items": {"$ref": "#/$defs/relation"}}
+          }
+        },
+        "recent_change": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["state", "items"],
+          "properties": {
+            "state": {"enum": ["BASELINE", "UNKNOWN", "UNCHANGED", "ADDED", "REMOVED", "MODIFIED", "NEWLY_OBSERVED"]},
+            "items": {"type": "array", "items": {"type": "object"}}
+          }
+        },
+        "attention": {"type": "array", "items": {"$ref": "#/$defs/attention"}},
+        "evidence_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+      }
+    }
+  }
+}
