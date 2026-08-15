@@ -22,6 +22,15 @@ from .prometheus_operator_coverage import (
     render_inventory_observability_markdown,
     render_observability_coverage_markdown,
 )
+from .prometheus_runtime_intelligence import (
+    DEFAULT_PROMETHEUS_NAMESPACE,
+    DEFAULT_PROMETHEUS_PORT,
+    DEFAULT_PROMETHEUS_SERVICE,
+    attach_prometheus_runtime,
+    build_prometheus_runtime_intelligence,
+    render_inventory_runtime_markdown,
+    render_prometheus_runtime_markdown,
+)
 from .snapshot_diff import build_snapshot_diff, render_snapshot_diff_markdown
 
 DEFAULT_HISTORY_DIR = Path("/var/lib/infra-assurance/history/kubernetes")
@@ -52,7 +61,8 @@ def main() -> int:
         description=(
             "Collect Kubernetes evidence and emit current context, topology, bounded history, "
             "snapshot diff, Git-declared drift, compact change context, Prometheus Operator "
-            "configuration coverage, and a workload-centric operational inventory projection."
+            "configuration coverage, Prometheus runtime target/alert intelligence, and a "
+            "workload-centric operational inventory projection."
         )
     )
     parser.add_argument("--cluster-id", default=os.environ.get("IIA_CLUSTER_ID"))
@@ -80,6 +90,21 @@ def main() -> int:
     parser.add_argument("--change-context-summary-out", type=Path)
     parser.add_argument("--observability-coverage-out", type=Path)
     parser.add_argument("--observability-coverage-summary-out", type=Path)
+    parser.add_argument("--prometheus-runtime-out", type=Path)
+    parser.add_argument("--prometheus-runtime-summary-out", type=Path)
+    parser.add_argument(
+        "--prometheus-namespace",
+        default=os.environ.get("IIA_PROMETHEUS_NAMESPACE", DEFAULT_PROMETHEUS_NAMESPACE),
+    )
+    parser.add_argument(
+        "--prometheus-service",
+        default=os.environ.get("IIA_PROMETHEUS_SERVICE", DEFAULT_PROMETHEUS_SERVICE),
+    )
+    parser.add_argument(
+        "--prometheus-port",
+        type=int,
+        default=int(os.environ.get("IIA_PROMETHEUS_PORT", str(DEFAULT_PROMETHEUS_PORT))),
+    )
     parser.add_argument("--inventory-out", type=Path)
     parser.add_argument("--inventory-summary-out", type=Path)
     args = parser.parse_args()
@@ -88,6 +113,8 @@ def main() -> int:
         parser.error("--cluster-id or IIA_CLUSTER_ID is required")
     if args.history_retention < 2:
         parser.error("--history-retention must be at least 2")
+    if args.prometheus_port < 1 or args.prometheus_port > 65535:
+        parser.error("--prometheus-port must be between 1 and 65535")
 
     store = SnapshotHistoryStore(args.history_dir, retention=args.history_retention)
     _seed_history_from_existing_latest(store, args.evidence_out, cluster_id=args.cluster_id)
@@ -118,6 +145,14 @@ def main() -> int:
         topology,
         kubectl_context=args.kubectl_context,
     )
+    prometheus_runtime = build_prometheus_runtime_intelligence(
+        snapshot,
+        topology,
+        kubectl_context=args.kubectl_context,
+        prometheus_namespace=args.prometheus_namespace,
+        prometheus_service=args.prometheus_service,
+        prometheus_port=args.prometheus_port,
+    )
     inventory = build_operational_inventory(
         snapshot,
         topology,
@@ -126,6 +161,7 @@ def main() -> int:
         declared_load,
     )
     inventory = attach_observability_coverage(inventory, observability_coverage)
+    inventory = attach_prometheus_runtime(inventory, prometheus_runtime)
 
     store.append(snapshot)
 
@@ -157,13 +193,24 @@ def main() -> int:
             args.observability_coverage_summary_out,
             render_observability_coverage_markdown(observability_coverage),
         )
+    if args.prometheus_runtime_out:
+        atomic_write_json(args.prometheus_runtime_out, prometheus_runtime)
+    if args.prometheus_runtime_summary_out:
+        atomic_write_text(
+            args.prometheus_runtime_summary_out,
+            render_prometheus_runtime_markdown(prometheus_runtime),
+        )
     if args.inventory_out:
         atomic_write_json(args.inventory_out, inventory)
     if args.inventory_summary_out:
         base_markdown = render_operational_inventory_markdown(inventory)
+        with_coverage = render_inventory_observability_markdown(
+            base_markdown,
+            observability_coverage,
+        )
         atomic_write_text(
             args.inventory_summary_out,
-            render_inventory_observability_markdown(base_markdown, observability_coverage),
+            render_inventory_runtime_markdown(with_coverage, prometheus_runtime),
         )
 
     return 0

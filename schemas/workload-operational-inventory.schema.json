@@ -15,11 +15,12 @@
     "entities"
   ],
   "properties": {
-    "inventory_version": {"enum": ["0.1", "0.2"]},
+    "inventory_version": {"enum": ["0.1", "0.2", "0.3"]},
     "cluster_id": {"type": "string", "minLength": 1},
     "generated_at": {"type": "string", "format": "date-time"},
     "mutation_allowed": {"const": false},
     "observability_source_status": {"enum": ["COMPLETE", "PARTIAL", "FAILED_TO_OBSERVE"]},
+    "prometheus_runtime_source_status": {"enum": ["COMPLETE", "PARTIAL", "FAILED_TO_OBSERVE"]},
     "scope": {
       "type": "object",
       "additionalProperties": false,
@@ -66,7 +67,16 @@
         "pod_monitors": {"type": "integer", "minimum": 0},
         "workloads_with_operator_monitor_match": {"type": "integer", "minimum": 0},
         "workloads_without_operator_monitor_match": {"type": "integer", "minimum": 0},
-        "workloads_observability_unknown": {"type": "integer", "minimum": 0}
+        "workloads_observability_unknown": {"type": "integer", "minimum": 0},
+        "prometheus_targets_total": {"type": "integer", "minimum": 0},
+        "prometheus_targets_up": {"type": "integer", "minimum": 0},
+        "prometheus_targets_down": {"type": "integer", "minimum": 0},
+        "prometheus_active_alerts": {"type": "integer", "minimum": 0},
+        "workloads_prometheus_targets_up": {"type": "integer", "minimum": 0},
+        "workloads_prometheus_target_down": {"type": "integer", "minimum": 0},
+        "workloads_with_active_prometheus_alert": {"type": "integer", "minimum": 0},
+        "workloads_no_runtime_signal_match": {"type": "integer", "minimum": 0},
+        "workloads_prometheus_runtime_unknown": {"type": "integer", "minimum": 0}
       }
     },
     "namespace_counts": {
@@ -188,6 +198,47 @@
         "caveats": {"type": "array", "items": {"type": "string"}}
       }
     },
+    "runtimeTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target_id", "health", "labels", "last_scrape", "last_scrape_duration_seconds", "error_code", "basis", "evidence_ids"],
+      "properties": {
+        "target_id": {"type": "string"},
+        "health": {"enum": ["UP", "DOWN", "UNKNOWN"]},
+        "labels": {"type": "object", "additionalProperties": {"type": "string"}},
+        "last_scrape": {"type": ["string", "null"]},
+        "last_scrape_duration_seconds": {"type": ["number", "null"]},
+        "error_code": {"type": ["string", "null"]},
+        "basis": {"type": "array", "items": {"type": "string"}},
+        "evidence_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+      }
+    },
+    "runtimeAlert": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["alert_id", "state", "active_at", "labels", "basis", "evidence_ids"],
+      "properties": {
+        "alert_id": {"type": "string"},
+        "state": {"enum": ["FIRING", "PENDING", "UNKNOWN"]},
+        "active_at": {"type": ["string", "null"]},
+        "labels": {"type": "object", "additionalProperties": {"type": "string"}},
+        "basis": {"type": "array", "items": {"type": "string"}},
+        "evidence_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+      }
+    },
+    "runtimeObservability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["subject", "state", "targets", "active_alerts", "evidence_ids", "caveats"],
+      "properties": {
+        "subject": {"type": "string"},
+        "state": {"enum": ["PROMETHEUS_TARGETS_UP", "PROMETHEUS_TARGET_DOWN", "ACTIVE_ALERT", "NO_RUNTIME_SIGNAL_MATCH", "UNKNOWN"]},
+        "targets": {"type": "array", "items": {"$ref": "#/$defs/runtimeTarget"}},
+        "active_alerts": {"type": "array", "items": {"$ref": "#/$defs/runtimeAlert"}},
+        "evidence_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "caveats": {"type": "array", "items": {"type": "string"}}
+      }
+    },
     "attention": {
       "type": "object",
       "additionalProperties": true,
@@ -222,6 +273,7 @@
         "observed": {"$ref": "#/$defs/observed"},
         "declared": {"$ref": "#/$defs/declared"},
         "observability": {"$ref": "#/$defs/observability"},
+        "runtime_observability": {"$ref": "#/$defs/runtimeObservability"},
         "relationships": {
           "type": "object",
           "additionalProperties": false,

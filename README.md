@@ -10,7 +10,9 @@ Milestone 1 — Kubernetes evidence, topology, and read-only planning preflight 
 
 Milestone 2 — bounded history, trust-aware diff, dedicated Git declared-state observation, and declared-vs-observed drift are complete and live-validated.
 
-Milestone 3 now provides a workload-centric operational inventory and is adding Prometheus Operator configuration coverage to those workload entities without creating a new source of truth or replacing Prometheus.
+Milestone 3 — workload-centric operational inventory plus Prometheus Operator configuration coverage is complete and live-validated.
+
+Milestone 4 now starts with authoritative Prometheus runtime target-health and active-alert evidence attached to the existing workload inventory without replacing Prometheus or Alertmanager.
 
 The live loop runs on the management host every five minutes.
 
@@ -19,8 +21,6 @@ The live loop runs on the management host every five minutes.
 ```text
 Private infrastructure Git
   -> dedicated read-only deploy key
-  -> bare Git cache
-  -> explicit direct-manifest and renderer targets
   -> normalized declared evidence + Git revision
                                   \
 Kubernetes API                     \
@@ -28,7 +28,8 @@ Kubernetes API                     \
   -> normalized observed evidence    -> declared-vs-observed drift
   -> freshness / trust              -> compact change context
   -> topology / history / diff      -> workload operational inventory
-  -> Prometheus Operator config     -> observability coverage
+  -> Prometheus Operator config     -> configuration coverage
+  -> Prometheus HTTP API            -> runtime target / alert evidence
                                       -> workload inventory enrichment
                                       -> planning / AI consumption
 ```
@@ -49,6 +50,8 @@ Current-state and task artifacts remain separate from immutable history.
 /var/lib/infra-assurance/evidence/change-context.md
 /var/lib/infra-assurance/evidence/observability-coverage.json
 /var/lib/infra-assurance/evidence/observability-coverage.md
+/var/lib/infra-assurance/evidence/prometheus-runtime.json
+/var/lib/infra-assurance/evidence/prometheus-runtime.md
 /var/lib/infra-assurance/evidence/inventory.json
 /var/lib/infra-assurance/evidence/inventory.md
 /var/lib/infra-assurance/evidence/preflight.json
@@ -74,7 +77,7 @@ The default Kubernetes history retention is 288 snapshots, approximately 24 hour
 
 ## Workload operational inventory
 
-The first Dynamic Operational Inventory / CMDB projection covers currently observed:
+The Dynamic Operational Inventory / CMDB projection covers currently observed:
 
 ```text
 Deployment
@@ -82,7 +85,7 @@ StatefulSet
 DaemonSet
 ```
 
-Each workload entity combines traceable pointers and compact state from the existing evidence planes:
+Each workload entity combines traceable pointers and compact state from existing evidence sources:
 
 - current observed state and freshness;
 - safe replica/scheduling fields and image references;
@@ -92,9 +95,10 @@ Each workload entity combines traceable pointers and compact state from the exis
 - direct PVC references;
 - latest related snapshot changes;
 - related topology ambiguity and drift attention;
-- Prometheus Operator configuration coverage where it can be derived safely.
+- Prometheus Operator configuration coverage;
+- current Prometheus runtime target and active-alert signals where attributable.
 
-This inventory is derived state. Kubernetes evidence, Git-declared evidence, topology, history, drift, and specialized observability systems remain the supporting source artifacts.
+This inventory is derived state. Kubernetes, Git, Prometheus, history, drift, and topology artifacts remain the supporting source evidence.
 
 A Service-to-workload relationship remains a selector-based inference. An Ingress route candidate composes an observed Ingress-to-Service reference with that inference and does not prove current Pod or EndpointSlice routing.
 
@@ -110,7 +114,7 @@ ServiceMonitor
 PodMonitor
 ```
 
-For each workload, the inventory can classify current configuration coverage as:
+For each workload, configuration coverage is classified as:
 
 ```text
 OPERATOR_MONITOR_MATCH
@@ -118,15 +122,52 @@ NO_OPERATOR_MONITOR_MATCH
 UNKNOWN
 ```
 
-`OPERATOR_MONITOR_MATCH` means an evidence-backed Prometheus Operator configuration path was derived. It does not prove that the target is currently up, scraped successfully, or emitting expected metrics.
+`OPERATOR_MONITOR_MATCH` is evidence of a selected Prometheus Operator configuration path. It is not runtime scrape-health evidence.
 
-`NO_OPERATOR_MONITOR_MATCH` means only that no selected ServiceMonitor/PodMonitor path was derived in the current Prometheus Operator scope. It does not prove the workload has no other monitoring path.
+`NO_OPERATOR_MONITOR_MATCH` means only that no selected ServiceMonitor/PodMonitor path was derived inside the modeled scope. It does not prove the workload has no other monitoring path.
 
-ServiceMonitor-to-workload attribution composes Prometheus monitor selection, ServiceMonitor-to-Service selection, and the existing selector-based Service-to-controller inference. PodMonitor attribution uses controller pod-template labels and does not prove current live Pod target membership.
+## Prometheus runtime intelligence
 
-Authentication and transport-secret fields from monitor endpoints are excluded from persisted coverage. Raw monitor manifests are not stored.
+Milestone 4 begins with direct read-only Prometheus HTTP API evidence reached through the Kubernetes API Service proxy for:
 
-Actual Prometheus target health, scrape status, metric freshness, alert state, Loki signals, and OpenTelemetry signals remain later runtime observability evidence, not Milestone 3 configuration facts.
+```text
+monitoring/kube-prom-stack-prometheus:9090
+```
+
+The runtime observer reads:
+
+```text
+/api/v1/targets?state=active
+/api/v1/alerts
+```
+
+It stores only a narrow target and alert projection. Raw scrape URLs, discovered labels, arbitrary labels, alert annotations, metric series, credentials, and Secret values are not persisted.
+
+Workload runtime signal states are:
+
+```text
+PROMETHEUS_TARGETS_UP
+PROMETHEUS_TARGET_DOWN
+ACTIVE_ALERT
+NO_RUNTIME_SIGNAL_MATCH
+UNKNOWN
+```
+
+These are signal states, not generic application-health conclusions.
+
+`PROMETHEUS_TARGETS_UP` means matched Prometheus scrape targets reported `up` at observation time. It does not prove application correctness or end-user availability.
+
+`NO_RUNTIME_SIGNAL_MATCH` means no target or active alert could be attributed through this modeled path. It does not prove absence of monitoring or alerts elsewhere.
+
+Target and alert attribution through a Kubernetes Service retains:
+
+```text
+SERVICE_SELECTOR_MATCH_INFERENCE
+```
+
+The platform therefore does not claim direct live Pod ownership from Service-based attribution.
+
+The additional Kubernetes permission is a namespaced `get` on `services/proxy` in `monitoring`; proxy access is not granted in other namespaces by this Role. Secret access and mutation remain denied.
 
 ## Git declared-state source
 
@@ -142,8 +183,6 @@ The source mapping is explicit rather than a recursive YAML scan. BookStack and 
 
 Authentication uses a dedicated read-only SSH deploy key generated on the management host. The runtime does not reuse a personal SSH key or administrator GitHub credential.
 
-The Git observer keeps a bare repository cache. Kustomize rendering uses a transient detached worktree at the exact fetched revision; it is removed after rendering and is not evidence storage.
-
 Only these Kubernetes kinds can currently become declared evidence:
 
 ```text
@@ -156,19 +195,9 @@ Ingress
 PersistentVolumeClaim
 ```
 
-`Secret`, `ConfigMap`, and unsupported kinds are not serialized into declared evidence. For supported workload documents, only explicitly modeled non-sensitive fields are retained. Raw environment values, Secret payloads, arbitrary ConfigMap payloads, credentials, and connection strings are not emitted.
-
-The source state is independently recorded as:
-
-```text
-COMPLETE
-PARTIAL
-FAILED_TO_OBSERVE
-```
+`Secret`, `ConfigMap`, and unsupported kinds are not serialized into declared evidence. Raw environment values, Secret payloads, arbitrary ConfigMap payloads, credentials, and connection strings are not emitted.
 
 A failed Git refresh does not make the previous declared bundle current. Drift becomes unknown until the source is observed successfully again.
-
-The first live Git observer acceptance completed successfully at revision `5767e0a4c583d0a0e8c87b2e24c42eaeb822a3b4`: 27 declarations normalized, 26 were in sync, and one evidence-backed Ingress host drift was surfaced without automatic mutation.
 
 ## Trust rules
 
@@ -180,7 +209,9 @@ Observed resources outside the configured declared scope are not automatically c
 
 Prometheus Operator configuration coverage is not promoted to scrape-health evidence.
 
-Raw Kubernetes Secret values are never collected and the Kubernetes observer RBAC has no Secret access or mutating verbs.
+A failed Prometheus runtime query becomes `PARTIAL` or `FAILED_TO_OBSERVE` and never becomes a false zero-target or zero-alert fact.
+
+Raw Kubernetes Secret values are never collected. The Kubernetes observer has no Secret access and no mutating verbs.
 
 `mutation_allowed` remains `false`.
 
@@ -190,7 +221,7 @@ Raw Kubernetes Secret values are never collected and the Kubernetes observer RBA
 sudo CLUSTER_ID=k3s-main ./scripts/bootstrap-observer.sh
 ```
 
-The existing five-minute collector refreshes Git declared evidence before each Kubernetes observation and then emits the current projections.
+The five-minute collector refreshes Git declared evidence, Kubernetes evidence, Prometheus Operator configuration coverage, Prometheus runtime evidence, and the derived inventory projections.
 
 ## Query workload inventory
 
@@ -198,9 +229,10 @@ The existing five-minute collector refreshes Git declared evidence before each K
 sudo -u infra-assurance iia-inventory summary
 sudo -u infra-assurance iia-inventory list
 sudo -u infra-assurance iia-inventory list --attention-only
-sudo -u infra-assurance iia-inventory list --namespace validation
 sudo -u infra-assurance iia-inventory list --observability-status OPERATOR_MONITOR_MATCH
-sudo -u infra-assurance iia-inventory list --observability-status NO_OPERATOR_MONITOR_MATCH
+sudo -u infra-assurance iia-inventory list --runtime-state PROMETHEUS_TARGET_DOWN
+sudo -u infra-assurance iia-inventory list --runtime-state ACTIVE_ALERT
+sudo -u infra-assurance iia-inventory list --runtime-state PROMETHEUS_TARGETS_UP
 sudo -u infra-assurance iia-inventory show \
   --namespace validation \
   --kind Deployment \
@@ -214,12 +246,6 @@ The inventory CLI reads the generated artifact only and performs no additional i
 ```bash
 sudo -u infra-assurance iia-git-source status
 sudo -u infra-assurance iia-git-source public-key
-```
-
-A manual safe refresh is also available:
-
-```bash
-sudo -u infra-assurance iia-git-source sync
 ```
 
 ## Inspect history
@@ -244,15 +270,9 @@ python3 -m pytest -q
 
 See:
 
-- `docs/milestone-1-first-slice.md` for the collector trust boundary;
-- `docs/decisions/0002-compact-operational-context.md` for context compaction;
-- `docs/decisions/0003-kubernetes-topology-projection.md` for relationship trust semantics;
-- `docs/decisions/0004-task-scoped-planning-preflight.md` for planning trust semantics;
-- `docs/decisions/0005-bounded-file-history-and-trust-aware-diff.md` for history/diff semantics;
-- `docs/decisions/0006-git-declared-drift-without-plane-conflation.md` for drift semantics;
-- `docs/decisions/0007-dedicated-git-declared-observer.md` for the Git observer boundary;
-- `docs/decisions/0008-workload-centric-operational-inventory.md` for the first CMDB projection boundary;
-- `docs/decisions/0009-prometheus-operator-coverage-is-not-scrape-health.md` for observability coverage semantics;
-- `docs/milestone-2-history-diff-drift.md` for the Milestone 2 architecture;
+- `docs/decisions/0008-workload-centric-operational-inventory.md` for the workload inventory boundary;
+- `docs/decisions/0009-prometheus-operator-coverage-is-not-scrape-health.md` for configuration coverage semantics;
+- `docs/decisions/0010-prometheus-runtime-evidence-via-read-only-service-proxy.md` for runtime Prometheus access and trust boundaries;
 - `docs/milestone-3-workload-operational-inventory.md` for the workload inventory slice;
-- `docs/milestone-3-prometheus-operator-coverage.md` for the current observability coverage slice.
+- `docs/milestone-3-prometheus-operator-coverage.md` for configuration coverage;
+- `docs/milestone-4-prometheus-runtime-intelligence.md` for the first runtime observability slice.
