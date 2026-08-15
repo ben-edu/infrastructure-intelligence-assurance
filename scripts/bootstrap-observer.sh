@@ -14,6 +14,9 @@ HISTORY_RETENTION="${HISTORY_RETENTION:-288}"
 PROMETHEUS_NAMESPACE="${PROMETHEUS_NAMESPACE:-monitoring}"
 PROMETHEUS_SERVICE="${PROMETHEUS_SERVICE:-kube-prom-stack-prometheus}"
 PROMETHEUS_PORT="${PROMETHEUS_PORT:-9090}"
+ALERTMANAGER_NAMESPACE="${ALERTMANAGER_NAMESPACE:-monitoring}"
+ALERTMANAGER_SERVICE="${ALERTMANAGER_SERVICE:-kube-prom-stack-alertmanager}"
+ALERTMANAGER_PORT="${ALERTMANAGER_PORT:-9093}"
 INSTALL_ROOT="/opt/infra-assurance"
 CONFIG_DIR="/etc/infra-assurance"
 STATE_DIR="/var/lib/infra-assurance"
@@ -44,7 +47,12 @@ if [[ "${PROMETHEUS_NAMESPACE}" != "monitoring" || "${PROMETHEUS_SERVICE}" != "k
   echo "Current Prometheus proxy RBAC is pinned to monitoring/kube-prom-stack-prometheus:9090; update reviewed RBAC before changing PROMETHEUS_NAMESPACE, PROMETHEUS_SERVICE, or PROMETHEUS_PORT." >&2
   exit 1
 fi
+if [[ "${ALERTMANAGER_NAMESPACE}" != "monitoring" || "${ALERTMANAGER_SERVICE}" != "kube-prom-stack-alertmanager" || "${ALERTMANAGER_PORT}" != "9093" ]]; then
+  echo "Current Alertmanager proxy RBAC is pinned to monitoring/kube-prom-stack-alertmanager:9093; update reviewed RBAC before changing ALERTMANAGER_NAMESPACE, ALERTMANAGER_SERVICE, or ALERTMANAGER_PORT." >&2
+  exit 1
+fi
 PROMETHEUS_PROXY_NAME="${PROMETHEUS_SERVICE}:${PROMETHEUS_PORT}"
+ALERTMANAGER_PROXY_NAME="${ALERTMANAGER_SERVICE}:${ALERTMANAGER_PORT}"
 
 if ! id "${SERVICE_USER}" >/dev/null 2>&1; then
   useradd --system --home-dir "${STATE_DIR}" --create-home --shell /usr/sbin/nologin "${SERVICE_USER}"
@@ -216,6 +224,9 @@ IIA_HISTORY_RETENTION=${HISTORY_RETENTION}
 IIA_PROMETHEUS_NAMESPACE=${PROMETHEUS_NAMESPACE}
 IIA_PROMETHEUS_SERVICE=${PROMETHEUS_SERVICE}
 IIA_PROMETHEUS_PORT=${PROMETHEUS_PORT}
+IIA_ALERTMANAGER_NAMESPACE=${ALERTMANAGER_NAMESPACE}
+IIA_ALERTMANAGER_SERVICE=${ALERTMANAGER_SERVICE}
+IIA_ALERTMANAGER_PORT=${ALERTMANAGER_PORT}
 KUBECONFIG=${OBSERVER_KUBECONFIG}
 EOF
 chown root:"${SERVICE_USER}" "${CONFIG_DIR}/collector.env"
@@ -244,9 +255,14 @@ assert_can_i yes list prometheuses.monitoring.coreos.com --all-namespaces
 assert_can_i yes list servicemonitors.monitoring.coreos.com --all-namespaces
 assert_can_i yes list podmonitors.monitoring.coreos.com --all-namespaces
 assert_can_i yes get "services/${PROMETHEUS_PROXY_NAME}" --subresource=proxy -n "${PROMETHEUS_NAMESPACE}"
+assert_can_i yes get "services/${ALERTMANAGER_PROXY_NAME}" --subresource=proxy -n "${ALERTMANAGER_NAMESPACE}"
 assert_can_i no get services/not-authorized:9090 --subresource=proxy -n "${PROMETHEUS_NAMESPACE}"
+assert_can_i no get services/not-authorized:9093 --subresource=proxy -n "${ALERTMANAGER_NAMESPACE}"
 assert_can_i no get "services/${PROMETHEUS_PROXY_NAME}" --subresource=proxy -n default
+assert_can_i no get "services/${ALERTMANAGER_PROXY_NAME}" --subresource=proxy -n default
 assert_can_i no get "services/${PROMETHEUS_SERVICE}" --subresource=proxy -n "${PROMETHEUS_NAMESPACE}"
+assert_can_i no get "services/${ALERTMANAGER_SERVICE}" --subresource=proxy -n "${ALERTMANAGER_NAMESPACE}"
+assert_can_i no get services/alertmanager-operated:9093 --subresource=proxy -n "${ALERTMANAGER_NAMESPACE}"
 assert_can_i no list secrets --all-namespaces
 assert_can_i no create deployments.apps -n default
 assert_can_i no create servicemonitors.monitoring.coreos.com -n monitoring
@@ -263,6 +279,10 @@ echo "Observability:    ${STATE_DIR}/evidence/observability-coverage.json"
 echo "Obs. context:     ${STATE_DIR}/evidence/observability-coverage.md"
 echo "Prometheus runtime:${STATE_DIR}/evidence/prometheus-runtime.json"
 echo "Prom. runtime ctx: ${STATE_DIR}/evidence/prometheus-runtime.md"
+echo "Alertmanager runtime:${STATE_DIR}/evidence/alertmanager-runtime.json"
+echo "Alertmanager ctx: ${STATE_DIR}/evidence/alertmanager-runtime.md"
+echo "Alert attention:  ${STATE_DIR}/evidence/alert-attention.json"
+echo "Attention context:${STATE_DIR}/evidence/alert-attention.md"
 echo "Inventory JSON:   ${STATE_DIR}/evidence/inventory.json"
 echo "Inventory context:${STATE_DIR}/evidence/inventory.md"
 echo "Preflight CLI:    ${PREFLIGHT_BIN}"
@@ -270,6 +290,7 @@ echo "History CLI:      ${HISTORY_BIN}"
 echo "Git source CLI:   ${GIT_SOURCE_BIN}"
 echo "Inventory CLI:    ${INVENTORY_BIN}"
 echo "Prometheus source:${PROMETHEUS_NAMESPACE}/${PROMETHEUS_PROXY_NAME}"
+echo "Alertmanager source:${ALERTMANAGER_NAMESPACE}/${ALERTMANAGER_PROXY_NAME}"
 echo "Git source:       github.com/ben-edu/api-cluster-infra"
 echo "Declared state:   ${DECLARED_CURRENT_DIR}"
 echo "Git source status:${DECLARED_SOURCE_STATUS}"
