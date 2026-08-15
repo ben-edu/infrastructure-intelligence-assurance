@@ -15,7 +15,7 @@ This is the compact continuation checkpoint for the Infrastructure Intelligence 
 
 - repository: `ben-edu/infrastructure-intelligence-assurance`
 - stable branch: `main`
-- current main HEAD after post-PR30 continuity merge: `987d583ade9003e46e4dbf2e027f62f1a0ab7c0d`
+- current main HEAD before PR #32 merge: `987d583ade9003e46e4dbf2e027f62f1a0ab7c0d`
 - accepted PR #30 code merge: `0e6f96a9f1b4adba34c43803a21a70116423b65c`
 - management host: `mgmt-automation`
 - checkout: `~/projects/infrastructure-intelligence-assurance`
@@ -24,7 +24,7 @@ This is the compact continuation checkpoint for the Infrastructure Intelligence 
 - oneshot: `infra-assurance-kubernetes.service`
 - timer: every 5 minutes
 
-Milestones 0–3 are live validated. The current evidence-first Milestone 4 vertical path is accepted and sufficiently complete. Milestone 5 is active.
+Milestones 0–3 are live validated. The evidence-first Milestone 4 vertical path is accepted and sufficiently complete. Milestone 5 is active.
 
 Known intentional drift remains:
 
@@ -36,33 +36,25 @@ Live: k3s-master.behnam.fr
 
 ## Accepted Milestone 5 foundation — PR #30
 
-- merge: `0e6f96a9f1b4adba34c43803a21a70116423b65c`
-- package version: `0.19.0`
-- backup assurance artifact: `/var/lib/infra-assurance/evidence/backup-assurance.json`
-- backup assurance version: `0.1`
-- mutation allowed: false
-
-Accepted live foundation:
-
 ```text
-217 passed
-PVC collection: COMPLETE / CURRENT
+backup_assurance_version: 0.1
 PVC assets: 37
-same-cycle asset set exact match: true
-assets with direct controller reference: 16
 protection UNKNOWN: 37
 restore verification UNKNOWN: 37
 unprotected_claims: 0
 authoritative_backup_sources_integrated: 0
 ```
 
-## Active discovery — PR #32 authoritative backup source
+The 21 PVCs without a direct controller relation are not classified as orphaned.
+
+## Accepted discovery — PR #32 authoritative backup source
 
 - PR: `#32 Milestone 5 authoritative backup source discovery`
 - branch: `docs/m5-backup-source-discovery`
 - code/runtime mutation: none
 - backup/restore operations: none
 - credentials created/changed: none
+- status: discovery accepted; ready for merge
 
 Discovery report:
 
@@ -70,54 +62,84 @@ Discovery report:
 docs/reports/2026-08-15-m5-authoritative-backup-source-discovery.md
 ```
 
-### PostgreSQL conclusion
+### PostgreSQL
 
-Current local PostgreSQL `15/main` is online, but no instantiated `pg_basebackup` schedule, enabled timer instance, or bounded active archive/backup configuration was observed. PostgreSQL is not selected as the next authoritative backup source from this host.
+Local PostgreSQL `15/main` is online, but no instantiated `pg_basebackup` schedule, enabled timer, or bounded active archive/backup configuration was observed. PostgreSQL is not selected as the first authoritative source.
 
 ### Network/firewall semantics
 
-BM1 uses UFW source-IP restrictions. Similar restrictions may exist on VMs or services.
+BM1 uses UFW source-IP restrictions. Similar restrictions may exist for VMs/services. Never map timeout/unreachable evidence to `ABSENT` unless the observation path is known complete. Use `FAILED_TO_REACH / UNKNOWN` where firewall restrictions may explain non-reachability.
 
-Never convert timeout/unreachable network evidence into `ABSENT` unless the observation path is known complete. Use `FAILED_TO_REACH / UNKNOWN` where firewall/source restrictions may explain non-reachability.
+### Proxmox endpoint evidence
 
-### Current Proxmox discovery
+Both PVE API endpoints are reachable from `mgmt-automation` on TCP/8006 and require authentication.
 
-Both PVE API endpoints are reachable from `mgmt-automation` on TCP/8006 and return HTTP 401 without credentials.
+BM1 TLS certificate observed expired `2025-08-04`; reachability does not imply healthy certificate trust.
 
-BM1 TLS certificate observed expired on `2025-08-04`; reachability was tested with insecure TLS verification, so BM1 certificate trust is not healthy/verified.
-
-BM2 bounded authenticated GET discovery using an existing local token observed:
+BM2 authenticated GET discovery:
 
 ```text
 PVE version: 9.1.9
-release: 9.1
-node: delfan
-node status: online
-storage ID: local
-storage type: dir
-storage content capability: iso,snippets,backup,vztmpl,images,rootdir
-storage disabled: false
+node: delfan online
+storage: local / type dir
+content capability includes backup
 retention projection: keep-all=1
-configured PBS storage IDs: none
+configured PBS storage: none
 cluster backup jobs: 0
+current QEMU guests: 12
 ```
 
-Interpretation:
+Operator confirms there is no PBS today.
 
-- BM2 PVE is a current authoritative source candidate for VM/storage/backup configuration;
-- `content=backup` is storage capability/configuration, not proof of a backup artifact;
-- `keep-all=1` is retention configuration, not proof that a recovery point exists;
-- zero cluster backup jobs means no scheduled cluster backup job was observed in the returned scope;
-- manual/external backup artifacts remain separately observable/unknown until storage content is queried;
-- successful backup, integrity verification, restore testing, RPO and RTO remain separate evidence dimensions.
+### BM2 observed recovery-point artifacts
 
-Operator explicitly confirms there is **no PBS today**.
+A complete GET of `local` backup content returned 12 `vma.zst` artifacts.
+
+```text
+VMID 100: 2; latest 2026-05-08T06:13:59Z
+VMID 101: 1; latest 2026-05-08T10:36:12Z
+VMID 106: 3; latest 2026-08-14T16:13:14Z
+VMID 107: 3; latest 2026-08-14T16:40:35Z
+VMID 108: 2; latest 2026-04-15T12:30:02Z
+VMID 109: 1; latest 2026-04-13T10:34:52Z
+```
+
+Current VMIDs without a local backup artifact in this complete storage scope:
+
+```text
+102 103 104 105 110 9000
+```
+
+Interpretation boundaries:
+
+- artifact presence is recovery-point evidence;
+- artifact presence is not restore verification, integrity verification, RPO/RTO compliance, or proof of a current scheduled protection mechanism;
+- `protected=false` is a Proxmox archive retention/protection flag and must never map to platform `UNPROTECTED`;
+- zero cluster backup jobs means no current cluster backup job was observed; historical/manual/external creation remains possible;
+- BM2 evidence must not be projected onto BM1 or future PBS.
+
+### Existing Proxmox token is rejected for runtime
+
+Effective privileges are broad/admin-like and include control-capable privileges such as:
+
+```text
+Datastore.Allocate*
+Permissions.Modify
+Sys.Console
+Sys.Modify
+Sys.PowerMgmt
+VM.Allocate
+VM.Console
+VM.PowerMgmt
+VM.Snapshot
+VM.Snapshot.Rollback
+```
+
+The token is `DISCOVERY_ONLY` and must not be wired into runtime. Its local env file is Git-ignored but mode `0644`; TLS verification is disabled. A dedicated least-privilege observer credential will be required before runtime wiring, but current project phases remain read-only and must not provision it yet.
 
 ### Mandatory future PBS compatibility
 
-The platform must support adding Proxmox Backup Server later without redesigning the core Backup and Recovery Assurance contract.
-
-Keep the common assurance model source-neutral. Current PVE/local-backup evidence and future PBS-native evidence are separate source adapters with explicit provenance, both capable of satisfying the common evidence requirements:
+The core Backup and Recovery Assurance model remains source-neutral. Current PVE/local backup and future PBS-native evidence are separate adapters with explicit provenance and the same common evidence dimensions:
 
 ```text
 BACKUP_MECHANISM
@@ -130,57 +152,43 @@ RPO_TARGET_AND_RESULT
 RTO_TARGET_AND_RESULT
 ```
 
-Do not make core asset/protection schema depend on PBS datastore, namespace, or snapshot IDs. Such identifiers belong in source-specific evidence/provenance context.
+PBS-specific datastore/namespace/snapshot identities must stay in source-specific evidence/provenance, not core asset semantics.
 
-### Existing credential security status
+## Exact next implementation slice — BM2 Proxmox VE backup evidence adapter
 
-Existing discovery credential file:
+Implement the first authoritative backup source adapter against BM2 PVE with these boundaries:
+
+1. HTTP GET only; no mutating API method or subprocess-based control command.
+2. Safe projections of PVE identity, current guest VMIDs, storage capability/retention metadata, cluster backup-job summary, and local backup recovery-point metadata.
+3. Explicit source observation status and failure semantics; complete empty content scope is different from failed observation.
+4. Explicit source/storage/VM provenance; never expose token IDs/secrets or raw sensitive storage configuration.
+5. Preserve archive timestamp/count/format/size/protection-flag metadata only as needed; do not persist raw API payloads.
+6. Never map PVE archive `protected=false` to platform `UNPROTECTED`.
+7. Do not claim restore verification, integrity, RPO/RTO or current scheduled protection from artifact presence alone.
+8. Keep adapter source-neutral/future-PBS compatible.
+9. Do not wire the current broad discovery token into systemd/runtime.
+10. Repository tests and a manual live gate may use the existing token only as a temporary GET-only discovery/test credential; runtime integration remains blocked until a separately approved least-privilege observer identity exists.
+
+Likely implementation branch:
 
 ```text
-/home/ben/projects/afpa-infra-rebuild/mcp/proxmox/proxmox.env
-owner: ben
-group: ben
-mode: 0644
-Git tracked: no
-Git ignored: yes
-configured endpoint: BM2
-TLS verification: false
+feature/m5-proxmox-ve-backup-evidence
 ```
 
-The token successfully performs bounded GET discovery, but it is **DISCOVERY_ONLY** until effective privileges are verified. Successful authentication does not prove least privilege.
-
-The `0644` token file is not acceptable as the final platform runtime credential location without a separate hardening decision.
-
-Sensitive Terraform tfvars/state must not be read to recover credentials.
-
-## Exact next step — BM2 token scope + backup-content metadata preflight
-
-Before implementing a PVE collector:
-
-1. verify the existing BM2 token's effective read privilege scope using bounded safe API metadata if available;
-2. never print token ID/secret or unrelated ACL identities;
-3. use only HTTP GET requests;
-4. query BM2 `local` storage backup-content metadata to determine whether recovery-point artifacts exist;
-5. project only safe fields needed for artifact identity/type/time/size/VMID where the API supports them;
-6. do not infer scheduled protection because cluster backup jobs are zero;
-7. do not infer restore verification from backup artifact presence;
-8. determine whether a new dedicated least-privilege Proxmox observer token is required before runtime integration;
-9. BM1 remains separate and must get its own verified observation path; do not project BM2 state onto BM1.
-
-No backup, restore, snapshot, prune, verify, garbage collection, schedule mutation, credential creation, or Terraform state read is allowed during discovery.
+Package version should advance from `0.19.0` to `0.20.0` if repository convention remains unchanged.
 
 ## Trust invariants
 
-- observation credentials remain separate from future control credentials;
 - infrastructure interaction remains read-only;
+- observation credentials stay separate from control credentials;
 - collector failure is explicit;
 - stale is not current;
 - unknown is not absent;
-- network timeout is not absence unless observation scope/path is complete;
+- network timeout is not absence unless observation path is complete;
 - inference is not fact;
 - declared and observed state remain separate;
 - specialized systems remain authoritative;
-- no passwords, tokens, private keys, raw Kubernetes Secret values, sensitive Terraform state, or complete sensitive connection strings enter evidence/AI context;
+- no passwords, tokens, private keys, raw Kubernetes Secret values, sensitive Terraform state, raw sensitive Proxmox storage configuration, or complete sensitive connection strings enter evidence/AI context;
 - current generated operational artifacts keep `mutation_allowed=false`.
 
 ## Maintenance rule
