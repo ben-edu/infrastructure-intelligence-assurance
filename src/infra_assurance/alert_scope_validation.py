@@ -143,7 +143,9 @@ def _fallback_from_unverified_resource(
                     f"{claimed_subject}, but that infrastructure subject was not validated. "
                     f"The weaker observed namespace scope {scope['subject']} was retained instead."
                 ),
-                "evidence_ids": list(dict.fromkeys([alert["evidence_id"]] + evidence_ids)),
+                "evidence_ids": list(
+                    dict.fromkeys(list(alert.get("evidence_ids", [])) + evidence_ids)
+                ),
             }
             return scope, validation, warning
 
@@ -165,7 +167,9 @@ def _fallback_from_unverified_resource(
             f"{claimed_subject}, but that infrastructure subject was not validated and no "
             "stronger observed namespace scope was available; platform scope was retained."
         ),
-        "evidence_ids": list(dict.fromkeys([alert["evidence_id"]] + evidence_ids)),
+        "evidence_ids": list(
+            dict.fromkeys(list(alert.get("evidence_ids", [])) + evidence_ids)
+        ),
     }
     return scope, validation, warning
 
@@ -335,7 +339,9 @@ def _validate_attention_scope(
                 f"{claimed_subject}, but that namespace identity was not validated; platform "
                 "scope was retained instead."
             ),
-            "evidence_ids": list(dict.fromkeys([alert["evidence_id"]] + evidence_ids)),
+            "evidence_ids": list(
+                dict.fromkeys(list(alert.get("evidence_ids", [])) + evidence_ids)
+            ),
         }
         return fallback_scope, validation, warning, required_collections
 
