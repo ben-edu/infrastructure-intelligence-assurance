@@ -1,0 +1,293 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://soria.local/schemas/proxmox-ve-backup-evidence.schema.json",
+  "title": "Proxmox VE Backup Evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "proxmox_ve_backup_evidence_version",
+    "generated_at",
+    "mutation_allowed",
+    "source",
+    "pve_identity",
+    "observations",
+    "nodes",
+    "guests",
+    "storages",
+    "backup_jobs",
+    "content_scopes",
+    "recovery_points",
+    "guest_storage_coverage",
+    "summary",
+    "unknowns",
+    "errors",
+    "caveats"
+  ],
+  "properties": {
+    "proxmox_ve_backup_evidence_version": {"const": "0.1"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "mutation_allowed": {"const": false},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "source_id",
+        "node",
+        "operation",
+        "status",
+        "collector",
+        "collector_version",
+        "credential_runtime_approved",
+        "credential_file_mode_secure",
+        "tls_verification",
+        "discovery_override_used"
+      ],
+      "properties": {
+        "type": {"const": "proxmox_ve_api"},
+        "source_id": {"type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,200}$"},
+        "node": {"type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,200}$"},
+        "operation": {"const": "BOUNDED_HTTP_GET_BACKUP_EVIDENCE"},
+        "status": {"enum": ["COMPLETE", "PARTIAL", "FAILED_TO_OBSERVE"]},
+        "collector": {"const": "infra_assurance.proxmox_ve_backup_evidence"},
+        "collector_version": {"const": "0.1"},
+        "credential_runtime_approved": {"type": "boolean"},
+        "credential_file_mode_secure": {"type": "boolean"},
+        "tls_verification": {"type": "boolean"},
+        "discovery_override_used": {"type": "boolean"}
+      }
+    },
+    "pve_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {"type": ["string", "number"]},
+        "release": {"type": ["string", "number"]},
+        "repoid": {"type": ["string", "number"]}
+      }
+    },
+    "observations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["operation", "status", "http_status", "error_class"],
+        "properties": {
+          "operation": {"type": "string", "maxLength": 240},
+          "status": {"enum": ["COMPLETE", "FAILED_TO_OBSERVE"]},
+          "http_status": {"type": ["integer", "null"]},
+          "error_class": {"type": ["string", "null"], "maxLength": 120}
+        }
+      }
+    },
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["node", "status"],
+        "properties": {
+          "node": {"type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,200}$"},
+          "status": {"type": "string", "pattern": "^[A-Z0-9_.:-]{1,200}$"}
+        }
+      }
+    },
+    "guests": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["vmid", "guest_type", "status", "node"],
+        "properties": {
+          "vmid": {"type": "integer", "minimum": 1},
+          "guest_type": {"type": "string", "pattern": "^[A-Z0-9_.:-]{1,200}$"},
+          "status": {"type": "string", "pattern": "^[A-Z0-9_.:-]{1,200}$"},
+          "node": {"type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,200}$"}
+        }
+      }
+    },
+    "storages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "storage_id",
+          "storage_type",
+          "backup_content_enabled",
+          "disabled",
+          "retention_policy",
+          "pbs_backend"
+        ],
+        "properties": {
+          "storage_id": {"type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,200}$"},
+          "storage_type": {"type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,200}$"},
+          "backup_content_enabled": {"type": "boolean"},
+          "disabled": {"type": "boolean"},
+          "retention_policy": {"type": ["string", "null"], "maxLength": 200},
+          "pbs_backend": {"type": "boolean"}
+        }
+      }
+    },
+    "backup_jobs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "job_id",
+          "enabled",
+          "schedule",
+          "storage_id",
+          "mode",
+          "node",
+          "selection",
+          "selected_vmid_count",
+          "excluded_vmid_count"
+        ],
+        "properties": {
+          "job_id": {"type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,200}$"},
+          "enabled": {"type": "boolean"},
+          "schedule": {"type": ["string", "null"], "maxLength": 200},
+          "storage_id": {"type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,200}$"},
+          "mode": {"type": "string", "pattern": "^[A-Z0-9_.:-]{1,200}$"},
+          "node": {"type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,200}$"},
+          "selection": {"enum": ["ALL_GUESTS", "BOUNDED_SELECTION"]},
+          "selected_vmid_count": {"type": "integer", "minimum": 0},
+          "excluded_vmid_count": {"type": "integer", "minimum": 0}
+        }
+      }
+    },
+    "content_scopes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["node", "storage_id", "status", "recovery_points_observed"],
+        "properties": {
+          "node": {"type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,200}$"},
+          "storage_id": {"type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,200}$"},
+          "status": {"enum": ["COMPLETE", "FAILED_TO_OBSERVE"]},
+          "recovery_points_observed": {"type": "integer", "minimum": 0}
+        }
+      }
+    },
+    "recovery_points": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "recovery_point_id",
+          "vmid",
+          "node",
+          "storage_id",
+          "format",
+          "created_at",
+          "size_bytes",
+          "archive_protection_flag",
+          "basis"
+        ],
+        "properties": {
+          "recovery_point_id": {"type": "string", "pattern": "^pve-rp-[a-f0-9]{24}$"},
+          "vmid": {"type": "integer", "minimum": 1},
+          "node": {"type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,200}$"},
+          "storage_id": {"type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,200}$"},
+          "format": {"type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,200}$"},
+          "created_at": {"type": "string", "format": "date-time"},
+          "size_bytes": {"type": ["integer", "null"], "minimum": 0},
+          "archive_protection_flag": {"type": "boolean"},
+          "basis": {
+            "type": "array",
+            "items": {"const": "PVE_STORAGE_CONTENT_BACKUP_RECORD"},
+            "minItems": 1,
+            "maxItems": 1
+          }
+        }
+      }
+    },
+    "guest_storage_coverage": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "vmid",
+          "storage_id",
+          "local_recovery_point_status",
+          "recovery_point_count",
+          "latest_recovery_point_at"
+        ],
+        "properties": {
+          "vmid": {"type": "integer", "minimum": 1},
+          "storage_id": {"type": "string", "pattern": "^[A-Za-z0-9_.:-]{1,200}$"},
+          "local_recovery_point_status": {
+            "enum": [
+              "RECOVERY_POINT_OBSERVED",
+              "NO_RECOVERY_POINT_OBSERVED_IN_COMPLETE_STORAGE_SCOPE",
+              "UNKNOWN"
+            ]
+          },
+          "recovery_point_count": {"type": "integer", "minimum": 0},
+          "latest_recovery_point_at": {"type": ["string", "null"], "format": "date-time"}
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "nodes_observed",
+        "current_guests_observed",
+        "storages_observed",
+        "pbs_storages_configured",
+        "cluster_backup_jobs_observed",
+        "recovery_points_observed",
+        "guests_with_recovery_point_in_selected_scopes",
+        "guest_storage_scopes_without_recovery_point",
+        "guest_storage_scopes_unknown"
+      ],
+      "properties": {
+        "nodes_observed": {"type": "integer", "minimum": 0},
+        "current_guests_observed": {"type": "integer", "minimum": 0},
+        "storages_observed": {"type": "integer", "minimum": 0},
+        "pbs_storages_configured": {"type": "integer", "minimum": 0},
+        "cluster_backup_jobs_observed": {"type": "integer", "minimum": 0},
+        "recovery_points_observed": {"type": "integer", "minimum": 0},
+        "guests_with_recovery_point_in_selected_scopes": {"type": "integer", "minimum": 0},
+        "guest_storage_scopes_without_recovery_point": {"type": "integer", "minimum": 0},
+        "guest_storage_scopes_unknown": {"type": "integer", "minimum": 0}
+      }
+    },
+    "unknowns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "statement"],
+        "properties": {
+          "code": {"type": "string", "pattern": "^[A-Z0-9_]{1,120}$"},
+          "statement": {"type": "string", "maxLength": 600}
+        }
+      }
+    },
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "operation", "http_status", "error_class"],
+        "properties": {
+          "code": {"const": "PVE_GET_FAILED"},
+          "operation": {"type": "string", "maxLength": 240},
+          "http_status": {"type": ["integer", "null"]},
+          "error_class": {"type": ["string", "null"], "maxLength": 120}
+        }
+      }
+    },
+    "caveats": {
+      "type": "array",
+      "items": {"type": "string", "maxLength": 900}
+    }
+  }
+}
