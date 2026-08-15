@@ -15,7 +15,7 @@ This is the compact continuation checkpoint for the Infrastructure Intelligence 
 
 - repository: `ben-edu/infrastructure-intelligence-assurance`
 - stable branch: `main`
-- stable main before active PR: `e24b86e7431cecaea01a6984b57f6b2185390f73`
+- main checkpoint after PR #18: `c26688e4f6cfe9d93fd0c91935a4034342b17fc5`
 - management host: `mgmt-automation`
 - checkout: `~/projects/infrastructure-intelligence-assurance`
 - cluster: `k3s-main`
@@ -25,12 +25,13 @@ This is the compact continuation checkpoint for the Infrastructure Intelligence 
 
 Milestones 0–3 are live validated for the evidence contract, Kubernetes observation/context/topology/preflight, history/diff, Git declared-state/drift, workload inventory, and Prometheus Operator coverage.
 
-Milestone 4 accepted slices before the active PR:
+Milestone 4 accepted/live-validated slices:
 
 - PR #10 — Prometheus runtime;
 - PR #13 — Alertmanager handling correlation;
 - PR #14 — Kubernetes Event correlation;
-- PR #16 — incident candidates/drill-down.
+- PR #16 — incident candidates/drill-down;
+- PR #18 — bounded EndpointSlice/Pod/ReplicaSet routing ownership.
 
 Known real drift remains intentionally unresolved:
 
@@ -40,62 +41,41 @@ Git:  k3s-master.soria-academie.fr
 Live: k3s-master.behnam.fr
 ```
 
-## Active work — PR #18 accepted, pending merge
+## PR #18 accepted routing ownership baseline
 
-- PR: `#18 Milestone 4 bounded EndpointSlice and Pod routing ownership`
-- branch: `feature/m4-endpointslice-pod-ownership`
-- package version: `0.13.0`
-- status: live accepted; ready to merge
-
-### Repository gate
-
-First management-host test attempt exposed a regression-test parsing defect and stopped before bootstrap:
+Merged commit:
 
 ```text
-1 failed, 145 passed in 0.98s
+c26688e4f6cfe9d93fd0c91935a4034342b17fc5
 ```
 
-The RBAC implementation was not the cause. After correcting the test parser, the complete repository suite passed:
+Repository gate:
 
 ```text
 146 passed in 0.92s
 ```
 
-### Accepted least-privilege RBAC
+Accepted RBAC:
 
 ```text
-List EndpointSlices : yes
-Get EndpointSlices  : no
-Get Pods            : yes
-List Pods           : no
-Watch Pods          : no
-Get ReplicaSets     : yes
-List ReplicaSets    : no
-Watch ReplicaSets   : no
-List Secrets        : no
-Create Deployment   : no
+EndpointSlices: list=yes, direct get=no
+Pods:           get=yes, list/watch=no
+ReplicaSets:    get=yes, list/watch=no
+Secrets:        no
+mutation:       no
 ```
 
-Pod exact GETs follow only Pod targetRefs observed in EndpointSlices. ReplicaSet exact GETs follow only controller ownerReferences observed from those Pods.
-
-Default bounds:
-
-```text
-max Pod GETs:        500
-max ReplicaSet GETs: 250
-```
-
-### Accepted live source
+Accepted source:
 
 ```text
 overall: COMPLETE
-EndpointSlices: 79 / COMPLETE
+EndpointSlices: 79
 Pod exact GETs: 60 requested / 60 present / 0 unknown / 0 skipped
 ReplicaSet exact GETs: 37 requested / 37 present / 0 unknown / 0 skipped
 mutation_allowed: false
 ```
 
-Routing summary:
+Accepted routing summary:
 
 ```text
 Endpoint paths:                   79
@@ -111,28 +91,20 @@ NO_ENDPOINTS_OBSERVED:             13
 UNKNOWN:                            1
 ```
 
-The only unknown path is `Service/default/kubernetes` with a missing targetRef. It remains `UNKNOWN`.
-
-### Stronger evidence for Loki
-
-`Service/monitoring/loki-headless` is live resolved through EndpointSlices/Pod ownerReferences to both:
+`Service/monitoring/loki-headless` is now evidence-backed as routing to both:
 
 ```text
 StatefulSet/monitoring/loki
 DaemonSet/monitoring/loki-canary
 ```
 
-This replaces the earlier selector ambiguity with current routing evidence. It is not a business-ownership statement.
-
-### Kubelet routing
-
-The actual observed Service is:
+The actual kubelet Service is:
 
 ```text
 Service/kube-system/kube-prom-stack-kubelet
 ```
 
-It routes to three Node targetRefs:
+and its EndpointSlice targets are cluster-scoped Nodes:
 
 ```text
 Node/k3s-master-01
@@ -140,42 +112,14 @@ Node/k3s-worker-01
 Node/k3s-worker-02
 ```
 
-State:
+Therefore its routing state is `NON_POD_ROUTING`, with all Node target namespaces correctly null.
 
-```text
-NON_POD_ROUTING
-```
-
-All Node targets have `namespace=null`.
-
-### Newly exposed downstream scope defect
-
-Current incident candidates still contain:
-
-```text
-Service/keycloak/kube-prom-stack-kubelet
-Service/monitoring/kube-prom-stack-kubelet
-Service/moodle/kube-prom-stack-kubelet
-```
-
-No corresponding Kubernetes Services exist in those namespaces. The real kubelet Service is in `kube-system`.
-
-This proves that existing alert attention logic can incorrectly combine Prometheus/Alertmanager metric labels `namespace + service` and treat them as an authoritative Kubernetes Service identity. For kubelet/container alerts, those labels can represent different metric dimensions.
-
-PR #18 is still safe because routing ownership is not yet consumed by incident candidates:
-
-```text
-incident consumes routing artifact: false
-```
-
-### Sensitive/full-object guard
+Sensitive/full-object guard passed:
 
 ```text
 forbidden projected keys: none
 raw URL markers: false
 ```
-
-Persisted routing evidence excludes endpoint addresses/IPs, Pod IP/spec/status, labels, annotations, env/container data, logs, volumes, UIDs, Secret references, service-account tokens, credentials, and other full-object content.
 
 Detailed report:
 
@@ -183,17 +127,40 @@ Detailed report:
 docs/reports/2026-08-15-m4-routing-ownership-live-test-gate.md
 ```
 
+## Newly exposed alert scope identity defect
+
+The accepted incident projection currently contains Service-scoped subjects such as:
+
+```text
+Service/keycloak/kube-prom-stack-kubelet
+Service/monitoring/kube-prom-stack-kubelet
+Service/moodle/kube-prom-stack-kubelet
+```
+
+No Kubernetes Service with those identities exists. The real Service is `Service/kube-system/kube-prom-stack-kubelet`.
+
+This demonstrates that Prometheus/Alertmanager label dimensions such as `namespace` and `service` must not automatically be combined into an authoritative Kubernetes Service subject identity. In kubelet/container metrics, those labels can describe different dimensions.
+
+PR #18 remained safe because its routing artifact is not yet consumed by incident candidates.
+
 ## Exact next step
 
-1. Mark PR #18 ready and squash merge it.
-2. Create a separate Milestone 4 slice for alert attention scope validation/correction before routing ownership is integrated downstream.
-3. Validate claimed Kubernetes Service identities against current observed Service inventory/topology instead of assuming `alert.labels.namespace + alert.labels.service` is a Service key.
-4. Preserve original alert labels as signal dimensions, but distinguish them from validated infrastructure subject identity.
-5. For invalid/unverified Service identity, degrade to a supported scope such as Namespace/Platform/Node only when evidence supports that scope; otherwise keep scope unknown and require verification.
-6. Do not use routing ownership to force-match the three current kubelet candidates to `Service/kube-system/kube-prom-stack-kubelet`; their alert `namespace` labels are evidence about metric dimensions, not proof that the Kubernetes Service subject should be rewritten.
-7. After scope correction is live validated, create a separate integration slice that prefers accepted routing ownership over selector inference where current evidence is complete.
+Create a small Milestone 4 alert-scope validation/correction slice before integrating routing ownership downstream.
 
-Do not add Loki/OpenTelemetry in the scope-correction slice.
+Requirements:
+
+1. preserve raw allowlisted alert labels as signal dimensions;
+2. validate any claimed Kubernetes Service subject against current observed Service evidence before classifying the alert scope as `SERVICE`;
+3. distinguish `VALIDATED_INFRASTRUCTURE_SUBJECT`, `UNVERIFIED_SIGNAL_DIMENSION`, and unknown/ambiguous scope explicitly;
+4. do not rewrite the three kubelet alert subjects to `Service/kube-system/kube-prom-stack-kubelet` merely because that Service exists;
+5. when a valid namespace dimension exists but Service identity is invalid, Namespace scope may be retained only as a weaker signal scope, not Service ownership;
+6. platform scope remains available when no stronger evidence-backed subject exists;
+7. no new infrastructure read/RBAC is required: use the same-cycle Kubernetes snapshot/local artifacts;
+8. update alert attention, Event correlation and incident grouping semantics only as needed to preserve cardinality/trust;
+9. live validate the corrected scope distribution before allowing routing ownership to enrich incident candidates;
+10. do not add Loki/OpenTelemetry in this slice.
+
+After this correction is accepted, create a separate integration slice that prefers complete routing ownership over selector inference where evidence supports the upgrade.
 
 ## Trust invariants
 
