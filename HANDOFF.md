@@ -17,7 +17,7 @@ Project Sources remain authoritative for durable goals, roadmap, trust principle
 
 - repo: `ben-edu/infrastructure-intelligence-assurance`
 - stable branch: `main`
-- stable main checkpoint: `c97d5197bf278192055d87bde7f47705280038ad`
+- stable main before PR #16 merge: `a9feef8957f74d0cb9ed4299fd86778de0bb2fe4`
 - management host: `mgmt-automation`
 - checkout: `~/projects/infrastructure-intelligence-assurance`
 - Kubernetes cluster: `k3s-main`
@@ -61,147 +61,151 @@ monitoring/kube-prom-stack-prometheus:9090
 services/proxy get only
 ```
 
-Accepted runtime included 21 active targets, all UP, with 11 target paths attributed to workloads and 10 unattributed. Prometheus runtime state is signal-scoped and is not generic application-health proof.
+Accepted baseline included 21 active targets, all UP. Prometheus runtime evidence is signal-scoped and is not generic application-health proof.
 
 ### Milestone 4 — Alertmanager handling correlation
 
-PR #13 is squash-merged and live accepted.
+PR #13 is merged and live accepted.
 
-Accepted run included:
-
-```text
-pytest: 112 passed in 0.84s
-Prometheus source: COMPLETE
-Alertmanager source: COMPLETE
-Alertmanager alerts: 11
-  ACTIVE: 2
-  INHIBITED: 9
-silences: 0
-Prometheus correlation:
-  MATCHED: 11
-  UNRESOLVED: 0
-  AMBIGUOUS: 0
-alert-attention scope:
-  SERVICE: 6
-  NAMESPACE: 3
-  PLATFORM: 2
-  WORKLOAD: 0
-  NODE: 0
-forbidden projected keys: none
-raw URL markers: false
-mutation_allowed: false
-```
-
-Prometheus/Alertmanager correlation does not imply workload ownership.
+Accepted baseline included 11 Alertmanager alerts: 2 ACTIVE and 9 INHIBITED, all uniquely correlated to Prometheus. Scope remained Service/Namespace/Platform without invented workload ownership.
 
 ### Milestone 4 — Kubernetes Event correlation
 
-PR #14 is squash-merged at:
+PR #14 is merged and live accepted at:
 
 ```text
 c97d5197bf278192055d87bde7f47705280038ad
 ```
 
-Live acceptance used implementation head:
+Accepted Event boundary:
 
 ```text
-0e656734eb53b8b3f5789313ed29b3d8a74c9121
+core/v1 Events: get/list/watch
+create Event: no
+list Pods: no
+list Secrets: no
+Kubernetes mutation: no
+window: 3600 seconds
+max recent records: 500
 ```
 
-Accepted repository/runtime gate:
+Accepted live run had one Warning Event, `ProbeWarning` on a Moodle Pod. It was attached only as Namespace/moodle supporting context. Pod-name controller inference was not introduced and platform alerts were not broadly matched.
+
+### Milestone 4 — Incident candidates and drill-down
+
+PR #16 implementation is live accepted and ready to merge.
 
 ```text
-pytest: 125 passed in 0.89s
+branch: feature/m4-incident-candidates
+tested head: 855d8acde041d6896d3172ba3a949134dd6d201e
+package version: 0.12.0
+pytest: 134 passed in 0.94s
 observer service: status=0/SUCCESS
-Git declared source: COMPLETE
-Prometheus source: COMPLETE
-Alertmanager source: COMPLETE
-Kubernetes Event source: COMPLETE
+incident ExecStartPost: status=0/SUCCESS
 mutation_allowed: false
 ```
 
-Accepted Event RBAC:
+No new infrastructure query or RBAC was introduced:
 
 ```text
-list Events cluster-wide: yes
-create Event: no
-list Pods cluster-wide: no
-list Secrets cluster-wide: no
+list Pods: no
+list EndpointSlices: no
+list Secrets: no
 create Deployment: no
+query-capable client markers in incident implementation: none
 ```
 
-Event source bounds:
+The incident projection reads only current local artifacts:
 
 ```text
-window_seconds: 3600
-max_events: 500
-window_truncated: false
+alert-attention.json
+kubernetes-event-correlation.json
+inventory.json
+change-context.json
 ```
 
-Current live Event evidence in the accepted run:
+and emits:
 
 ```text
-events_seen_from_api: 1
-events_recent: 1
-events_warning: 1
-events_normal: 0
-reason: ProbeWarning
-subject: Pod/moodle/moodle-b49d869bd-flsr6
-count: 758740
+/var/lib/infra-assurance/evidence/incident-candidates.json
+/var/lib/infra-assurance/evidence/incident-candidates.md
 ```
 
-The occurrence count is retained as Kubernetes-reported structured evidence. It is not interpreted as severity or root cause.
-
-The same runtime cycle contained 10 alert-attention records and 10 Event-correlation records:
+Live result:
 
 ```text
-attention_with_related_warning_events: 1
-attention_without_direct_warning_match: 9
-attention_event_correlation_unknown: 0
+alert attention records: 10
+incident candidates: 7
+ACTIVE: 4
+SUPPRESSED: 3
+UNKNOWN: 0
+scope:
+  NAMESPACE: 3
+  PLATFORM: 1
+  SERVICE: 3
+candidates with related Warning Events: 1
+candidates with related workload context: 3
+candidates with exact recent change: 0
+candidates with exact drift: 0
 ```
 
-The one relation was:
+Grouping is only by identical `scope.type + scope.subject`. `SUPPRESSED` means inhibited/silenced operational evidence, not resolved.
+
+Infrastructure context remained bounded:
+
+- Namespace membership is breadth context only, not affected-workload proof.
+- Platform scope did not expand to all workloads.
+- Service candidates did not receive guessed workload ownership.
+- Recent change/drift attach only on exact subject identity.
+- Event context remains supporting evidence, not root cause.
+
+Current deterministic next-evidence recommendations:
 
 ```text
-attention: Namespace/moodle
-handling: INHIBITED
-related Event: ProbeWarning on Pod/moodle/moodle-b49d869bd-flsr6
-basis:
-  NAMESPACE_SCOPE_MEMBERSHIP
-  RECENT_KUBERNETES_WARNING_EVENT
+PROMETHEUS_ALERTMANAGER: 4
+KUBERNETES_ENDPOINTSLICE_POD: 3
+LOKI_CANDIDATE: 3
+KUBERNETES_OBJECT: 1
+PROMETHEUS_KUBERNETES: 1
 ```
 
-This is supporting namespace context only. Pod-name controller inference is not implemented. Platform-scoped alert-attention records were not broadly matched to cluster Events.
-
-Sensitive/free-form guard passed:
+Sensitive/causal guards passed:
 
 ```text
 forbidden projected keys: none
 raw URL markers: false
+causal assertion markers: none
 ```
 
 Detailed report:
 
 ```text
-docs/reports/2026-08-15-m4-kubernetes-event-correlation-live-test-gate.md
+docs/reports/2026-08-15-m4-incident-candidates-live-test-gate.md
 ```
 
-## Exact next step
+## Exact next step after PR #16 merge
 
-Continue Milestone 4 with a derived incident-grouping and drill-down slice before adding another telemetry engine.
+Prefer a small read-only Kubernetes EndpointSlice/Pod ownership slice before adding Loki or OpenTelemetry.
 
-Smallest useful scope:
+Why this is the next useful slice:
 
-1. consume only already-generated current artifacts: alert attention, Kubernetes Event correlation, Prometheus runtime, inventory/topology, drift, diff/change context;
-2. create compact evidence-backed `incident-candidates` grouped by supported shared scope/subject and current signal relations;
-3. distinguish `ACTIVE`, `INHIBITED`, drift, recent change, related Event context, and unknown evidence instead of flattening them into one health score;
-4. produce an impact summary using existing inventory relationships without claiming business impact that is not modeled;
-5. emit recommended drill-down/live verification checks from deterministic missing-evidence rules;
-6. never label a correlation as root cause; hypotheses must remain explicit inference with evidence IDs and confidence/basis;
-7. do not query Loki/OpenTelemetry/Jenkins in this slice; identify which candidate would actually benefit from the next specialized source first;
-8. keep the slice derived/read-only with `mutation_allowed=false` and no new infrastructure RBAC.
+- three current Service-scoped incident candidates explicitly require `KUBERNETES_ENDPOINTSLICE_POD` verification;
+- current Service-to-workload relationships are selector-based inference and do not prove live routing;
+- the existing `Service/monitoring/loki-headless` multiple-controller ambiguity also requires EndpointSlice/Pod ownership evidence;
+- resolving this structural uncertainty improves topology, runtime attribution, and incident context before adding another telemetry engine.
 
-Goal: prove the roadmap capability `signal correlation -> incident grouping -> impact summary -> recommended drill-down` using the evidence already collected, reducing operator cognitive load before broadening telemetry ingestion.
+Smallest intended scope:
+
+1. add read-only observation for EndpointSlices and the minimum bounded Pod metadata needed for ownership/routing;
+2. use EndpointSlice target references plus Pod owner references to derive evidence-backed Service -> Pod -> controller relations;
+3. do not infer controller ownership from Pod names;
+4. do not ingest Pod logs, environment variables, Secret values, mounted Secret content, service-account tokens, or sensitive connection data;
+5. retain existing selector inference as a weaker relation where exact live routing evidence is unavailable;
+6. surface ambiguity/unknown explicitly rather than forcing a controller match;
+7. keep `mutation_allowed=false` and separate future control identity from observation identity;
+8. use live acceptance before allowing the stronger relation to influence incident candidates.
+
+Do not add Loki/OpenTelemetry in the same slice.
 
 ## Trust invariants
 
