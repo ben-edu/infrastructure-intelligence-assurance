@@ -150,8 +150,7 @@ If authenticated read-only access succeeds, inspect bounded safe projections fro
 1. PVE version / node identity;
 2. configured storage types and IDs, especially whether any storage has type `pbs`;
 3. configured cluster backup jobs/schedules;
-4. current permissions sufficient for observation, without exposing credential material;
-5. no raw storage configuration fields that can contain server usernames/password-related references or secrets.
+4. no raw storage configuration fields that can contain usernames, secrets, fingerprints, encryption-key paths, or full endpoint strings.
 
 A configured `pbs` storage proves PVE-to-PBS configuration, not backup success. A configured backup job proves declared schedule, not successful execution. Successful/retained/restorable protection still requires stronger authoritative evidence.
 
@@ -170,7 +169,7 @@ The preflight must:
 - never read Terraform state/tfvars;
 - never run backup, restore, snapshot, prune, verify, garbage collection, or schedule mutation.
 
-If the existing credential is broad/admin-like or cannot be shown to be suitable for observation, do not adopt it as the platform observer credential. Design a dedicated least-privilege observer identity separately.
+This existing token is **discovery-only** unless a later accepted check proves it is an appropriate least-privilege observer identity. Successful authentication alone is not evidence that the credential should be reused by the platform.
 
 ## Trust boundary
 
