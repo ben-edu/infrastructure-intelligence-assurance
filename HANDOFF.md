@@ -15,18 +15,17 @@ This is the compact continuation checkpoint for the Infrastructure Intelligence 
 
 - repository: `ben-edu/infrastructure-intelligence-assurance`
 - stable branch: `main`
-- current main HEAD before PR #32 merge: `987d583ade9003e46e4dbf2e027f62f1a0ab7c0d`
-- accepted PR #30 code merge: `0e6f96a9f1b4adba34c43803a21a70116423b65c`
+- current main HEAD after PR #32 discovery merge: `b0f139a531536531cff2a76bf2243c0cc7ca1770`
+- accepted PR #30 foundation merge: `0e6f96a9f1b4adba34c43803a21a70116423b65c`
+- accepted PR #32 discovery merge: `b0f139a531536531cff2a76bf2243c0cc7ca1770`
 - management host: `mgmt-automation`
 - checkout: `~/projects/infrastructure-intelligence-assurance`
-- cluster: `k3s-main`
-- runtime user: `infra-assurance`
-- oneshot: `infra-assurance-kubernetes.service`
-- timer: every 5 minutes
+- Kubernetes cluster: `k3s-main`
+- existing infra-assurance runtime remains Kubernetes/observability-only; Proxmox is not systemd-wired
 
-Milestones 0–3 are live validated. The evidence-first Milestone 4 vertical path is accepted and sufficiently complete. Milestone 5 is active.
+Milestones 0–3 are live validated. Milestone 4 evidence-first vertical path is accepted and sufficiently complete. Milestone 5 is active.
 
-Known intentional drift remains:
+Known intentional Kubernetes drift remains:
 
 ```text
 Ingress/validation/nginx-validation
@@ -34,7 +33,9 @@ Git:  k3s-master.soria-academie.fr
 Live: k3s-master.behnam.fr
 ```
 
-## Accepted Milestone 5 foundation — PR #30
+## Accepted Milestone 5 foundation
+
+PR #30 established:
 
 ```text
 backup_assurance_version: 0.1
@@ -45,101 +46,123 @@ unprotected_claims: 0
 authoritative_backup_sources_integrated: 0
 ```
 
-The 21 PVCs without a direct controller relation are not classified as orphaned.
+## Accepted authoritative-source discovery
 
-## Accepted discovery — PR #32 authoritative backup source
-
-- PR: `#32 Milestone 5 authoritative backup source discovery`
-- branch: `docs/m5-backup-source-discovery`
-- code/runtime mutation: none
-- backup/restore operations: none
-- credentials created/changed: none
-- status: discovery accepted; ready for merge
-
-Discovery report:
-
-```text
-docs/reports/2026-08-15-m5-authoritative-backup-source-discovery.md
-```
+PR #32 selected BM2 Proxmox VE as the first real VM recovery-point source.
 
 ### PostgreSQL
 
-Local PostgreSQL `15/main` is online, but no instantiated `pg_basebackup` schedule, enabled timer, or bounded active archive/backup configuration was observed. PostgreSQL is not selected as the first authoritative source.
+Local PostgreSQL `15/main` is online, but no instantiated `pg_basebackup` schedule, enabled timer, or bounded active archive/backup configuration was observed. It is not selected as the first backup source.
 
 ### Network/firewall semantics
 
-BM1 uses UFW source-IP restrictions. Similar restrictions may exist for VMs/services. Never map timeout/unreachable evidence to `ABSENT` unless the observation path is known complete. Use `FAILED_TO_REACH / UNKNOWN` where firewall restrictions may explain non-reachability.
+BM1 uses UFW source-IP restrictions and similar restrictions may exist on VMs/services. Timeout/unreachable evidence is `FAILED_TO_REACH / UNKNOWN` unless the observation path is known complete. Network timeout is not absence.
 
-### Proxmox endpoint evidence
+### Proxmox discovery facts
 
-Both PVE API endpoints are reachable from `mgmt-automation` on TCP/8006 and require authentication.
+Both PVE APIs are reachable on TCP/8006 and authentication-required.
 
-BM1 TLS certificate observed expired `2025-08-04`; reachability does not imply healthy certificate trust.
+BM1 TLS certificate was observed expired `2025-08-04`; reachability does not imply healthy TLS trust.
 
-BM2 authenticated GET discovery:
+BM2 current facts from bounded authenticated GET discovery:
 
 ```text
-PVE version: 9.1.9
+PVE: 9.1.9
 node: delfan online
-storage: local / type dir
-content capability includes backup
+storage: local / dir / backup-enabled
 retention projection: keep-all=1
 configured PBS storage: none
 cluster backup jobs: 0
 current QEMU guests: 12
+local recovery-point artifacts: 12
+VMIDs with local recovery points: 100,101,106,107,108,109
+current VMIDs without local artifact in complete local scope: 102,103,104,105,110,9000
 ```
 
-Operator confirms there is no PBS today.
+Operator confirms there is no PBS today but future PBS compatibility is mandatory.
 
-### BM2 observed recovery-point artifacts
+Artifact presence is recovery-point evidence only. It is not restore verification, integrity verification, current scheduled protection, application consistency, RPO compliance, or RTO compliance.
 
-A complete GET of `local` backup content returned 12 `vma.zst` artifacts.
+PVE archive `protected=false` is a source-native retention/deletion-protection flag and must never map to platform `UNPROTECTED`.
+
+### Existing BM2 credential is discovery-only
+
+Current env file:
 
 ```text
-VMID 100: 2; latest 2026-05-08T06:13:59Z
-VMID 101: 1; latest 2026-05-08T10:36:12Z
-VMID 106: 3; latest 2026-08-14T16:13:14Z
-VMID 107: 3; latest 2026-08-14T16:40:35Z
-VMID 108: 2; latest 2026-04-15T12:30:02Z
-VMID 109: 1; latest 2026-04-13T10:34:52Z
+/home/ben/projects/afpa-infra-rebuild/mcp/proxmox/proxmox.env
+Git ignored: yes
+mode: 0644
+TLS verification: false
 ```
 
-Current VMIDs without a local backup artifact in this complete storage scope:
+Effective token privileges are broad/admin-like and include control capabilities such as `Permissions.Modify`, `Sys.Modify`, `Sys.PowerMgmt`, `VM.PowerMgmt`, `VM.Snapshot`, and datastore allocation privileges.
+
+The token is rejected for platform runtime. Current project phases remain read-only and must not provision a replacement credential yet.
+
+## Active implementation — PR #33 Proxmox VE backup evidence adapter
+
+- PR: `#33 Milestone 5 Proxmox VE backup evidence adapter`
+- branch: `feature/m5-proxmox-ve-backup-evidence`
+- base main: `b0f139a531536531cff2a76bf2243c0cc7ca1770`
+- package: `0.20.0`
+- artifact version: `proxmox_ve_backup_evidence_version=0.1`
+- status: Draft; repository/live gate pending
+- RBAC change: none
+- systemd change: none
+- credential provisioning: none
+- infrastructure mutation: none
+
+Relevant files:
 
 ```text
-102 103 104 105 110 9000
+src/infra_assurance/proxmox_ve_backup_evidence.py
+schemas/proxmox-ve-backup-evidence.schema.json
+tests/test_proxmox_ve_backup_evidence.py
+tests/test_proxmox_ve_backup_evidence_wiring.py
+docs/decisions/0021-observe-proxmox-ve-recovery-points-as-source-evidence.md
+docs/milestone-5-proxmox-ve-backup-evidence.md
+docs/reports/2026-08-15-m5-proxmox-ve-backup-evidence-live-test-gate.md
 ```
 
-Interpretation boundaries:
+### Adapter contract
 
-- artifact presence is recovery-point evidence;
-- artifact presence is not restore verification, integrity verification, RPO/RTO compliance, or proof of a current scheduled protection mechanism;
-- `protected=false` is a Proxmox archive retention/protection flag and must never map to platform `UNPROTECTED`;
-- zero cluster backup jobs means no current cluster backup job was observed; historical/manual/external creation remains possible;
-- BM2 evidence must not be projected onto BM1 or future PBS.
-
-### Existing Proxmox token is rejected for runtime
-
-Effective privileges are broad/admin-like and include control-capable privileges such as:
+HTTP GET only:
 
 ```text
-Datastore.Allocate*
-Permissions.Modify
-Sys.Console
-Sys.Modify
-Sys.PowerMgmt
-VM.Allocate
-VM.Console
-VM.PowerMgmt
-VM.Snapshot
-VM.Snapshot.Rollback
+/api2/json/version
+/api2/json/nodes
+/api2/json/cluster/resources?type=vm
+/api2/json/storage
+/api2/json/cluster/backup
+/api2/json/nodes/<node>/storage/<selected-storage>/content?content=backup
 ```
 
-The token is `DISCOVERY_ONLY` and must not be wired into runtime. Its local env file is Git-ignored but mode `0644`; TLS verification is disabled. A dedicated least-privilege observer credential will be required before runtime wiring, but current project phases remain read-only and must not provision it yet.
+Persist only bounded safe projections. Do not persist raw `volid`, raw API payload, raw endpoint URL, guest names, token material, storage server/path/username, fingerprints, encryption-key references, or Terraform state/tfvars.
+
+Source statuses:
+
+```text
+COMPLETE
+PARTIAL
+FAILED_TO_OBSERVE
+```
+
+Selected-storage guest coverage statuses:
+
+```text
+RECOVERY_POINT_OBSERVED
+NO_RECOVERY_POINT_OBSERVED_IN_COMPLETE_STORAGE_SCOPE
+UNKNOWN
+```
+
+Complete empty content scope is not the same as failed observation.
+
+Normal collector execution rejects group/world-readable credential files and disabled TLS verification. Manual live acceptance may use explicit discovery override flags against the current credential, but no permanent runtime wiring is allowed.
 
 ### Mandatory future PBS compatibility
 
-The core Backup and Recovery Assurance model remains source-neutral. Current PVE/local backup and future PBS-native evidence are separate adapters with explicit provenance and the same common evidence dimensions:
+Core assurance semantics remain source-neutral. Current PVE-local evidence and future PBS-native evidence are separate source adapters with explicit provenance and common assurance dimensions:
 
 ```text
 BACKUP_MECHANISM
@@ -152,44 +175,42 @@ RPO_TARGET_AND_RESULT
 RTO_TARGET_AND_RESULT
 ```
 
-PBS-specific datastore/namespace/snapshot identities must stay in source-specific evidence/provenance, not core asset semantics.
+PBS datastore/namespace/snapshot identifiers belong in PBS-specific evidence, not common asset identity.
 
-## Exact next implementation slice — BM2 Proxmox VE backup evidence adapter
+## Exact next step
 
-Implement the first authoritative backup source adapter against BM2 PVE with these boundaries:
+Run PR #33 repository tests and the manual BM2 live gate.
 
-1. HTTP GET only; no mutating API method or subprocess-based control command.
-2. Safe projections of PVE identity, current guest VMIDs, storage capability/retention metadata, cluster backup-job summary, and local backup recovery-point metadata.
-3. Explicit source observation status and failure semantics; complete empty content scope is different from failed observation.
-4. Explicit source/storage/VM provenance; never expose token IDs/secrets or raw sensitive storage configuration.
-5. Preserve archive timestamp/count/format/size/protection-flag metadata only as needed; do not persist raw API payloads.
-6. Never map PVE archive `protected=false` to platform `UNPROTECTED`.
-7. Do not claim restore verification, integrity, RPO/RTO or current scheduled protection from artifact presence alone.
-8. Keep adapter source-neutral/future-PBS compatible.
-9. Do not wire the current broad discovery token into systemd/runtime.
-10. Repository tests and a manual live gate may use the existing token only as a temporary GET-only discovery/test credential; runtime integration remains blocked until a separately approved least-privilege observer identity exists.
+Acceptance must prove:
 
-Likely implementation branch:
+1. full pytest passes;
+2. adapter is GET-only with no Proxmox control CLI/client;
+3. existing systemd unit contains no Proxmox/token wiring;
+4. source artifact validates against schema;
+5. source status is COMPLETE for the current bounded BM2 scope;
+6. runtime credential approval remains false and discovery override is explicit;
+7. current guest/storage/recovery-point facts are safely projected;
+8. every current guest has one selected-storage coverage record;
+9. archive `protected` appears only as `archive_protection_flag` and never platform PROTECTED/UNPROTECTED;
+10. failed observation stays UNKNOWN rather than zero/absent;
+11. no token, raw URL, raw volid, guest name, storage server/path or other sensitive source field enters output;
+12. no backup, restore, snapshot, prune, verify, GC, schedule, ACL, guest, or credential mutation occurs.
 
-```text
-feature/m5-proxmox-ve-backup-evidence
-```
-
-Package version should advance from `0.19.0` to `0.20.0` if repository convention remains unchanged.
+After live PASS, update ADR/report/HANDOFF, squash-merge PR #33, then choose the smallest derived integration slice. Do not wire runtime until a dedicated least-privilege Proxmox observer identity and trusted TLS path are separately accepted.
 
 ## Trust invariants
 
 - infrastructure interaction remains read-only;
-- observation credentials stay separate from control credentials;
+- observation credentials remain separate from control credentials;
 - collector failure is explicit;
 - stale is not current;
 - unknown is not absent;
-- network timeout is not absence unless observation path is complete;
+- network timeout is not absence unless the observation path is complete;
 - inference is not fact;
 - declared and observed state remain separate;
 - specialized systems remain authoritative;
-- no passwords, tokens, private keys, raw Kubernetes Secret values, sensitive Terraform state, raw sensitive Proxmox storage configuration, or complete sensitive connection strings enter evidence/AI context;
-- current generated operational artifacts keep `mutation_allowed=false`.
+- no passwords, tokens, private keys, raw Kubernetes Secret values, sensitive Terraform state, raw sensitive Proxmox configuration, or complete sensitive connection strings enter evidence/AI context;
+- generated operational artifacts keep `mutation_allowed=false`.
 
 ## Maintenance rule
 
