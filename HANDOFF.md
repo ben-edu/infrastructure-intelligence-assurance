@@ -17,7 +17,7 @@ Project Sources remain authoritative for durable goals, roadmap, trust principle
 
 - repo: `ben-edu/infrastructure-intelligence-assurance`
 - stable branch: `main`
-- stable main before PR #16 merge: `a9feef8957f74d0cb9ed4299fd86778de0bb2fe4`
+- stable main checkpoint: `12ad053332bdbff39b2e580cd33cd6715e675748`
 - management host: `mgmt-automation`
 - checkout: `~/projects/infrastructure-intelligence-assurance`
 - Kubernetes cluster: `k3s-main`
@@ -93,11 +93,21 @@ Accepted live run had one Warning Event, `ProbeWarning` on a Moodle Pod. It was 
 
 ### Milestone 4 — Incident candidates and drill-down
 
-PR #16 implementation is live accepted and ready to merge.
+PR #16 is squash-merged and live accepted at:
 
 ```text
-branch: feature/m4-incident-candidates
-tested head: 855d8acde041d6896d3172ba3a949134dd6d201e
+12ad053332bdbff39b2e580cd33cd6715e675748
+```
+
+Accepted implementation head before squash:
+
+```text
+855d8acde041d6896d3172ba3a949134dd6d201e
+```
+
+Accepted gate:
+
+```text
 package version: 0.12.0
 pytest: 134 passed in 0.94s
 observer service: status=0/SUCCESS
@@ -131,7 +141,7 @@ and emits:
 /var/lib/infra-assurance/evidence/incident-candidates.md
 ```
 
-Live result:
+Accepted live result:
 
 ```text
 alert attention records: 10
@@ -159,7 +169,7 @@ Infrastructure context remained bounded:
 - Recent change/drift attach only on exact subject identity.
 - Event context remains supporting evidence, not root cause.
 
-Current deterministic next-evidence recommendations:
+Accepted deterministic next-evidence recommendations:
 
 ```text
 PROMETHEUS_ALERTMANAGER: 4
@@ -183,7 +193,7 @@ Detailed report:
 docs/reports/2026-08-15-m4-incident-candidates-live-test-gate.md
 ```
 
-## Exact next step after PR #16 merge
+## Exact next step
 
 Prefer a small read-only Kubernetes EndpointSlice/Pod ownership slice before adding Loki or OpenTelemetry.
 
