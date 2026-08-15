@@ -15,7 +15,7 @@ This is the compact continuation checkpoint for the Infrastructure Intelligence 
 
 - repository: `ben-edu/infrastructure-intelligence-assurance`
 - stable branch: `main`
-- current main HEAD after post-PR33 continuity: `0a45be9c3fea71b1c8b009c0a4eae9816e0cb6be`
+- current main HEAD before PR #35 merge: `0a45be9c3fea71b1c8b009c0a4eae9816e0cb6be`
 - accepted PR #30 foundation merge: `0e6f96a9f1b4adba34c43803a21a70116423b65c`
 - accepted PR #32 discovery merge: `b0f139a531536531cff2a76bf2243c0cc7ca1770`
 - accepted PR #33 PVE source adapter merge: `58dca4289a3c302ef9098564da59b7d312aae71e`
@@ -23,7 +23,7 @@ This is the compact continuation checkpoint for the Infrastructure Intelligence 
 - management host: `mgmt-automation`
 - checkout: `~/projects/infrastructure-intelligence-assurance`
 - Kubernetes cluster: `k3s-main`
-- Proxmox source collector remains manual-only; no systemd credential wiring
+- PVE source collector remains manual-only; no systemd credential wiring
 
 Milestones 0–3 are live validated. Milestone 4 evidence-first vertical path is accepted and sufficiently complete. Milestone 5 is active.
 
@@ -75,14 +75,14 @@ The existing BM2 token is broad/admin-like, env file mode `0644`, TLS verificati
 
 Operator confirms there is no PBS today. Future PBS compatibility is mandatory through a separate source adapter with explicit provenance and no redesign of common assurance semantics.
 
-## Active implementation — PR #35 VM Backup Assurance integration
+## Accepted implementation — PR #35 VM Backup Assurance integration
 
 - PR: `#35 Milestone 5 derive VM backup assurance from PVE evidence`
 - branch: `feature/m5-vm-backup-assurance-integration`
 - base main: `0a45be9c3fea71b1c8b009c0a4eae9816e0cb6be`
 - package: `0.21.0`
-- output contract: `vm_backup_assurance_version=0.1`
-- status: Draft; repository/manual-derived gate pending
+- artifact: `vm_backup_assurance_version=0.1`
+- status: repository/manual-derived accepted; ready for squash merge
 - query/network client: none
 - Proxmox credential access: none
 - RBAC change: none
@@ -102,21 +102,31 @@ docs/milestone-5-vm-backup-assurance-integration.md
 docs/reports/2026-08-15-m5-vm-backup-assurance-integration-live-test-gate.md
 ```
 
-### VM assurance contract
-
-VM assets are a separate domain:
+Accepted repository/live gate:
 
 ```text
-asset_type: VIRTUAL_MACHINE
-scope.derived_only: true
-scope.source_neutral_assurance: true
-scope.kubernetes_pvc_assurance_modified: false
-mutation_allowed: false
+240 passed in 1.25s
+source artifact unchanged during derivation: true
+source status: COMPLETE
+source freshness: UNKNOWN
+VM assets: 12
+recovery-point observed: 6
+complete selected-scope negative: 6
+recovery-point unknown: 0
+backup mechanism observed: 6
+retention configuration observed: 12
+protection unknown: 12
+restore verification unknown: 12
+integrity verification unknown: 12
+RPO unknown: 12
+RTO unknown: 12
+unprotected claims: 0
+Kubernetes PVC assets modified: 0
+forbidden projected keys: none
+raw URL markers: false
 ```
 
-No VMID-to-Kubernetes-PVC relation is inferred.
-
-Observed recovery-point semantics:
+Observed-recovery-point semantics:
 
 ```text
 recovery_point_status: OBSERVED
@@ -137,14 +147,9 @@ recovery_point_status: NOT_OBSERVED_IN_COMPLETE_SELECTED_SCOPE
 protection_status: UNKNOWN
 ```
 
-Incomplete/failed source semantics:
+No VMID-to-Kubernetes-PVC relation is inferred.
 
-```text
-recovery_point_status: UNKNOWN
-protection_status: UNKNOWN
-```
-
-Every VM retains the common eight dimensions:
+Every VM retains the common eight evidence dimensions:
 
 ```text
 BACKUP_MECHANISM
@@ -157,35 +162,48 @@ RPO_TARGET_AND_RESULT
 RTO_TARGET_AND_RESULT
 ```
 
-Dimension state is `OBSERVED`, `PARTIAL`, or `REQUIRED`. A recovery point may satisfy `BACKUP_MECHANISM`; retention configuration may partially satisfy `BACKUP_RETENTION`; archive presence does not satisfy `LAST_SUCCESSFUL_BACKUP` task-result semantics.
+Archive presence does not satisfy `LAST_SUCCESSFUL_BACKUP`; task-result evidence is still missing.
 
-Source artifact v0.1 has no expiry/TTL contract, so derived source freshness remains `UNKNOWN`.
+## Exact next step after PR #35 merge — bounded PVE backup task-result preflight
 
-### Acceptance boundary
+Reduce a real remaining assurance unknown rather than adding more recovery-point inventory.
 
-Use the already generated PR #33 source artifact:
+Run a bounded manual read-only preflight against BM2 PVE task history to determine whether authoritative completed `vzdump`/backup task-result metadata is available and safely correlatable to current VMIDs/recovery-point times.
+
+The preflight must:
+
+1. use HTTP GET only;
+2. use the existing broad token only as a temporary manual discovery credential, never runtime;
+3. make no backup, restore, snapshot, prune, verify, GC, schedule, ACL, credential, or guest mutation;
+4. project only safe task metadata needed to assess feasibility, such as task type, node, VMID when safely present, start/end time, and normalized success/failure status;
+5. not persist raw task logs, command lines, worker IDs/UPIDs if they contain unnecessary identity detail, user/token identity, raw error text, URLs, or credentials;
+6. distinguish task-history observation failure from no matching task;
+7. determine whether a successful task can support `LAST_SUCCESSFUL_BACKUP` without claiming restore verification;
+8. not infer a task/archive join unless identity/time evidence is sufficient;
+9. preserve the future PBS adapter boundary;
+10. stop at discovery if the API scope or task semantics are not sufficiently clear.
+
+If the preflight proves a safe authoritative task-result path, implement it as a separate source-evidence slice before integrating it into VM assurance.
+
+Do not wire PVE runtime collection until a dedicated least-privilege observer identity and trusted TLS path are separately accepted.
+
+## Milestone 5 roadmap coverage still open
+
+Project roadmap still requires broader evidence for:
 
 ```text
-/tmp/proxmox-ve-backup-evidence.json
+PostgreSQL
+MariaDB
+PVCs
+VM backups
+PBS (future; not present today)
+external backup targets
+retention
+RPO/RTO
+restore tests
 ```
 
-Do not rerun PVE collection in the PR #35 gate. If the file is absent, stop rather than silently making a new Proxmox request.
-
-Acceptance must prove:
-
-1. full pytest passes;
-2. package `0.21.0` and CLI `iia-vm-backup-assurance` are present;
-3. integration has no network/query/control markers;
-4. RBAC/systemd unchanged;
-5. source artifact validates as accepted input and output validates against VM assurance schema;
-6. current VM asset set exactly matches current guest VMIDs from the supplied source artifact;
-7. source `RECOVERY_POINT_OBSERVED` maps to mechanism/recovery-point evidence only while protection stays UNKNOWN;
-8. complete selected-scope negative maps to scoped negative only while protection stays UNKNOWN;
-9. source UNKNOWN stays UNKNOWN;
-10. all VM restore/integrity/RPO/RTO remain unknown;
-11. `unprotected_claims=0` and `kubernetes_pvc_assets_modified=0`;
-12. no unsafe source fields or credential material enter output;
-13. no PVE request or infrastructure mutation occurs.
+Current work covers PVC stateful-asset foundation plus PVE-local VM recovery-point evidence and derived VM assurance. It does not close the full milestone.
 
 ## Trust invariants
 
@@ -195,7 +213,8 @@ Acceptance must prove:
 - recovery-point presence is not restore verification or task-result success;
 - observation credentials remain separate from control credentials;
 - stale/current/unknown semantics remain explicit;
-- no secrets, tokens, private keys, raw Kubernetes Secret values, Terraform state, raw sensitive Proxmox configuration, or complete sensitive connection strings enter evidence/AI context;
+- network timeout is not absence unless observation scope is known complete;
+- no secrets, tokens, private keys, raw Kubernetes Secret values, Terraform state, raw sensitive Proxmox configuration, complete sensitive connection strings, or raw task logs enter evidence/AI context;
 - generated operational artifacts keep `mutation_allowed=false`.
 
 ## Maintenance rule
