@@ -80,7 +80,7 @@ The real kubelet Service is `Service/kube-system/kube-prom-stack-kubelet`, with 
 - PR: `#20 Milestone 4 validate alert resource scope`
 - branch: `feature/m4-alert-scope-validation`
 - package version: `0.14.0`
-- status: Draft; corrected repository test gate pending, no live bootstrap acceptance yet
+- status: Draft; corrected repository gate accepted; live bootstrap/systemd acceptance pending
 
 ### Why this slice exists
 
@@ -149,16 +149,16 @@ Rules:
 
 No routing ownership is integrated into incident impact context yet.
 
-### First management-host gate attempt
+### Management-host gate history
 
-Static guards passed:
+First attempt static guards passed:
 
 ```text
 RBAC changes: none
 query-capable client markers: none
 ```
 
-Pytest stopped the run before bootstrap:
+Pytest then stopped before bootstrap:
 
 ```text
 3 failed, 153 passed in 1.56s
@@ -166,15 +166,27 @@ Pytest stopped the run before bootstrap:
 
 All three failures were `KeyError: 'evidence_id'` in fallback scope warning construction.
 
-Root cause: implementation defect. Alert-attention records correctly expose `evidence_ids`, while the new validator incorrectly referenced `alert["evidence_id"]` in fallback warning paths.
+Root cause: implementation defect. Alert-attention records expose `evidence_ids`, while the validator incorrectly referenced a singular field in fallback warning paths.
 
-Correction committed on the active branch:
+Correction:
 
-- use existing `alert.evidence_ids` when composing warning provenance;
-- do not invent a singular evidence field;
-- regression test verifies original alert evidence survives Service-to-Namespace fallback.
+- preserve the existing alert `evidence_ids` list in fallback warning provenance;
+- no synthetic singular evidence field;
+- regression assertion verifies alert evidence survives Service-to-Namespace fallback.
 
-Because pytest failed, `bootstrap-observer.sh` did not execute in this attempt. No PR #20 runtime/systemd acceptance claim exists yet.
+Corrected repository gate on `mgmt-automation`:
+
+```text
+156 passed in 0.89s
+```
+
+Tested branch checkpoint before the bookkeeping commit:
+
+```text
+2d7e655 Record first PR 20 gate failure
+```
+
+Therefore repository-level correctness is established. Bootstrap/live scope-validation acceptance has not yet been run.
 
 Relevant docs:
 
@@ -186,11 +198,9 @@ docs/reports/2026-08-15-m4-alert-scope-validation-live-test-gate.md
 
 ## Exact next step
 
-Fast-forward the active branch on `mgmt-automation` and rerun the full pytest suite only.
+Do not rerun pytest unnecessarily. Fast-forward the active branch on `mgmt-automation`, then run the remaining bootstrap/live acceptance checks only.
 
-If pytest is green, continue with the existing PR #20 bootstrap/live acceptance block without changing RBAC.
-
-Live acceptance must then confirm:
+Live acceptance must confirm:
 
 1. no RBAC change and no query-capable client in scope validator;
 2. observer plus routing/scope/incident post-steps succeed;
