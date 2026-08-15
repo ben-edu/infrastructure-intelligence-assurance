@@ -115,9 +115,9 @@ Operator explicitly confirms there is **no PBS today**.
 
 ### Mandatory future PBS compatibility
 
-Even though PBS does not exist now, the architecture must support adding Proxmox Backup Server later without redesigning the core Backup and Recovery Assurance contract.
+The platform must support adding Proxmox Backup Server later without redesigning the core Backup and Recovery Assurance contract.
 
-Keep the assurance model source-neutral. PVE local backups and future PBS evidence must use explicit source/provenance identities while satisfying the same common evidence dimensions:
+Keep the common assurance model source-neutral. Current PVE/local-backup evidence and future PBS-native evidence are separate source adapters with explicit provenance, both capable of satisfying the common evidence requirements:
 
 ```text
 BACKUP_MECHANISM
@@ -130,7 +130,7 @@ RPO_TARGET_AND_RESULT
 RTO_TARGET_AND_RESULT
 ```
 
-Do not make core asset/protection schema depend on a PBS-specific datastore/snapshot ID. Future PBS-native identifiers belong in source-specific evidence/provenance context.
+Do not make core asset/protection schema depend on PBS datastore, namespace, or snapshot IDs. Such identifiers belong in source-specific evidence/provenance context.
 
 ### Existing credential security status
 
