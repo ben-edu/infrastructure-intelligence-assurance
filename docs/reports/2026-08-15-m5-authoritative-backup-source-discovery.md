@@ -2,7 +2,7 @@
 
 ## Status
 
-Discovery in progress. Three bounded management-host preflights completed without triggering backup or restore operations.
+Discovery in progress. Four bounded management-host preflights completed without triggering backup or restore operations.
 
 ## Purpose
 
@@ -22,169 +22,137 @@ unprotected_claims: 0
 authoritative_backup_sources_integrated: 0
 ```
 
-## First management-host source-discovery preflight
+## PostgreSQL discovery conclusion
 
-Observed CLI availability:
+A local PostgreSQL `15/main` cluster is online and PostgreSQL client/package backup capability exists, but no instantiated `pg_basebackup` schedule, enabled timer instance, or bounded active archive/backup configuration was observed.
 
-```text
-proxmox-backup-client: absent
-pvesh: absent
-pvesm: absent
-vzdump: absent
-pgbackrest: absent
-wal-g: absent
-pg_dump: present
-pg_restore: present
-psql: present
-mariadb-backup: absent
-mariabackup: absent
-mysqldump: absent
-mariadb: absent
-restic: absent
-borg: absent
-kopia: absent
-rclone: absent
-velero: absent
-```
+PostgreSQL on `mgmt-automation` is therefore not selected as the next authoritative backup source. Package/tool/template presence is capability evidence only.
 
-Relevant systemd unit names included `pg_basebackup@.service/.timer`, but only `dpkg-db-backup.timer` appeared active/scheduled in the generic timer listing.
+## Proxmox endpoint discovery
 
-No accepted PBS/Proxmox/database-native backup configuration was found in the platform repository. No matching SSH host aliases were available on `mgmt-automation`.
-
-The first config-variable-name subsection had an `awk` syntax error. This affected that subsection only and printed no secret value.
-
-## Second PostgreSQL metadata-only preflight
-
-Observed PostgreSQL runtime metadata:
+Live reachability from `mgmt-automation`:
 
 ```text
-cluster: 15/main
-port: 5432
-status: online
-owner: postgres
-systemd: postgresql@15-main.service active/running
-```
-
-Observed `pg_basebackup` package capability:
-
-```text
-pg_basebackup@.service
-  Description=Basebackup of PostgreSQL Cluster %i
-  User=postgres
-  Exec program=pg_backupcluster
-  Environment variable name=KEEP
-
-pg_basebackup@.timer
-  Description=Weekly Basebackup of PostgreSQL Cluster %i
-  OnCalendar=weekly
-  RandomizedDelaySec=1h
-```
-
-However, no instantiated `pg_basebackup@<instance>.service` or `.timer`, no enabled instance symlink, and no scheduled `pg_basebackup` timer were observed.
-
-No active backup/replication-related PostgreSQL configuration keys were observed in the bounded configuration scan. No relevant backup/PBS/Proxmox/database variable names were found in `/etc/infra-assurance/collector.env` or `/etc/environment`.
-
-No `pg_basebackup`-specific configuration file was found. `/var/backups` exists, but directory existence alone is not backup evidence and its contents were not read.
-
-## PostgreSQL conclusion
-
-PostgreSQL on `mgmt-automation` is a real running database capability, but the current discovery does not establish an active database-native backup mechanism.
-
-The `pg_basebackup@` units are package/template capability only. They are not evidence of an instantiated schedule, completed backup, retention, integrity verification, restore test, RPO result, or RTO result.
-
-Therefore PostgreSQL is **not selected as the next authoritative backup source** from this host.
-
-Do not implement a PostgreSQL backup collector from these observations alone.
-
-## Third Proxmox/PBS endpoint preflight
-
-Current live reachability from `mgmt-automation`:
-
-```text
-BM1 PVE API candidate TCP/8006: REACHABLE
-BM2 PVE API candidate TCP/8006: REACHABLE
+BM1 PVE API TCP/8006: REACHABLE
+BM2 PVE API TCP/8006: REACHABLE
+BM1 unauthenticated PVE /version: HTTP 401
+BM2 unauthenticated PVE /version: HTTP 401
 BM1 same-address TCP/8007: TIMEOUT
 BM2 same-address TCP/8007: TIMEOUT
-BM1 unauthenticated PVE API /version: HTTP 401
-BM2 unauthenticated PVE API /version: HTTP 401
 ```
 
-The two `401` responses prove that current Proxmox VE API endpoints are reachable and require authentication. They do not prove any backup configuration.
+The 8006 observations prove both current PVE endpoints are reachable and authentication-required.
 
-The two TCP/8007 timeouts do **not** prove that PBS is absent. Operator-provided current context states that BM1 uses UFW source-IP restrictions, and similar network restrictions may exist for VMs or other services. Therefore negative reachability is classified as `FAILED_TO_REACH / UNKNOWN`, not `ABSENT`. PBS may also live on another host or VM.
+The 8007 timeouts do not prove PBS absence. Operator-provided current context states that BM1 uses UFW source-IP restrictions and similar restrictions may exist for VMs/services. Negative reachability is therefore `FAILED_TO_REACH / UNKNOWN` when the network observation path is not known complete.
 
 Observed TLS metadata:
 
 ```text
-BM1 certificate CN: proxbenovh.cloud
-BM1 certificate expiry: 2025-08-04 (expired relative to 2026-08-15)
-BM2 certificate CN: delfan.local
-BM2 certificate expiry: 2027-10-13
+BM1 CN=proxbenovh.cloud; certificate expired 2025-08-04
+BM2 CN=delfan.local; certificate valid through 2027-10-13
 ```
 
-Reachability used an insecure TLS probe, so BM1 endpoint reachability is established but certificate trust is not. Do not silently normalize the expired BM1 certificate into a healthy TLS state.
+BM1 endpoint reachability was observed with insecure TLS verification. Reachability is current evidence; healthy TLS trust is not.
 
-Safe local metadata discovered existing Proxmox integration material:
+## Authenticated BM2 PVE discovery
+
+An existing local Proxmox env file was inspected with values never printed:
 
 ```text
-api-cluster-infra Terraform provider config for bm1/bm2
-Proxmox API token variable names for bm1/bm2
-historical/current local MCP Proxmox env file path under afpa-infra-rebuild
-Proxmox env example defining BASE_URL, TOKEN_ID, TOKEN_SECRET and TLS options
+path: /home/ben/projects/afpa-infra-rebuild/mcp/proxmox/proxmox.env
+owner/group: ben/ben
+mode: 0644
+tracked by Git: no
+ignored by Git: yes
+configured endpoint: BM2
+TLS verification configured: false
+custom CA configured: false
 ```
 
-The `api-cluster-infra` provider config consumes only an API URL, token ID, token secret, and TLS verification setting. The token secret is declared sensitive. Existing Terraform defaults allow insecure TLS until certificate trust is established. These are configuration capabilities, not accepted observer credentials.
+The existing token was used for bounded HTTP GET discovery only. It is discovery-only and has not been accepted as the platform observer identity.
 
-Potentially sensitive Terraform state/tfvars files were identified by filename only and were not read.
+Authenticated observations:
 
-The Proxmox environment-variable subsection hit a permission error when a non-root process attempted to stat `/etc/infra-assurance/collector.env`. This is a preflight helper limitation only. No secret value was printed.
+```text
+PVE version: 9.1.9
+release: 9.1
+node: delfan
+node status: online
+storage: local
+storage type: dir
+content capability: iso,snippets,backup,vztmpl,images,rootdir
+storage disabled: false
+retention projection: keep-all=1
+configured PBS storage IDs: none observed
+cluster backup jobs: 0
+```
 
-## Current Proxmox interpretation
+These facts mean:
 
-Proxmox VE is now a **live source candidate** because both API endpoints are reachable and the local project history contains an API-token access pattern.
+- BM2 PVE is a current live authoritative source candidate for VM/storage/backup configuration;
+- local storage is configured to allow `backup` content;
+- retention configuration `keep-all=1` is storage configuration, not proof that any backup artifact exists;
+- no cluster backup job is currently declared in the returned scope;
+- no PBS storage is currently configured in BM2 PVE.
 
-PBS itself is still `UNKNOWN`. Direct TCP/8007 timeout is insufficient evidence of absence because of firewall/source restrictions and because PBS may be configured behind PVE storage metadata or on another endpoint.
+The operator explicitly confirms that PBS does not exist today. Therefore PBS current state is treated as `NOT_CONFIGURED_BY_OPERATOR` for current architecture planning, while previous network timeouts remain non-authoritative evidence by themselves.
 
-Official Proxmox VE storage semantics represent Proxmox Backup Server as storage type `pbs` inside PVE. Therefore PVE's own bounded storage configuration is the preferred next discovery surface. Do not read `/etc/pve/priv` or any storage-password/encryption-key files.
+## PBS future-compatibility requirement
 
-The next discovery should use only an already-existing Proxmox credential path, first to determine whether that credential is usable for read-only observation. It must never print the token ID/secret and must not be accepted as the platform observer identity merely because it works.
+The platform must remain ready for a future Proxmox Backup Server without redesigning the core Backup and Recovery Assurance contract.
 
-If authenticated read-only access succeeds, inspect bounded safe projections from PVE only:
+Future PBS support must be added as another authoritative source adapter rather than changing the meaning of existing asset/assurance fields.
 
-1. PVE version / node identity;
-2. configured storage IDs/types/content/disabled state, especially whether any storage has type `pbs`;
-3. configured cluster backup job IDs, schedule, enabled state, mode, target storage, and bounded VM-selection metadata;
-4. no raw storage configuration fields that can contain usernames, secrets, fingerprints, encryption-key paths, or full endpoint strings.
+The source-neutral contract must continue to model evidence such as:
 
-A configured `pbs` storage proves PVE-to-PBS configuration, not backup success. A configured backup job proves declared schedule, not successful execution. Successful/retained/restorable protection still requires stronger authoritative evidence.
+```text
+BACKUP_MECHANISM
+LAST_SUCCESSFUL_BACKUP
+BACKUP_RETENTION
+BACKUP_FAILURE_DOMAIN
+BACKUP_INTEGRITY_VERIFICATION
+RESTORE_TEST
+RPO_TARGET_AND_RESULT
+RTO_TARGET_AND_RESULT
+```
+
+A future PBS adapter may satisfy some of these fields from PBS-native evidence, while current PVE/local-backup evidence may satisfy them from PVE-native evidence. Source identity/provenance must remain explicit so evidence from PVE local storage and PBS is never conflated.
+
+No current field should require a PBS-specific identifier in order to represent protection. PBS datastore/namespace/snapshot identity, if later required, should live inside source-specific evidence/provenance context behind the common assurance model.
+
+## Current security observations
+
+The discovered existing Proxmox env file is mode `0644`. It contains token material and therefore is not acceptable as the final platform observation credential location without a separate hardening decision.
+
+The current token successfully reads version, nodes, storage configuration, and cluster backup-job configuration. Successful GET access does not prove least privilege. Its effective permission scope still needs bounded verification before runtime reuse.
+
+Terraform provider files confirm an API-token access pattern and declare the token secret sensitive. Sensitive Terraform state/tfvars were identified by filename only and were not read.
 
 ## Exact next discovery step
 
-Perform a credential-metadata and bounded authenticated PVE preflight using the existing local Proxmox env file only if it contains the expected non-empty variables.
+Before implementing a PVE backup collector:
 
-The preflight must:
+1. inspect the existing token's effective read privilege scope using bounded safe API metadata if available;
+2. do not print token ID, secret, ACL raw records containing unrelated identities, or sensitive configuration;
+3. query BM2 local storage backup content metadata read-only to determine whether any current backup artifacts actually exist;
+4. if backup artifacts exist, project only safe identity/time/size/type metadata sufficient to assess last observed recovery point;
+5. keep backup success, integrity, restore verification, RPO and RTO separate;
+6. do not infer scheduled protection because cluster backup jobs are currently zero;
+7. decide whether a new dedicated least-privilege Proxmox observer token is required before runtime integration;
+8. BM1 remains a separate observation target; do not reuse BM2 facts for BM1 and do not classify firewall-restricted failures as absence.
 
-- print only file metadata and variable names/presence states, never values;
-- map the configured base URL internally to BM1/BM2/OTHER without printing the raw URL;
-- use the token only for GET requests;
-- first query a harmless identity/version endpoint;
-- if authentication works, query only safe projections of PVE storage configuration and cluster backup jobs;
-- stop on authorization failure rather than escalating privileges;
-- never read Terraform state/tfvars;
-- never run backup, restore, snapshot, prune, verify, garbage collection, or schedule mutation.
-
-This existing token is **discovery-only** unless a later accepted check proves it is an appropriate least-privilege observer identity. Successful authentication alone is not evidence that the credential should be reused by the platform.
+No backup, restore, snapshot, prune, verify, garbage collection, schedule mutation, credential creation, or Terraform state read is allowed during discovery.
 
 ## Trust boundary
 
 - package/tool presence is capability evidence, not backup evidence;
-- a systemd template is declared capability, not an instantiated backup job;
-- an enabled timer would be schedule evidence, not successful backup evidence;
-- backup files/directories existing on disk are not sufficient to claim successful or restorable protection;
+- storage `content=backup` is configured capability, not a recovery point;
+- `keep-all=1` is retention configuration, not proof of retained backups;
+- zero configured backup jobs means no cluster backup job was observed in the returned complete scope, not that no manual backup artifact can exist;
 - PVE endpoint reachability is not PBS presence;
-- TCP timeout is not absence when firewall/source restrictions may apply;
-- PVE `pbs` storage configuration would prove configured integration, not successful backups;
-- backup-job configuration would prove declared schedule, not successful execution;
-- historical design documentation is not current live evidence;
-- authoritative protection classification remains UNKNOWN until accepted source evidence exists;
+- network timeout is not absence when firewall/source restrictions may apply;
+- operator-confirmed current PBS nonexistence may guide current design, but future PBS compatibility remains required;
+- a configured future `pbs` storage will prove PVE-to-PBS configuration, not successful backups;
+- backup-job configuration proves declared schedule, not successful execution;
+- successful backup evidence is not restore verification;
 - no secrets, tokens, passwords, private keys, raw database credentials, Terraform state values, or complete sensitive connection strings may enter discovery output.
