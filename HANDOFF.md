@@ -15,9 +15,10 @@ This is the compact continuation checkpoint for the Infrastructure Intelligence 
 
 - repository: `ben-edu/infrastructure-intelligence-assurance`
 - stable branch: `main`
-- current main HEAD before PR #33 merge: `b0f139a531536531cff2a76bf2243c0cc7ca1770`
+- current main HEAD after PR #33 merge: `58dca4289a3c302ef9098564da59b7d312aae71e`
 - accepted PR #30 foundation merge: `0e6f96a9f1b4adba34c43803a21a70116423b65c`
 - accepted PR #32 discovery merge: `b0f139a531536531cff2a76bf2243c0cc7ca1770`
+- accepted PR #33 Proxmox source adapter merge: `58dca4289a3c302ef9098564da59b7d312aae71e`
 - management host: `mgmt-automation`
 - checkout: `~/projects/infrastructure-intelligence-assurance`
 - Kubernetes cluster: `k3s-main`
@@ -60,67 +61,15 @@ Operator confirms there is no PBS today, but future PBS compatibility is mandato
 
 ## Accepted implementation — PR #33 Proxmox VE backup evidence adapter
 
-- PR: `#33 Milestone 5 Proxmox VE backup evidence adapter`
-- branch: `feature/m5-proxmox-ve-backup-evidence`
-- base main: `b0f139a531536531cff2a76bf2243c0cc7ca1770`
+- merge: `58dca4289a3c302ef9098564da59b7d312aae71e`
 - package: `0.20.0`
 - artifact version: `proxmox_ve_backup_evidence_version=0.1`
-- status: repository/live accepted; ready for squash merge
 - RBAC change: none
 - systemd change: none
 - credential provisioning: none
 - infrastructure mutation: none
 
-Relevant files:
-
-```text
-src/infra_assurance/proxmox_ve_backup_evidence.py
-schemas/proxmox-ve-backup-evidence.schema.json
-tests/test_proxmox_ve_backup_evidence.py
-tests/test_proxmox_ve_backup_evidence_wiring.py
-docs/decisions/0021-observe-proxmox-ve-recovery-points-as-source-evidence.md
-docs/milestone-5-proxmox-ve-backup-evidence.md
-docs/reports/2026-08-15-m5-proxmox-ve-backup-evidence-live-test-gate.md
-```
-
-### Accepted adapter contract
-
-HTTP GET only:
-
-```text
-/api2/json/version
-/api2/json/nodes
-/api2/json/cluster/resources?type=vm
-/api2/json/storage
-/api2/json/cluster/backup
-/api2/json/nodes/<node>/storage/<selected-storage>/content?content=backup
-```
-
-Persist only bounded safe projections. Do not persist raw `volid`, raw API payload, raw endpoint URL, guest names, token material, storage server/path/username, fingerprints, encryption-key references, or Terraform state/tfvars.
-
-Source statuses:
-
-```text
-COMPLETE
-PARTIAL
-FAILED_TO_OBSERVE
-```
-
-Selected-storage guest coverage statuses:
-
-```text
-RECOVERY_POINT_OBSERVED
-NO_RECOVERY_POINT_OBSERVED_IN_COMPLETE_STORAGE_SCOPE
-UNKNOWN
-```
-
-Complete empty content scope is not the same as failed observation.
-
-Normal collector execution rejects group/world-readable credential files and disabled TLS verification. Manual live acceptance used explicit discovery override flags against the current credential. No permanent runtime wiring exists.
-
-`credential_runtime_approved` remains `false`; this adapter never auto-approves a credential based only on file mode or TLS settings.
-
-### Accepted repository/live evidence
+Accepted repository/live evidence:
 
 ```text
 228 passed in 1.34s
@@ -181,7 +130,7 @@ SCHEDULED_PROTECTION_NOT_INFERRED
 
 No platform `protection_status` field is emitted.
 
-PVE archive `protected=false` is a source-native retention/deletion-protection flag and must never map to platform `UNPROTECTED`.
+PVE archive `protected=false` is source-native and must never map to platform `UNPROTECTED`.
 
 A complete selected storage scope with no recovery point is a valid negative fact only for that exact source/node/storage scope. It is not proof that a VM has no backup in every possible source.
 
@@ -196,9 +145,7 @@ mode: 0644
 TLS verification: false
 ```
 
-Effective privileges are broad/admin-like and include control capabilities such as `Permissions.Modify`, `Sys.Modify`, `Sys.PowerMgmt`, `VM.PowerMgmt`, `VM.Snapshot`, and datastore allocation privileges.
-
-The token is rejected for runtime. Current project phases remain read-only and must not provision a replacement credential unless a later explicitly approved access-control step allows it.
+Effective privileges are broad/admin-like and include control capabilities. The token is rejected for runtime. No systemd wiring exists.
 
 ## Mandatory future PBS compatibility
 
@@ -217,11 +164,11 @@ RTO_TARGET_AND_RESULT
 
 PBS datastore/namespace/snapshot identifiers belong in PBS-specific evidence, not common asset identity.
 
-## Exact next step after PR #33 merge — derived PVE assurance integration
+## Exact next step — derived PVE assurance integration
 
 Build the smallest derived-only integration slice. It must consume accepted local artifacts only and perform no Proxmox query.
 
-The first integration should model **VM backup assurance separately from Kubernetes PVC assurance**; do not force Proxmox VMIDs into Kubernetes PVC identity.
+The integration must model **VM backup assurance separately from Kubernetes PVC assurance**; do not force Proxmox VMIDs into Kubernetes PVC identity.
 
 Required behavior:
 
