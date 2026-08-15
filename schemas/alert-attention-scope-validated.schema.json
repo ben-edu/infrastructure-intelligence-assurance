@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/alert-attention-scope-validated.schema.json",
+  "title": "Operational Alert Attention With Validated Infrastructure Scope",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "alert_attention_version",
+    "cluster_id",
+    "generated_at",
+    "mutation_allowed",
+    "source_status",
+    "summary",
+    "attention",
+    "unknowns",
+    "caveats"
+  ],
+  "properties": {
+    "alert_attention_version": {"const": "0.2"},
+    "cluster_id": {"type": "string", "minLength": 1},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "mutation_allowed": {"const": false},
+    "source_status": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["prometheus", "alertmanager", "kubernetes_scope"],
+      "properties": {
+        "prometheus": {"enum": ["COMPLETE", "PARTIAL", "FAILED_TO_OBSERVE"]},
+        "alertmanager": {"enum": ["COMPLETE", "PARTIAL", "FAILED_TO_OBSERVE"]},
+        "kubernetes_scope": {"enum": ["COMPLETE", "PARTIAL", "FAILED_TO_OBSERVE"]}
+      }
+    },
+    "summary": {"type": "object"},
+    "attention": {"type": "array", "items": {"$ref": "#/$defs/attention"}},
+    "unknowns": {"type": "array", "items": {"$ref": "#/$defs/unknown"}},
+    "caveats": {"type": "array", "items": {"type": "string"}}
+  },
+  "$defs": {
+    "labels": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "alertname": {"type": "string"},
+        "severity": {"type": "string"},
+        "namespace": {"type": "string"},
+        "service": {"type": "string"},
+        "job": {"type": "string"},
+        "pod": {"type": "string"},
+        "container": {"type": "string"},
+        "node": {"type": "string"}
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "subject", "basis"],
+      "properties": {
+        "type": {"enum": ["WORKLOAD", "NODE", "SERVICE", "NAMESPACE", "PLATFORM"]},
+        "subject": {"type": "string", "minLength": 1},
+        "basis": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      }
+    },
+    "scopeValidation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "claimed_subject",
+        "validated_subject",
+        "basis",
+        "evidence_ids"
+      ],
+      "properties": {
+        "status": {
+          "enum": [
+            "VALIDATED_INFRASTRUCTURE_SUBJECT",
+            "UNVERIFIED_SIGNAL_DIMENSION",
+            "INFERRED_RELATION",
+            "PLATFORM_FALLBACK"
+          ]
+        },
+        "claimed_subject": {"type": ["string", "null"]},
+        "validated_subject": {"type": ["string", "null"]},
+        "basis": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "evidence_ids": {
+          "type": "array",
+          "items": {"type": "string", "minLength": 1},
+          "uniqueItems": true
+        }
+      }
+    },
+    "attention": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "attention_id",
+        "alertmanager_alert_id",
+        "prometheus_alert_id",
+        "correlation_status",
+        "state",
+        "handling_state",
+        "labels",
+        "scope",
+        "scope_validation",
+        "starts_at",
+        "updated_at",
+        "ends_at",
+        "silence_refs",
+        "evidence_ids"
+      ],
+      "properties": {
+        "attention_id": {"type": "string"},
+        "alertmanager_alert_id": {"type": "string"},
+        "prometheus_alert_id": {"type": ["string", "null"]},
+        "correlation_status": {"enum": ["MATCHED", "UNRESOLVED", "AMBIGUOUS"]},
+        "state": {"enum": ["ACTIVE", "SUPPRESSED", "UNPROCESSED", "UNKNOWN"]},
+        "handling_state": {
+          "enum": [
+            "ACTIVE",
+            "SILENCED",
+            "INHIBITED",
+            "SILENCED_AND_INHIBITED",
+            "SUPPRESSED_OTHER",
+            "UNPROCESSED",
+            "UNKNOWN"
+          ]
+        },
+        "labels": {"$ref": "#/$defs/labels"},
+        "scope": {"$ref": "#/$defs/scope"},
+        "scope_validation": {"$ref": "#/$defs/scopeValidation"},
+        "starts_at": {"type": ["string", "null"]},
+        "updated_at": {"type": ["string", "null"]},
+        "ends_at": {"type": ["string", "null"]},
+        "silence_refs": {
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        },
+        "evidence_ids": {
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        }
+      }
+    },
+    "unknown": {
+      "type": "object",
+      "required": ["code", "statement", "evidence_ids"],
+      "properties": {
+        "code": {"type": "string"},
+        "statement": {"type": "string"},
+        "evidence_ids": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  }
+}
