@@ -133,6 +133,8 @@ historical/current local MCP Proxmox env file path under afpa-infra-rebuild
 Proxmox env example defining BASE_URL, TOKEN_ID, TOKEN_SECRET and TLS options
 ```
 
+The `api-cluster-infra` provider config consumes only an API URL, token ID, token secret, and TLS verification setting. The token secret is declared sensitive. Existing Terraform defaults allow insecure TLS until certificate trust is established. These are configuration capabilities, not accepted observer credentials.
+
 Potentially sensitive Terraform state/tfvars files were identified by filename only and were not read.
 
 The Proxmox environment-variable subsection hit a permission error when a non-root process attempted to stat `/etc/infra-assurance/collector.env`. This is a preflight helper limitation only. No secret value was printed.
@@ -143,13 +145,15 @@ Proxmox VE is now a **live source candidate** because both API endpoints are rea
 
 PBS itself is still `UNKNOWN`. Direct TCP/8007 timeout is insufficient evidence of absence because of firewall/source restrictions and because PBS may be configured behind PVE storage metadata or on another endpoint.
 
+Official Proxmox VE storage documentation confirms that PBS is represented inside PVE as storage type `pbs` and can be configured through the PVE API. Therefore PVE's own bounded storage configuration is the preferred next discovery surface. Do not read `/etc/pve/priv` or any password/encryption-key files.
+
 The next discovery should use only an already-existing Proxmox credential path, first to determine whether that credential is usable for read-only observation. It must never print the token ID/secret and must not be accepted as the platform observer identity merely because it works.
 
 If authenticated read-only access succeeds, inspect bounded safe projections from PVE only:
 
 1. PVE version / node identity;
-2. configured storage types and IDs, especially whether any storage has type `pbs`;
-3. configured cluster backup jobs/schedules;
+2. configured storage IDs/types/content/disabled state, especially whether any storage has type `pbs`;
+3. configured cluster backup job IDs, schedule, enabled state, mode, target storage, and bounded VM-selection metadata;
 4. no raw storage configuration fields that can contain usernames, secrets, fingerprints, encryption-key paths, or full endpoint strings.
 
 A configured `pbs` storage proves PVE-to-PBS configuration, not backup success. A configured backup job proves declared schedule, not successful execution. Successful/retained/restorable protection still requires stronger authoritative evidence.
