@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from infra_assurance.routing_ownership import ENDPOINTSLICE_JSONPATH, OWNER_JSONPATH
@@ -7,21 +8,37 @@ from infra_assurance.routing_ownership import ENDPOINTSLICE_JSONPATH, OWNER_JSON
 ROOT = Path(__file__).resolve().parents[1]
 
 
+def _cluster_role_rules(text: str) -> list[str]:
+    cluster_role = text.split("kind: ClusterRole\n", 1)[1].split("---", 1)[0]
+    return re.findall(
+        r"(?ms)^  - apiGroups:.*?(?=^  - apiGroups:|\Z)",
+        cluster_role,
+    )
+
+
+def _rule_for_resource(text: str, resource: str) -> str:
+    matches = [
+        rule
+        for rule in _cluster_role_rules(text)
+        if re.search(rf"(?m)^      - {re.escape(resource)}$", rule)
+    ]
+    assert len(matches) == 1, f"expected exactly one RBAC rule for {resource}, got {len(matches)}"
+    return matches[0]
+
+
 def test_rbac_allows_endpointslice_list_but_only_exact_get_capability_for_pods_and_replicasets():
     text = (ROOT / "deploy" / "kubernetes" / "observer-rbac.yaml").read_text(encoding="utf-8")
 
-    pod_rule = text.split('resources:\n      - pods\n', 1)[1].split("---", 1)[0]
+    pod_rule = _rule_for_resource(text, "pods")
     assert 'verbs: ["get"]' in pod_rule
-    assert "list" not in pod_rule
-    assert "watch" not in pod_rule
+    assert 'verbs: ["get", "list", "watch"]' not in pod_rule
 
-    rs_rule = text.split('resources:\n      - replicasets\n', 1)[1].split("---", 1)[0]
+    rs_rule = _rule_for_resource(text, "replicasets")
     assert 'verbs: ["get"]' in rs_rule
-    assert "list" not in rs_rule
-    assert "watch" not in rs_rule
+    assert 'verbs: ["get", "list", "watch"]' not in rs_rule
 
-    discovery_rule = text.split('apiGroups: ["discovery.k8s.io"]', 1)[1].split("---", 1)[0]
-    assert "- endpointslices" in discovery_rule
+    discovery_rule = _rule_for_resource(text, "endpointslices")
+    assert 'apiGroups: ["discovery.k8s.io"]' in discovery_rule
     assert 'verbs: ["list"]' in discovery_rule
     assert "secrets" not in discovery_rule
 
