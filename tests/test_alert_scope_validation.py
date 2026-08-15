@@ -163,10 +163,12 @@ def test_unobserved_kubelet_service_signal_falls_back_to_observed_namespace_with
     assert item["scope_validation"]["claimed_subject"] == "Service/keycloak/kube-prom-stack-kubelet"
     assert item["scope_validation"]["validated_subject"] == "Namespace/keycloak"
     assert "Service/kube-system/kube-prom-stack-kubelet" not in json.dumps(result)
-    assert any(
-        x["code"] == "ALERT_SCOPE_SERVICE_SIGNAL_NOT_OBSERVED"
+    warning = next(
+        x
         for x in result["unknowns"]
+        if x["code"] == "ALERT_SCOPE_SERVICE_SIGNAL_NOT_OBSERVED"
     )
+    assert "alert-evidence" in warning["evidence_ids"]
 
 
 def test_unobserved_namespace_signal_falls_back_to_platform():
