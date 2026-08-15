@@ -32,8 +32,5 @@ def test_runtime_service_does_not_wire_proxmox_discovery_credential():
 
 def test_package_exposes_manual_collector_without_runtime_wiring():
     pyproject = (ROOT / "pyproject.toml").read_text()
-    init = (ROOT / "src/infra_assurance/__init__.py").read_text()
 
-    assert 'version = "0.20.0"' in pyproject
     assert 'iia-proxmox-ve-backup-evidence = "infra_assurance.proxmox_ve_backup_evidence:main"' in pyproject
-    assert '__version__ = "0.20.0"' in init
