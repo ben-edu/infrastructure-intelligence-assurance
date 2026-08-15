@@ -145,7 +145,7 @@ Proxmox VE is now a **live source candidate** because both API endpoints are rea
 
 PBS itself is still `UNKNOWN`. Direct TCP/8007 timeout is insufficient evidence of absence because of firewall/source restrictions and because PBS may be configured behind PVE storage metadata or on another endpoint.
 
-Official Proxmox VE storage documentation confirms that PBS is represented inside PVE as storage type `pbs` and can be configured through the PVE API. Therefore PVE's own bounded storage configuration is the preferred next discovery surface. Do not read `/etc/pve/priv` or any password/encryption-key files.
+Official Proxmox VE storage semantics represent Proxmox Backup Server as storage type `pbs` inside PVE. Therefore PVE's own bounded storage configuration is the preferred next discovery surface. Do not read `/etc/pve/priv` or any storage-password/encryption-key files.
 
 The next discovery should use only an already-existing Proxmox credential path, first to determine whether that credential is usable for read-only observation. It must never print the token ID/secret and must not be accepted as the platform observer identity merely because it works.
 
