@@ -18,6 +18,14 @@ from .change_context import build_change_context, render_change_context_markdown
 from .drift import build_drift_report, load_declared_records, render_drift_markdown
 from .history import DEFAULT_RETENTION, SnapshotHistoryStore, snapshot_id
 from .io_utils import atomic_write_json, atomic_write_text
+from .kubernetes_event_intelligence import (
+    DEFAULT_MAX_EVENTS,
+    DEFAULT_WINDOW_SECONDS,
+    build_event_correlation,
+    build_kubernetes_event_runtime,
+    render_event_correlation_markdown,
+    render_kubernetes_event_markdown,
+)
 from .kubernetes_inventory import collect_inventory
 from .kubernetes_topology import build_kubernetes_topology, render_topology_markdown
 from .operational_context import build_operational_context, render_operational_context_markdown
@@ -71,8 +79,8 @@ def main() -> int:
             "Collect Kubernetes evidence and emit current context, topology, bounded history, "
             "snapshot diff, Git-declared drift, compact change context, Prometheus Operator "
             "configuration coverage, Prometheus runtime target/alert intelligence, Alertmanager "
-            "handling/correlation evidence, alert attention, and a workload-centric operational "
-            "inventory projection."
+            "handling/correlation evidence, Kubernetes Event evidence/correlation, alert attention, "
+            "and a workload-centric operational inventory projection."
         )
     )
     parser.add_argument("--cluster-id", default=os.environ.get("IIA_CLUSTER_ID"))
@@ -132,6 +140,20 @@ def main() -> int:
         type=int,
         default=int(os.environ.get("IIA_ALERTMANAGER_PORT", str(DEFAULT_ALERTMANAGER_PORT))),
     )
+    parser.add_argument("--kubernetes-event-runtime-out", type=Path)
+    parser.add_argument("--kubernetes-event-runtime-summary-out", type=Path)
+    parser.add_argument("--event-correlation-out", type=Path)
+    parser.add_argument("--event-correlation-summary-out", type=Path)
+    parser.add_argument(
+        "--event-window-seconds",
+        type=int,
+        default=int(os.environ.get("IIA_EVENT_WINDOW_SECONDS", str(DEFAULT_WINDOW_SECONDS))),
+    )
+    parser.add_argument(
+        "--event-max-records",
+        type=int,
+        default=int(os.environ.get("IIA_EVENT_MAX_RECORDS", str(DEFAULT_MAX_EVENTS))),
+    )
     parser.add_argument("--inventory-out", type=Path)
     parser.add_argument("--inventory-summary-out", type=Path)
     args = parser.parse_args()
@@ -144,6 +166,10 @@ def main() -> int:
         parser.error("--prometheus-port must be between 1 and 65535")
     if args.alertmanager_port < 1 or args.alertmanager_port > 65535:
         parser.error("--alertmanager-port must be between 1 and 65535")
+    if args.event_window_seconds < 60:
+        parser.error("--event-window-seconds must be at least 60")
+    if args.event_max_records < 1:
+        parser.error("--event-max-records must be at least 1")
 
     store = SnapshotHistoryStore(args.history_dir, retention=args.history_retention)
     _seed_history_from_existing_latest(store, args.evidence_out, cluster_id=args.cluster_id)
@@ -190,6 +216,13 @@ def main() -> int:
         alertmanager_port=args.alertmanager_port,
     )
     alert_attention = build_alert_attention(prometheus_runtime, alertmanager_runtime)
+    kubernetes_event_runtime = build_kubernetes_event_runtime(
+        cluster_id=args.cluster_id,
+        kubectl_context=args.kubectl_context,
+        window_seconds=args.event_window_seconds,
+        max_events=args.event_max_records,
+    )
+    event_correlation = build_event_correlation(kubernetes_event_runtime, alert_attention)
     inventory = build_operational_inventory(
         snapshot,
         topology,
@@ -250,6 +283,20 @@ def main() -> int:
         atomic_write_text(
             args.alert_attention_summary_out,
             render_alert_attention_markdown(alert_attention),
+        )
+    if args.kubernetes_event_runtime_out:
+        atomic_write_json(args.kubernetes_event_runtime_out, kubernetes_event_runtime)
+    if args.kubernetes_event_runtime_summary_out:
+        atomic_write_text(
+            args.kubernetes_event_runtime_summary_out,
+            render_kubernetes_event_markdown(kubernetes_event_runtime),
+        )
+    if args.event_correlation_out:
+        atomic_write_json(args.event_correlation_out, event_correlation)
+    if args.event_correlation_summary_out:
+        atomic_write_text(
+            args.event_correlation_summary_out,
+            render_event_correlation_markdown(event_correlation),
         )
     if args.inventory_out:
         atomic_write_json(args.inventory_out, inventory)

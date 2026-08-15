@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/kubernetes-event-runtime.schema.json",
+  "title": "Kubernetes Event Runtime Evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["kubernetes_event_runtime_version", "cluster_id", "generated_at", "mutation_allowed", "source", "summary", "events", "unknowns", "errors"],
+  "properties": {
+    "kubernetes_event_runtime_version": {"const": "0.1"},
+    "cluster_id": {"type": "string", "minLength": 1},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "mutation_allowed": {"const": false},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "access", "status", "window_seconds", "max_events"],
+      "properties": {
+        "type": {"const": "kubernetes_core_v1_events"},
+        "access": {"const": "kubectl_read"},
+        "status": {"enum": ["COMPLETE", "PARTIAL", "FAILED_TO_OBSERVE"]},
+        "window_seconds": {"type": "integer", "minimum": 60},
+        "max_events": {"type": "integer", "minimum": 1}
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["events_seen_from_api", "events_recent", "events_warning", "events_normal", "events_unknown_type", "window_truncated"],
+      "properties": {
+        "events_seen_from_api": {"type": "integer", "minimum": 0},
+        "events_recent": {"type": "integer", "minimum": 0},
+        "events_warning": {"type": "integer", "minimum": 0},
+        "events_normal": {"type": "integer", "minimum": 0},
+        "events_unknown_type": {"type": "integer", "minimum": 0},
+        "window_truncated": {"type": "boolean"}
+      }
+    },
+    "events": {"type": "array", "items": {"$ref": "#/$defs/event"}},
+    "unknowns": {"type": "array", "items": {"$ref": "#/$defs/unknown"}},
+    "errors": {"type": "array", "items": {"$ref": "#/$defs/error"}}
+  },
+  "$defs": {
+    "regarding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["api_version", "kind", "namespace", "name"],
+      "properties": {
+        "api_version": {"type": ["string", "null"]},
+        "kind": {"type": "string", "minLength": 1},
+        "namespace": {"type": ["string", "null"]},
+        "name": {"type": "string", "minLength": 1}
+      }
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event_id", "evidence_id", "observed_at", "expires_at", "type", "reason", "regarding", "subject", "first_seen", "last_seen", "count"],
+      "properties": {
+        "event_id": {"type": "string", "minLength": 1},
+        "evidence_id": {"type": "string", "minLength": 1},
+        "observed_at": {"type": "string", "format": "date-time"},
+        "expires_at": {"type": "string", "format": "date-time"},
+        "type": {"enum": ["WARNING", "NORMAL", "UNKNOWN"]},
+        "reason": {"type": "string", "minLength": 1, "maxLength": 128},
+        "regarding": {"$ref": "#/$defs/regarding"},
+        "subject": {"type": "string", "minLength": 1},
+        "first_seen": {"type": "string", "format": "date-time"},
+        "last_seen": {"type": "string", "format": "date-time"},
+        "count": {"type": "integer", "minimum": 1}
+      }
+    },
+    "unknown": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "statement", "evidence_ids"],
+      "properties": {
+        "code": {"type": "string"},
+        "statement": {"type": "string"},
+        "evidence_ids": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scope", "code", "summary"],
+      "properties": {
+        "scope": {"const": "events"},
+        "code": {"type": "string"},
+        "summary": {"type": "string"}
+      }
+    }
+  }
+}

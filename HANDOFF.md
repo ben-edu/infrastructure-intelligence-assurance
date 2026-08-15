@@ -17,7 +17,7 @@ Project Sources remain authoritative for durable goals, roadmap, trust principle
 
 - repo: `ben-edu/infrastructure-intelligence-assurance`
 - stable branch: `main`
-- stable main before PR #13 merge: `e0e3fb378501fda0630800755b085fb0f749af23`
+- stable main before PR #14 merge: `7f271d8f4fcd1e4408bc4b0e864b3fffe4c4c11e`
 - management host: `mgmt-automation`
 - checkout: `~/projects/infrastructure-intelligence-assurance`
 - Kubernetes cluster: `k3s-main`
@@ -27,21 +27,13 @@ Project Sources remain authoritative for durable goals, roadmap, trust principle
 
 The oneshot being `inactive (dead)` after `status=0/SUCCESS` is expected.
 
-## Stable implementation
+## Accepted implementation
 
-### Milestone 0
+### Milestones 0–3
 
-Evidence contract complete. Failed observation is never absence; declared/observed planes remain separate; inference is not fact; sensitive values are excluded.
+Evidence contract, Kubernetes read-only observation/topology/preflight, bounded history/diff/Git drift, workload operational inventory, and Prometheus Operator configuration coverage are complete and live validated.
 
-### Milestone 1
-
-Kubernetes read-only evidence, operational context, topology, and read-only planning preflight complete and live validated.
-
-### Milestone 2
-
-History, diff, dedicated Git declared-state observation, drift, and compact change context complete and live validated.
-
-Git source:
+Git declared source remains:
 
 ```text
 ben-edu/api-cluster-infra
@@ -50,7 +42,7 @@ last repeatedly observed revision: 5767e0a4c583d0a0e8c87b2e24c42eaeb822a3b4
 accepted declared records: 27
 ```
 
-Known real drift retained intentionally:
+Known real drift remains intentionally unresolved:
 
 ```text
 Ingress/validation/nginx-validation
@@ -58,135 +50,138 @@ Git:  k3s-master.soria-academie.fr
 Live: k3s-master.behnam.fr
 ```
 
-### Milestone 3
+### Milestone 4 — Prometheus runtime
 
-Workload operational inventory and Prometheus Operator configuration coverage complete for current slices and live validated.
+PR #10 is merged and live accepted.
 
-Accepted inventory snapshot included 68 workloads. Prometheus Operator coverage had 7 `OPERATOR_MONITOR_MATCH` workloads and 61 `NO_OPERATOR_MONITOR_MATCH`; configuration coverage is not scrape-health evidence.
-
-### Milestone 4 — Prometheus runtime intelligence
-
-PR #10 is squash-merged and live accepted.
-
-Exact proxy boundary:
+Accepted source boundary:
 
 ```text
-monitoring / kube-prom-stack-prometheus:9090 / services/proxy / get
+monitoring/kube-prom-stack-prometheus:9090
+services/proxy get only
 ```
 
-Accepted live run:
+Accepted runtime included 21 active targets, all UP, with 11 target paths attributed to workloads and 10 unattributed. Prometheus runtime state is signal-scoped and is not generic application-health proof.
+
+### Milestone 4 — Alertmanager handling correlation
+
+PR #13 is squash-merged at:
 
 ```text
-pytest: 102 passed
+7f271d8f4fcd1e4408bc4b0e864b3fffe4c4c11e
+```
+
+Accepted run:
+
+```text
+pytest: 112 passed in 0.84s
 Prometheus source: COMPLETE
-active targets: 21
-  up: 21
-  down: 0
-  attributed to workloads: 11
-  unattributed: 10
-active alerts: 11
-  firing: 11
-  attributed to workloads: 0
-  unattributed: 11
-workload runtime states:
-  PROMETHEUS_TARGETS_UP: 7
-  NO_RUNTIME_SIGNAL_MATCH: 61
-runtime/inventory cardinality: 68/68
+Alertmanager source: COMPLETE
+Alertmanager alerts: 11
+  ACTIVE: 2
+  INHIBITED: 9
+silences: 0
+Prometheus correlation:
+  MATCHED: 11
+  UNRESOLVED: 0
+  AMBIGUOUS: 0
+alert-attention scope:
+  SERVICE: 6
+  NAMESPACE: 3
+  PLATFORM: 2
+  WORKLOAD: 0
+  NODE: 0
 forbidden projected keys: none
 raw URL markers: false
 mutation_allowed: false
 ```
 
-Unsupported Service-to-controller alert attribution remains explicit rather than being force-mapped to workloads.
+Prometheus/Alertmanager correlation does not imply workload ownership.
 
-Detailed report:
+### Milestone 4 — Kubernetes Event correlation
+
+PR #14 implementation is live accepted and ready to merge.
+
+Branch:
 
 ```text
-docs/reports/2026-08-15-m4-prometheus-runtime-live-test-gate.md
+feature/m4-kubernetes-event-correlation
 ```
 
-### Milestone 4 — Alertmanager handling correlation
-
-PR #13 implementation is live accepted and ready to merge.
-
-Live-discovered and reviewed source:
+Tested head:
 
 ```text
-monitoring / kube-prom-stack-alertmanager:9093
-```
-
-Exact additional proxy boundary:
-
-```text
-namespace: monitoring
-resource: services/proxy
-resourceName: kube-prom-stack-alertmanager:9093
-verb: get
-```
-
-Accepted live RBAC:
-
-```text
-Prometheus exact proxy             : yes
-Alertmanager exact proxy           : yes
-alertmanager-operated proxy        : no
-Unqualified Alertmanager proxy     : no
-Alertmanager proxy / default       : no
-Secrets                            : no
-Create Deployment                  : no
+0e656734eb53b8b3f5789313ed29b3d8a74c9121
 ```
 
 Accepted repository/runtime gate:
 
 ```text
-pytest: 112 passed in 0.84s
+pytest: 125 passed in 0.89s
 observer service: status=0/SUCCESS
 Git declared source: COMPLETE
 Prometheus source: COMPLETE
 Alertmanager source: COMPLETE
+Kubernetes Event source: COMPLETE
 mutation_allowed: false
 ```
 
-Current Alertmanager evidence:
+Accepted Event RBAC:
 
 ```text
-alerts_total: 11
-active: 2
-inhibited: 9
-silenced: 0
-unprocessed: 0
-silences_total: 0
+list Events cluster-wide: yes
+create Event: no
+list Pods cluster-wide: no
+list Secrets cluster-wide: no
+create Deployment: no
 ```
 
-Prometheus/Alertmanager correlation:
+Event source bounds:
 
 ```text
-MATCHED: 11
-UNRESOLVED: 0
-AMBIGUOUS: 0
+window_seconds: 3600
+max_events: 500
+window_truncated: false
 ```
 
-This is alert-source correlation, not workload ownership.
-
-Current alert-attention scope:
+Current live Event evidence in the acceptance run:
 
 ```text
-attention_total: 11
-scope_service: 6
-scope_namespace: 3
-scope_platform: 2
-scope_workload: 0
-scope_node: 0
+events_seen_from_api: 1
+events_recent: 1
+events_warning: 1
+events_normal: 0
+reason: ProbeWarning
+subject: Pod/moodle/moodle-b49d869bd-flsr6
+count: 758740
 ```
 
-Active platform-scoped records currently include:
+The occurrence count is retained as Kubernetes-reported structured evidence. It is not interpreted as severity or root cause.
+
+The alert-attention projection contained 10 records in this run. This differs from the earlier 11-alert snapshot because alert state is time-varying. Event correlation used the same-cycle current attention projection and preserved cardinality:
 
 ```text
-KubeCPUOvercommit severity=warning
-Watchdog severity=none
+alert attention records: 10
+event correlation records: 10
+attention_with_related_warning_events: 1
+attention_without_direct_warning_match: 9
+attention_event_correlation_unknown: 0
 ```
 
-Inhibited records include `CPUThrottlingHigh` and `InfoInhibitor` at Service/Namespace scope. No unsupported workload owner was invented.
+The one relation is:
+
+```text
+attention: Namespace/moodle
+handling: INHIBITED
+related Event: ProbeWarning on Pod/moodle/moodle-b49d869bd-flsr6
+basis:
+  NAMESPACE_SCOPE_MEMBERSHIP
+  RECENT_KUBERNETES_WARNING_EVENT
+```
+
+This is supporting namespace context only. Pod-name controller inference is not implemented.
+
+Both current platform-scoped alert-attention records had `NO_DIRECT_EVENT_MATCH`; platform alerts are not broadly matched to cluster Events.
 
 Sensitive/free-form guard passed:
 
@@ -195,32 +190,30 @@ forbidden projected keys: none
 raw URL markers: false
 ```
 
-Persisted Alertmanager evidence excludes receiver names/configuration, free-form annotations, generator URLs, arbitrary `instance` labels, silence comments/matchers/creator identity, notification payloads, credentials, and Secret values.
+Persisted Event evidence excludes message/note text, source/reporting host, arbitrary annotations/labels, raw UID, credentials, and Secret values. Unsafe/free-form Event reasons are redacted.
 
-Relevant docs:
+Detailed report:
 
 ```text
-docs/decisions/0011-alertmanager-handling-state-and-conservative-correlation.md
-docs/milestone-4-alertmanager-correlation.md
-docs/reports/2026-08-15-m4-alertmanager-correlation-live-test-gate.md
+docs/reports/2026-08-15-m4-kubernetes-event-correlation-live-test-gate.md
 ```
 
-## Exact next step
+## Exact next step after PR #14 merge
 
-After PR #13 merge, continue Milestone 4 with a Kubernetes Event correlation slice.
+Continue Milestone 4 with a derived incident-grouping and drill-down slice before adding another telemetry engine.
 
 Smallest useful scope:
 
-1. add read-only observation for current Kubernetes Events;
-2. persist only bounded recent event evidence with safe structured fields such as type, reason, involved-object identity, timestamps/count, and evidence IDs;
-3. do not persist arbitrary raw event messages until an explicit sanitization policy is reviewed;
-4. correlate events directly when involvedObject identity matches observed Node/Workload/Service/PVC objects;
-5. relate Pod events to workload controllers only if a safe ownership evidence path is added; do not infer controller ownership from Pod names;
-6. enrich current alert attention with related recent Kubernetes event evidence without promoting correlation to root cause;
-7. preserve explicit stale/failed/unknown semantics and `mutation_allowed=false`;
-8. keep Kubernetes Event RBAC read-only and do not expand to Loki/OpenTelemetry in the same slice.
+1. consume only already-generated current artifacts: alert attention, Kubernetes Event correlation, Prometheus runtime, inventory/topology, drift, diff/change context;
+2. create compact evidence-backed `incident-candidates` grouped by supported shared scope/subject and current signal relations;
+3. distinguish `ACTIVE`, `INHIBITED`, drift, recent change, related Event context, and unknown evidence instead of flattening them into one health score;
+4. produce an impact summary using existing inventory relationships without claiming business impact that is not modeled;
+5. emit recommended drill-down/live verification checks from deterministic missing-evidence rules;
+6. never label a correlation as root cause; hypotheses must remain explicit inference with evidence IDs and confidence/basis;
+7. do not query Loki/OpenTelemetry/Jenkins in this slice; identify which candidate would actually benefit from the next specialized source first;
+8. keep the slice derived/read-only with `mutation_allowed=false` and no new infrastructure RBAC.
 
-Goal: move from alert correlation toward evidence-backed incident grouping and recommended drill-down without introducing a replacement monitoring engine.
+Goal: prove the roadmap capability `signal correlation -> incident grouping -> impact summary -> recommended drill-down` using the evidence already collected, reducing operator cognitive load before broadening telemetry ingestion.
 
 ## Trust invariants
 

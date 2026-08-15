@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/kubernetes-event-correlation.schema.json",
+  "title": "Kubernetes Event Alert Correlation",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["event_correlation_version", "cluster_id", "generated_at", "mutation_allowed", "source_status", "summary", "correlations", "caveats"],
+  "properties": {
+    "event_correlation_version": {"const": "0.1"},
+    "cluster_id": {"type": "string", "minLength": 1},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "mutation_allowed": {"const": false},
+    "source_status": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kubernetes_events", "alert_attention"],
+      "properties": {
+        "kubernetes_events": {"enum": ["COMPLETE", "PARTIAL", "FAILED_TO_OBSERVE"]},
+        "alert_attention": {"enum": ["COMPLETE", "PARTIAL"]}
+      }
+    },
+    "summary": {"type": "object"},
+    "correlations": {"type": "array", "items": {"$ref": "#/$defs/correlation"}},
+    "caveats": {"type": "array", "items": {"type": "string"}}
+  },
+  "$defs": {
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "subject", "basis"],
+      "properties": {
+        "type": {"enum": ["WORKLOAD", "NODE", "SERVICE", "NAMESPACE", "PLATFORM"]},
+        "subject": {"type": "string", "minLength": 1},
+        "basis": {"type": "array", "items": {"type": "string"}, "minItems": 1}
+      }
+    },
+    "relatedEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["event_id", "subject", "reason", "last_seen", "count", "basis", "evidence_ids"],
+      "properties": {
+        "event_id": {"type": "string"},
+        "subject": {"type": "string"},
+        "reason": {"type": "string"},
+        "last_seen": {"type": "string", "format": "date-time"},
+        "count": {"type": "integer", "minimum": 1},
+        "basis": {"type": "array", "items": {"type": "string"}, "minItems": 2},
+        "evidence_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+      }
+    },
+    "correlation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["attention_id", "attention_scope", "handling_state", "correlation_status", "related_warning_events", "evidence_ids"],
+      "properties": {
+        "attention_id": {"type": "string"},
+        "attention_scope": {"$ref": "#/$defs/scope"},
+        "handling_state": {"enum": ["ACTIVE", "SILENCED", "INHIBITED", "SILENCED_AND_INHIBITED", "SUPPRESSED_OTHER", "UNPROCESSED", "UNKNOWN"]},
+        "correlation_status": {"enum": ["MATCHED", "NO_DIRECT_EVENT_MATCH", "UNKNOWN"]},
+        "related_warning_events": {"type": "array", "items": {"$ref": "#/$defs/relatedEvent"}, "maxItems": 20},
+        "evidence_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+      }
+    }
+  }
+}

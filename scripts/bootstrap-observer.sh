@@ -17,6 +17,8 @@ PROMETHEUS_PORT="${PROMETHEUS_PORT:-9090}"
 ALERTMANAGER_NAMESPACE="${ALERTMANAGER_NAMESPACE:-monitoring}"
 ALERTMANAGER_SERVICE="${ALERTMANAGER_SERVICE:-kube-prom-stack-alertmanager}"
 ALERTMANAGER_PORT="${ALERTMANAGER_PORT:-9093}"
+EVENT_WINDOW_SECONDS="${EVENT_WINDOW_SECONDS:-3600}"
+EVENT_MAX_RECORDS="${EVENT_MAX_RECORDS:-500}"
 INSTALL_ROOT="/opt/infra-assurance"
 CONFIG_DIR="/etc/infra-assurance"
 STATE_DIR="/var/lib/infra-assurance"
@@ -227,6 +229,8 @@ IIA_PROMETHEUS_PORT=${PROMETHEUS_PORT}
 IIA_ALERTMANAGER_NAMESPACE=${ALERTMANAGER_NAMESPACE}
 IIA_ALERTMANAGER_SERVICE=${ALERTMANAGER_SERVICE}
 IIA_ALERTMANAGER_PORT=${ALERTMANAGER_PORT}
+IIA_EVENT_WINDOW_SECONDS=${EVENT_WINDOW_SECONDS}
+IIA_EVENT_MAX_RECORDS=${EVENT_MAX_RECORDS}
 KUBECONFIG=${OBSERVER_KUBECONFIG}
 EOF
 chown root:"${SERVICE_USER}" "${CONFIG_DIR}/collector.env"
@@ -251,6 +255,7 @@ assert_can_i() {
 
 assert_can_i yes list nodes
 assert_can_i yes list deployments.apps --all-namespaces
+assert_can_i yes list events --all-namespaces
 assert_can_i yes list prometheuses.monitoring.coreos.com --all-namespaces
 assert_can_i yes list servicemonitors.monitoring.coreos.com --all-namespaces
 assert_can_i yes list podmonitors.monitoring.coreos.com --all-namespaces
@@ -264,6 +269,7 @@ assert_can_i no get "services/${PROMETHEUS_SERVICE}" --subresource=proxy -n "${P
 assert_can_i no get "services/${ALERTMANAGER_SERVICE}" --subresource=proxy -n "${ALERTMANAGER_NAMESPACE}"
 assert_can_i no get services/alertmanager-operated:9093 --subresource=proxy -n "${ALERTMANAGER_NAMESPACE}"
 assert_can_i no list secrets --all-namespaces
+assert_can_i no create events -n default
 assert_can_i no create deployments.apps -n default
 assert_can_i no create servicemonitors.monitoring.coreos.com -n monitoring
 
@@ -283,6 +289,10 @@ echo "Alertmanager runtime:${STATE_DIR}/evidence/alertmanager-runtime.json"
 echo "Alertmanager ctx: ${STATE_DIR}/evidence/alertmanager-runtime.md"
 echo "Alert attention:  ${STATE_DIR}/evidence/alert-attention.json"
 echo "Attention context:${STATE_DIR}/evidence/alert-attention.md"
+echo "Kubernetes Events:${STATE_DIR}/evidence/kubernetes-event-runtime.json"
+echo "Event context:    ${STATE_DIR}/evidence/kubernetes-event-runtime.md"
+echo "Event correlation:${STATE_DIR}/evidence/kubernetes-event-correlation.json"
+echo "Event corr. ctx:  ${STATE_DIR}/evidence/kubernetes-event-correlation.md"
 echo "Inventory JSON:   ${STATE_DIR}/evidence/inventory.json"
 echo "Inventory context:${STATE_DIR}/evidence/inventory.md"
 echo "Preflight CLI:    ${PREFLIGHT_BIN}"
@@ -291,6 +301,7 @@ echo "Git source CLI:   ${GIT_SOURCE_BIN}"
 echo "Inventory CLI:    ${INVENTORY_BIN}"
 echo "Prometheus source:${PROMETHEUS_NAMESPACE}/${PROMETHEUS_PROXY_NAME}"
 echo "Alertmanager source:${ALERTMANAGER_NAMESPACE}/${ALERTMANAGER_PROXY_NAME}"
+echo "Event window:     ${EVENT_WINDOW_SECONDS}s max=${EVENT_MAX_RECORDS}"
 echo "Git source:       github.com/ben-edu/api-cluster-infra"
 echo "Declared state:   ${DECLARED_CURRENT_DIR}"
 echo "Git source status:${DECLARED_SOURCE_STATUS}"
