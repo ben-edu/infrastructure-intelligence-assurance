@@ -12,7 +12,7 @@ Validate bounded recent Kubernetes Event observation and conservative correlatio
 
 ```text
 branch: feature/m4-kubernetes-event-correlation
-head tested: 0e656734eb53b8b3f5789313ed29b3d8a74c9121
+implementation head tested: 0e656734eb53b8b3f5789313ed29b3d8a74c9121
 pytest: 125 passed in 0.89s
 observer service: status=0/SUCCESS
 Git declared source: COMPLETE
@@ -21,6 +21,8 @@ Alertmanager source: COMPLETE
 Kubernetes Event source: COMPLETE
 mutation_allowed: false
 ```
+
+Only acceptance-report/Handoff metadata and removal of temporary branch-only placeholders were changed after the tested implementation head. The runtime implementation tree itself was not altered by those metadata operations.
 
 The systemd oneshot completed successfully and the existing Git declared-state observer remained `COMPLETE` at revision `5767e0a4c583d0a0e8c87b2e24c42eaeb822a3b4` with 27 normalized declarations.
 
