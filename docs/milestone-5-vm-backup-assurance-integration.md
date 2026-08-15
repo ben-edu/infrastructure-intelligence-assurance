@@ -1,5 +1,9 @@
 # Milestone 5 — VM Backup Assurance Integration
 
+## Status
+
+Accepted on 2026-08-15.
+
 ## Goal
 
 Consume accepted Proxmox VE recovery-point source evidence and derive a source-neutral VM Backup and Recovery Assurance view without performing another infrastructure query.
@@ -10,9 +14,11 @@ Accepted source artifact:
 
 ```text
 proxmox_ve_backup_evidence_version: 0.1
+source: PROXMOX_VE/pve-bm2
+source status: COMPLETE
 ```
 
-The integration assumes the source artifact itself has already passed its own trust/schema/live gate.
+The integration assumes the source artifact itself has already passed its trust/schema/live gate.
 
 ## Output
 
@@ -95,13 +101,53 @@ REQUIRED
 
 Current PVE recovery-point evidence may satisfy `BACKUP_MECHANISM`. Retention configuration may make `BACKUP_RETENTION` partial. Archive presence is not promoted to `LAST_SUCCESSFUL_BACKUP` because task-result semantics are not observed in this source artifact.
 
+## Accepted live projection
+
+The accepted source artifact contained 12 current VMs and 12 recovery-point records.
+
+Observed recovery-point VMIDs:
+
+```text
+100,101,106,107,108,109
+```
+
+Complete selected-scope negative VMIDs:
+
+```text
+102,103,104,105,110,9000
+```
+
+Accepted summary:
+
+```text
+assets_total: 12
+recovery_point_observed: 6
+scoped_negative_recovery_point: 6
+recovery_point_unknown: 0
+backup_mechanism_observed: 6
+retention_configuration_observed: 12
+protection_unknown: 12
+restore_verification_unknown: 12
+integrity_verification_unknown: 12
+rpo_unknown: 12
+rto_unknown: 12
+unprotected_claims: 0
+authoritative_source_artifacts_consumed: 1
+kubernetes_pvc_assets_modified: 0
+```
+
+The source artifact SHA-256 remained unchanged before and after derivation.
+
 ## Unknowns retained
 
 The integration explicitly retains:
 
 - source artifact freshness unknown because v0.1 has no TTL contract;
 - other backup sources not evaluated;
-- restore/integrity/RPO/RTO unknown.
+- restore/integrity/RPO/RTO unknown;
+- last successful backup task/result not observed;
+- failure-domain evidence not observed;
+- scheduled protection not established.
 
 ## Trust boundaries
 
@@ -113,7 +159,8 @@ The integration explicitly retains:
 - no infrastructure mutation;
 - no PVC artifact mutation;
 - source-scoped negative evidence is not universal absence;
-- source-native archive `protected` is not consumed as platform protection status.
+- source-native archive `protected` is not consumed as platform protection status;
+- no sensitive/raw source fields are projected.
 
 ## Future PBS compatibility
 
@@ -121,17 +168,23 @@ PBS remains a separate source adapter with explicit source-specific provenance. 
 
 ## Acceptance
 
-Repository acceptance must prove:
+Accepted repository/live results:
 
-- package `0.21.0`;
-- full tests pass;
-- schema validation passes;
-- integration is derived-only and contains no query-capable client/control markers;
-- systemd and Kubernetes RBAC are unchanged;
-- previous PVE source adapter and PVC foundation contracts remain intact;
-- observed recovery points strengthen mechanism/recovery-point evidence only;
-- complete selected-scope negatives do not become `UNPROTECTED`;
-- failed source evidence remains unknown;
-- no unsafe source fields are projected.
+```text
+package: 0.21.0
+240 passed in 1.25s
+RBAC changes: none
+systemd changes: none
+query/control/credential markers: none
+source artifact unchanged: true
+VM asset set exact source match: true
+unprotected claims: 0
+Kubernetes PVC assets modified: 0
+forbidden projected keys: none
+raw URL markers: false
+PR #35 LIVE ACCEPTANCE: PASS
+```
 
-Manual derived live acceptance must consume the already-generated `/tmp/proxmox-ve-backup-evidence.json` from the accepted PR #33 live gate and validate the current VM assurance projection without making another Proxmox request.
+## Next useful evidence
+
+The smallest useful next VM-backup evidence should address a remaining assurance gap rather than repeat recovery-point inventory. Prefer bounded authoritative backup task-result evidence that can support or reject `LAST_SUCCESSFUL_BACKUP` semantics for observed PVE archives, while preserving read-only and source-scoped failure semantics.
