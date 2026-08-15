@@ -2,30 +2,37 @@
 
 ## Status
 
-Pending repository and management-host live acceptance.
+Accepted.
+
+Repository and management-host live acceptance passed on 2026-08-15 for PR #26.
 
 ## Purpose
 
 Validate that bounded Prometheus alert-rule metadata can be collected for current ACTIVE incident alert names through the existing read-only Service-proxy boundary without widening RBAC or persisting PromQL/free-form rule payloads.
 
-## Required repository evidence
+## Accepted repository evidence
 
-1. Full pytest suite passes.
-2. `deploy/kubernetes/observer-rbac.yaml` has no diff from `main`.
-3. Package version is `0.17.0`.
-4. Rule-context schema validates artifact version `0.1`.
-5. Tests prove:
-   - only ACTIVE incident alert names enter the query;
-   - `type=alert`, `exclude_alerts=true`, and exact repeated `rule_name[]` filters are used;
-   - suppressed alert names are not queried;
-   - PromQL, labels, annotations, files, embedded alerts, last-error text, URLs, and raw payloads are not projected;
-   - exact rule-name correlation only;
-   - no active candidate causes no Prometheus query;
-   - alert-name truncation is explicit `PARTIAL`;
-   - proxy failure is `FAILED_TO_OBSERVE`, not absence;
-   - current rule-input metric values remain separate required live verification.
+```text
+RBAC changes: none
+missing required boundary markers: none
+unexpected external client markers: none
+192 passed in 1.07s
+package version: 0.17.0
+```
 
-## Required runtime order
+Regression coverage confirms:
+
+- only ACTIVE incident alert names enter the query;
+- `type=alert`, `exclude_alerts=true`, and exact repeated `rule_name[]` filters are used;
+- suppressed alert names are not queried;
+- PromQL, labels, annotations, files, embedded alerts, last-error text, URLs, and raw payloads are not projected;
+- exact rule-name correlation only;
+- no active candidate causes no Prometheus query;
+- alert-name truncation is explicit `PARTIAL`;
+- proxy failure is `FAILED_TO_OBSERVE`, not absence;
+- current rule-input metric values remain separate required live verification.
+
+## Accepted runtime order
 
 ```text
 kubernetes_runtime
@@ -37,9 +44,9 @@ scope_aware_drilldown
 prometheus_rule_context
 ```
 
-All stages must exit `0/SUCCESS` for live acceptance.
+All stages exited `0/SUCCESS`.
 
-## Final artifact checks
+## Accepted trust/source facts
 
 ```text
 prometheus_rule_context_version: 0.1
@@ -50,56 +57,95 @@ source.namespace: monitoring
 source.service: kube-prom-stack-prometheus
 source.port: 9090
 source.operation: GET_RULES_BY_EXACT_ACTIVE_ALERTNAME
+source.status: COMPLETE
+source.queried: true
+max_active_alert_names: 20
+active_alert_names_total: 2
+active_alert_names_requested: 2
+active_alert_names_truncated: false
 ```
 
-Record source status, bounds, requested names, matched/unmatched names, rule count, rule health/state summary, and candidate rule matches.
+## Accepted current live correlation
 
-If the currently accepted Platform candidate remains live, expected requested names include:
+Current ACTIVE incident alert names were exactly:
 
 ```text
 KubeCPUOvercommit
 Watchdog
 ```
 
-Live alerts are temporal. Different current ACTIVE names are acceptable if the artifact exactly follows the current incident candidate set.
+Artifact request scope exactly matched those names.
 
-## Rule projection guard
-
-Persisted `rules[]` may contain only compact normalized fields defined by the schema. In particular these raw/API fields must be absent anywhere in the artifact:
+Both names matched Prometheus alert rules; none were unmatched:
 
 ```text
-query
-labels
-annotations
-file
-alerts
-lastError
-runbook_url
-dashboard
+KubeCPUOvercommit | group=kubernetes-resources | state=FIRING | health=OK | duration=600s | keep_firing=0s
+Watchdog          | group=general.rules        | state=FIRING | health=OK | duration=0s   | keep_firing=0s
 ```
 
-Every rule must contain:
+Summary:
 
 ```text
-expression_persisted: false
+active_alert_names_requested: 2
+active_candidates: 1
+active_candidates_with_rule_match: 1
+alert_names_matched_to_rules: 2
+alert_names_unmatched: 0
+rule_records: 2
+rule_health_ok: 2
+rule_health_error: 0
+rule_health_unknown: 0
+rules_firing: 2
+rules_pending: 0
+rules_inactive: 0
+rules_state_unknown: 0
 ```
 
-Raw `http://` / `https://` markers must be absent.
+The active candidate was:
 
-## Candidate semantics
+```text
+Platform/k3s-main
+alerts: KubeCPUOvercommit, Watchdog
+matched rules: 2
+unmatched alerts: none
+required live verification: PROMETHEUS_RULE_INPUTS
+```
 
-For each ACTIVE candidate:
+## Projection and sensitive-data guard
 
-- exact alert names are listed;
-- matching rule IDs use `EXACT_ALERTNAME_PROMETHEUS_RULE_MATCH`;
-- unmatched names remain explicit;
-- matched rule context emits `PROMETHEUS_RULE_INPUTS` as required live verification;
-- rule metadata does not establish cause.
+Persisted `rules[]` remained within the compact schema projection.
+
+```text
+forbidden projected keys: none
+raw URL markers: false
+all rules expression_persisted=false
+unknowns: none
+errors: none
+```
+
+No PromQL expression/query, labels, annotations, file paths, embedded alert payloads, last-error text, runbook/dashboard URLs, raw API payloads, credentials, tokens, or connection strings were persisted.
 
 ## Downstream guard
 
-This slice must not modify or enrich `incident-candidates.json`. Its accepted version must remain `0.3` with `drilldown_policy.mode=SCOPE_AWARE`.
+The rule-context slice did not modify or enrich `incident-candidates.json`.
+
+Accepted downstream state remained:
+
+```text
+incident_candidates_version: 0.3
+drilldown_policy.mode: SCOPE_AWARE
+mutation_allowed: false
+```
+
+Current incident candidates remained four total: three SUPPRESSED Namespace candidates and one ACTIVE Platform candidate. The active Platform candidate retained the existing checks:
+
+```text
+VERIFY_ALERT_CONDITION_CURRENT -> PROMETHEUS_ALERTMANAGER
+VERIFY_PLATFORM_SIGNAL_INPUTS  -> PROMETHEUS_KUBERNETES
+```
 
 ## Interpretation
 
-A successful exact rule match means the currently queried Prometheus instance returned alert-rule metadata for the same alert name. It does not prove the current PromQL input values or root cause. Those inputs remain a separate evidence requirement.
+An exact rule match proves that the queried Prometheus instance returned alert-rule metadata for the same current alert name. Rule health `OK` and state `FIRING` describe Prometheus rule evaluation state at observation time. They do not prove current PromQL input values, root cause, business impact, or required remediation.
+
+Current rule inputs therefore remain separate required live evidence under `PROMETHEUS_RULE_INPUTS`.
