@@ -1,5 +1,7 @@
 # Milestone 5 — Kubernetes Backup and Recovery Assurance Foundation
 
+Status: Accepted and live validated on 2026-08-15.
+
 ## Goal
 
 Start Backup and Recovery Assurance with the smallest trustworthy vertical slice: identify current Kubernetes PVC stateful assets and explicitly separate asset observation from backup protection evidence.
@@ -139,20 +141,32 @@ backup_assurance_foundation
 
 The slice requires no RBAC expansion.
 
-## Acceptance boundary
+## Accepted live evidence
 
-Live validation must prove:
+```text
+217 passed in 1.94s
+RBAC changes: none
+query / external-source markers: none
+all runtime stages: 0/SUCCESS
+PVC collection: COMPLETE / CURRENT
+workload/PVC relation scope: COMPLETE
+PVC assets: 37
+same-cycle exact asset-set match: true
+current assets: 37
+stale assets: 0
+assets with direct controller reference: 16
+protection UNKNOWN: 37
+restore verification UNKNOWN: 37
+unprotected_claims: 0
+authoritative_backup_sources_integrated: 0
+forbidden projected keys: none
+raw URL markers: false
+```
 
-- no RBAC diff;
-- no query-capable client in the foundation module;
-- full tests pass;
-- systemd stage exits `0/SUCCESS`;
-- current PVC count matches the complete Kubernetes snapshot;
-- every emitted asset is `PRESENT` from complete observation;
-- freshness matches upstream expiry semantics;
-- direct workload relations, when present, use accepted topology evidence only;
-- all protection/restore/RPO states remain unknown by design;
-- `unprotected_claims=0`;
-- no labels/annotations/secrets/credentials/raw URLs enter the artifact.
+All 37 assets retained all eight future authoritative evidence targets. The 21 assets without a direct controller relation remained explicitly non-orphan-classified.
 
-Do not integrate PBS/Proxmox/database backup credentials in the same slice.
+## Interpretation
+
+This accepted foundation identifies what needs backup/recovery assurance. It does not yet answer whether any asset is actually protected.
+
+The next vertical slice should add exactly one authoritative backup evidence source with bounded read-only credentials and source-specific provenance/failure semantics, then correlate only what that source can prove. Missing source coverage must remain `UNKNOWN` until complete authoritative evidence is sufficient for a stronger classification.
