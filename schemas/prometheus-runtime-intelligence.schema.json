@@ -1,0 +1,311 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/prometheus-runtime-intelligence.schema.json",
+  "title": "Prometheus Runtime Intelligence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "prometheus_runtime_version",
+    "cluster_id",
+    "generated_at",
+    "mutation_allowed",
+    "source",
+    "summary",
+    "targets",
+    "active_alerts",
+    "workload_runtime",
+    "unknowns",
+    "errors"
+  ],
+  "properties": {
+    "prometheus_runtime_version": {"const": "0.1"},
+    "cluster_id": {"type": "string", "minLength": 1},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "mutation_allowed": {"const": false},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "access", "namespace", "service", "port", "status"],
+      "properties": {
+        "type": {"const": "prometheus_http_api"},
+        "access": {"const": "kubernetes_service_proxy"},
+        "namespace": {"type": "string", "minLength": 1},
+        "service": {"type": "string", "minLength": 1},
+        "port": {"type": "integer", "minimum": 1, "maximum": 65535},
+        "status": {"enum": ["COMPLETE", "PARTIAL", "FAILED_TO_OBSERVE"]}
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "targets_total",
+        "targets_up",
+        "targets_down",
+        "targets_unknown",
+        "targets_attributed_to_workloads",
+        "targets_unattributed",
+        "active_alerts_total",
+        "active_alerts_firing",
+        "active_alerts_pending",
+        "active_alerts_unknown",
+        "alerts_attributed_to_workloads",
+        "alerts_unattributed",
+        "workloads_total",
+        "workloads_targets_up",
+        "workloads_target_down",
+        "workloads_with_active_alert",
+        "workloads_no_runtime_signal_match",
+        "workloads_runtime_unknown"
+      ],
+      "properties": {
+        "targets_total": {"type": "integer", "minimum": 0},
+        "targets_up": {"type": "integer", "minimum": 0},
+        "targets_down": {"type": "integer", "minimum": 0},
+        "targets_unknown": {"type": "integer", "minimum": 0},
+        "targets_attributed_to_workloads": {"type": "integer", "minimum": 0},
+        "targets_unattributed": {"type": "integer", "minimum": 0},
+        "active_alerts_total": {"type": "integer", "minimum": 0},
+        "active_alerts_firing": {"type": "integer", "minimum": 0},
+        "active_alerts_pending": {"type": "integer", "minimum": 0},
+        "active_alerts_unknown": {"type": "integer", "minimum": 0},
+        "alerts_attributed_to_workloads": {"type": "integer", "minimum": 0},
+        "alerts_unattributed": {"type": "integer", "minimum": 0},
+        "workloads_total": {"type": "integer", "minimum": 0},
+        "workloads_targets_up": {"type": "integer", "minimum": 0},
+        "workloads_target_down": {"type": "integer", "minimum": 0},
+        "workloads_with_active_alert": {"type": "integer", "minimum": 0},
+        "workloads_no_runtime_signal_match": {"type": "integer", "minimum": 0},
+        "workloads_runtime_unknown": {"type": "integer", "minimum": 0}
+      }
+    },
+    "targets": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/targetEvidence"}
+    },
+    "active_alerts": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/alertEvidence"}
+    },
+    "workload_runtime": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/workloadRuntime"}
+    },
+    "unknowns": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/unknown"}
+    },
+    "errors": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/error"}
+    }
+  },
+  "$defs": {
+    "targetLabels": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "namespace": {"type": "string"},
+        "service": {"type": "string"},
+        "job": {"type": "string"},
+        "endpoint": {"type": "string"},
+        "pod": {"type": "string"},
+        "container": {"type": "string"}
+      }
+    },
+    "alertLabels": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "alertname": {"type": "string"},
+        "severity": {"type": "string"},
+        "namespace": {"type": "string"},
+        "service": {"type": "string"},
+        "job": {"type": "string"},
+        "pod": {"type": "string"},
+        "container": {"type": "string"}
+      }
+    },
+    "targetEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_id",
+        "evidence_id",
+        "observed_at",
+        "expires_at",
+        "health",
+        "labels",
+        "last_scrape",
+        "last_scrape_duration_seconds",
+        "error_code"
+      ],
+      "properties": {
+        "target_id": {"type": "string"},
+        "evidence_id": {"type": "string"},
+        "observed_at": {"type": "string", "format": "date-time"},
+        "expires_at": {"type": "string", "format": "date-time"},
+        "health": {"enum": ["UP", "DOWN", "UNKNOWN"]},
+        "labels": {"$ref": "#/$defs/targetLabels"},
+        "last_scrape": {"type": ["string", "null"]},
+        "last_scrape_duration_seconds": {"type": ["number", "null"], "minimum": 0},
+        "error_code": {
+          "type": ["string", "null"],
+          "enum": [
+            "TARGET_TIMEOUT",
+            "TARGET_CONNECTION_REFUSED",
+            "TARGET_TLS_ERROR",
+            "TARGET_HTTP_ERROR",
+            "TARGET_SCRAPE_ERROR",
+            null
+          ]
+        }
+      }
+    },
+    "alertEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "alert_id",
+        "evidence_id",
+        "observed_at",
+        "expires_at",
+        "state",
+        "active_at",
+        "labels"
+      ],
+      "properties": {
+        "alert_id": {"type": "string"},
+        "evidence_id": {"type": "string"},
+        "observed_at": {"type": "string", "format": "date-time"},
+        "expires_at": {"type": "string", "format": "date-time"},
+        "state": {"enum": ["FIRING", "PENDING", "UNKNOWN"]},
+        "active_at": {"type": ["string", "null"]},
+        "labels": {"$ref": "#/$defs/alertLabels"}
+      }
+    },
+    "attributedTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "target_id",
+        "health",
+        "labels",
+        "last_scrape",
+        "last_scrape_duration_seconds",
+        "error_code",
+        "basis",
+        "evidence_ids"
+      ],
+      "properties": {
+        "target_id": {"type": "string"},
+        "health": {"enum": ["UP", "DOWN", "UNKNOWN"]},
+        "labels": {"$ref": "#/$defs/targetLabels"},
+        "last_scrape": {"type": ["string", "null"]},
+        "last_scrape_duration_seconds": {"type": ["number", "null"], "minimum": 0},
+        "error_code": {"type": ["string", "null"]},
+        "basis": {
+          "const": [
+            "PROMETHEUS_RUNTIME_TARGET_SERVICE_LABEL",
+            "SERVICE_SELECTOR_MATCH_INFERENCE"
+          ]
+        },
+        "evidence_ids": {
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        }
+      }
+    },
+    "attributedAlert": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "alert_id",
+        "state",
+        "active_at",
+        "labels",
+        "basis",
+        "evidence_ids"
+      ],
+      "properties": {
+        "alert_id": {"type": "string"},
+        "state": {"enum": ["FIRING", "PENDING", "UNKNOWN"]},
+        "active_at": {"type": ["string", "null"]},
+        "labels": {"$ref": "#/$defs/alertLabels"},
+        "basis": {
+          "const": [
+            "PROMETHEUS_ACTIVE_ALERT_SERVICE_LABEL",
+            "SERVICE_SELECTOR_MATCH_INFERENCE"
+          ]
+        },
+        "evidence_ids": {
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        }
+      }
+    },
+    "workloadRuntime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "subject",
+        "state",
+        "targets",
+        "active_alerts",
+        "evidence_ids",
+        "caveats"
+      ],
+      "properties": {
+        "subject": {"type": "string"},
+        "state": {
+          "enum": [
+            "PROMETHEUS_TARGETS_UP",
+            "PROMETHEUS_TARGET_DOWN",
+            "ACTIVE_ALERT",
+            "NO_RUNTIME_SIGNAL_MATCH",
+            "UNKNOWN"
+          ]
+        },
+        "targets": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/attributedTarget"}
+        },
+        "active_alerts": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/attributedAlert"}
+        },
+        "evidence_ids": {
+          "type": "array",
+          "items": {"type": "string"},
+          "uniqueItems": true
+        },
+        "caveats": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "unknown": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "statement", "evidence_ids"],
+      "properties": {
+        "code": {"type": "string"},
+        "statement": {"type": "string"},
+        "evidence_ids": {"type": "array", "items": {"type": "string"}}
+      }
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scope", "code", "summary"],
+      "properties": {
+        "scope": {"enum": ["targets", "alerts"]},
+        "code": {"type": "string"},
+        "summary": {"type": "string"}
+      }
+    }
+  }
+}

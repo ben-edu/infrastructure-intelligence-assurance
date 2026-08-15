@@ -32,6 +32,16 @@ def main() -> int:
         "--observability-status",
         choices=("OPERATOR_MONITOR_MATCH", "NO_OPERATOR_MONITOR_MATCH", "UNKNOWN"),
     )
+    list_parser.add_argument(
+        "--runtime-state",
+        choices=(
+            "PROMETHEUS_TARGETS_UP",
+            "PROMETHEUS_TARGET_DOWN",
+            "ACTIVE_ALERT",
+            "NO_RUNTIME_SIGNAL_MATCH",
+            "UNKNOWN",
+        ),
+    )
 
     show_parser = subparsers.add_parser("show")
     show_parser.add_argument("--namespace", required=True)
@@ -53,6 +63,7 @@ def main() -> int:
                     "generated_at": inventory["generated_at"],
                     "mutation_allowed": inventory["mutation_allowed"],
                     "observability_source_status": inventory.get("observability_source_status"),
+                    "prometheus_runtime_source_status": inventory.get("prometheus_runtime_source_status"),
                     "summary": inventory["summary"],
                 },
                 indent=2,
@@ -72,6 +83,9 @@ def main() -> int:
             observability = entity.get("observability", {})
             if args.observability_status and observability.get("status") != args.observability_status:
                 continue
+            runtime = entity.get("runtime_observability", {})
+            if args.runtime_state and runtime.get("state") != args.runtime_state:
+                continue
             declared = entity.get("declared", {})
             change = entity.get("recent_change", {})
             print(
@@ -80,6 +94,7 @@ def main() -> int:
                 f"comparison={declared.get('comparison')} "
                 f"change={change.get('state')} "
                 f"observability={observability.get('status')} "
+                f"runtime={runtime.get('state')} "
                 f"attention={len(entity.get('attention', []))}"
             )
         return 0
