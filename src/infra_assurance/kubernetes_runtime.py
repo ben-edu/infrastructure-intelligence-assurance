@@ -16,6 +16,12 @@ from .operational_inventory import (
     build_operational_inventory,
     render_operational_inventory_markdown,
 )
+from .prometheus_operator_coverage import (
+    attach_observability_coverage,
+    build_prometheus_operator_coverage,
+    render_inventory_observability_markdown,
+    render_observability_coverage_markdown,
+)
 from .snapshot_diff import build_snapshot_diff, render_snapshot_diff_markdown
 
 DEFAULT_HISTORY_DIR = Path("/var/lib/infra-assurance/history/kubernetes")
@@ -45,8 +51,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
             "Collect Kubernetes evidence and emit current context, topology, bounded history, "
-            "snapshot diff, Git-declared drift, compact change context, and a workload-centric "
-            "operational inventory projection."
+            "snapshot diff, Git-declared drift, compact change context, Prometheus Operator "
+            "configuration coverage, and a workload-centric operational inventory projection."
         )
     )
     parser.add_argument("--cluster-id", default=os.environ.get("IIA_CLUSTER_ID"))
@@ -72,6 +78,8 @@ def main() -> int:
     parser.add_argument("--drift-summary-out", type=Path)
     parser.add_argument("--change-context-out", type=Path)
     parser.add_argument("--change-context-summary-out", type=Path)
+    parser.add_argument("--observability-coverage-out", type=Path)
+    parser.add_argument("--observability-coverage-summary-out", type=Path)
     parser.add_argument("--inventory-out", type=Path)
     parser.add_argument("--inventory-summary-out", type=Path)
     args = parser.parse_args()
@@ -105,6 +113,11 @@ def main() -> int:
     )
     drift = build_drift_report(snapshot, declared_load)
     change_context = build_change_context(diff, drift)
+    observability_coverage = build_prometheus_operator_coverage(
+        snapshot,
+        topology,
+        kubectl_context=args.kubectl_context,
+    )
     inventory = build_operational_inventory(
         snapshot,
         topology,
@@ -112,6 +125,7 @@ def main() -> int:
         drift,
         declared_load,
     )
+    inventory = attach_observability_coverage(inventory, observability_coverage)
 
     store.append(snapshot)
 
@@ -136,10 +150,21 @@ def main() -> int:
         atomic_write_json(args.change_context_out, change_context)
     if args.change_context_summary_out:
         atomic_write_text(args.change_context_summary_out, render_change_context_markdown(change_context))
+    if args.observability_coverage_out:
+        atomic_write_json(args.observability_coverage_out, observability_coverage)
+    if args.observability_coverage_summary_out:
+        atomic_write_text(
+            args.observability_coverage_summary_out,
+            render_observability_coverage_markdown(observability_coverage),
+        )
     if args.inventory_out:
         atomic_write_json(args.inventory_out, inventory)
     if args.inventory_summary_out:
-        atomic_write_text(args.inventory_summary_out, render_operational_inventory_markdown(inventory))
+        base_markdown = render_operational_inventory_markdown(inventory)
+        atomic_write_text(
+            args.inventory_summary_out,
+            render_inventory_observability_markdown(base_markdown, observability_coverage),
+        )
 
     return 0
 

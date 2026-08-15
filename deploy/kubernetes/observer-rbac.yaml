@@ -32,6 +32,12 @@ rules:
     resources:
       - ingresses
     verbs: ["get", "list", "watch"]
+  - apiGroups: ["monitoring.coreos.com"]
+    resources:
+      - prometheuses
+      - servicemonitors
+      - podmonitors
+    verbs: ["get", "list", "watch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

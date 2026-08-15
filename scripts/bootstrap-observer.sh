@@ -228,8 +228,12 @@ assert_can_i() {
 
 assert_can_i yes list nodes
 assert_can_i yes list deployments.apps --all-namespaces
+assert_can_i yes list prometheuses.monitoring.coreos.com --all-namespaces
+assert_can_i yes list servicemonitors.monitoring.coreos.com --all-namespaces
+assert_can_i yes list podmonitors.monitoring.coreos.com --all-namespaces
 assert_can_i no list secrets --all-namespaces
 assert_can_i no create deployments.apps -n default
+assert_can_i no create servicemonitors.monitoring.coreos.com -n monitoring
 
 echo "Observer installed."
 echo "Evidence:         ${STATE_DIR}/evidence/kubernetes.json"
@@ -239,6 +243,8 @@ echo "History:          ${STATE_DIR}/history/kubernetes"
 echo "Latest diff:      ${STATE_DIR}/evidence/diff.json"
 echo "Latest drift:     ${STATE_DIR}/evidence/drift.json"
 echo "Change context:   ${STATE_DIR}/evidence/change-context.json"
+echo "Observability:    ${STATE_DIR}/evidence/observability-coverage.json"
+echo "Obs. context:     ${STATE_DIR}/evidence/observability-coverage.md"
 echo "Inventory JSON:   ${STATE_DIR}/evidence/inventory.json"
 echo "Inventory context:${STATE_DIR}/evidence/inventory.md"
 echo "Preflight CLI:    ${PREFLIGHT_BIN}"

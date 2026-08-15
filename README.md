@@ -10,7 +10,7 @@ Milestone 1 — Kubernetes evidence, topology, and read-only planning preflight 
 
 Milestone 2 — bounded history, trust-aware diff, dedicated Git declared-state observation, and declared-vs-observed drift are complete and live-validated.
 
-Milestone 3 now starts with a workload-centric operational inventory that joins existing evidence without creating a new source of truth.
+Milestone 3 now provides a workload-centric operational inventory and is adding Prometheus Operator configuration coverage to those workload entities without creating a new source of truth or replacing Prometheus.
 
 The live loop runs on the management host every five minutes.
 
@@ -28,6 +28,8 @@ Kubernetes API                     \
   -> normalized observed evidence    -> declared-vs-observed drift
   -> freshness / trust              -> compact change context
   -> topology / history / diff      -> workload operational inventory
+  -> Prometheus Operator config     -> observability coverage
+                                      -> workload inventory enrichment
                                       -> planning / AI consumption
 ```
 
@@ -45,6 +47,8 @@ Current-state and task artifacts remain separate from immutable history.
 /var/lib/infra-assurance/evidence/drift.md
 /var/lib/infra-assurance/evidence/change-context.json
 /var/lib/infra-assurance/evidence/change-context.md
+/var/lib/infra-assurance/evidence/observability-coverage.json
+/var/lib/infra-assurance/evidence/observability-coverage.md
 /var/lib/infra-assurance/evidence/inventory.json
 /var/lib/infra-assurance/evidence/inventory.md
 /var/lib/infra-assurance/evidence/preflight.json
@@ -87,13 +91,42 @@ Each workload entity combines traceable pointers and compact state from the exis
 - composed Ingress route candidates;
 - direct PVC references;
 - latest related snapshot changes;
-- related topology ambiguity and drift attention.
+- related topology ambiguity and drift attention;
+- Prometheus Operator configuration coverage where it can be derived safely.
 
-This inventory is derived state. Kubernetes evidence, Git-declared evidence, topology, history, and drift remain the supporting source artifacts.
+This inventory is derived state. Kubernetes evidence, Git-declared evidence, topology, history, drift, and specialized observability systems remain the supporting source artifacts.
 
 A Service-to-workload relationship remains a selector-based inference. An Ingress route candidate composes an observed Ingress-to-Service reference with that inference and does not prove current Pod or EndpointSlice routing.
 
 A workload missing from the configured Git scope is `OUTSIDE_DECLARED_SCOPE`, not automatically unmanaged or drifted. A namespace is not automatically treated as an application or ownership boundary.
+
+## Prometheus Operator configuration coverage
+
+Milestone 3 observes these Prometheus Operator resources read-only:
+
+```text
+Prometheus
+ServiceMonitor
+PodMonitor
+```
+
+For each workload, the inventory can classify current configuration coverage as:
+
+```text
+OPERATOR_MONITOR_MATCH
+NO_OPERATOR_MONITOR_MATCH
+UNKNOWN
+```
+
+`OPERATOR_MONITOR_MATCH` means an evidence-backed Prometheus Operator configuration path was derived. It does not prove that the target is currently up, scraped successfully, or emitting expected metrics.
+
+`NO_OPERATOR_MONITOR_MATCH` means only that no selected ServiceMonitor/PodMonitor path was derived in the current Prometheus Operator scope. It does not prove the workload has no other monitoring path.
+
+ServiceMonitor-to-workload attribution composes Prometheus monitor selection, ServiceMonitor-to-Service selection, and the existing selector-based Service-to-controller inference. PodMonitor attribution uses controller pod-template labels and does not prove current live Pod target membership.
+
+Authentication and transport-secret fields from monitor endpoints are excluded from persisted coverage. Raw monitor manifests are not stored.
+
+Actual Prometheus target health, scrape status, metric freshness, alert state, Loki signals, and OpenTelemetry signals remain later runtime observability evidence, not Milestone 3 configuration facts.
 
 ## Git declared-state source
 
@@ -145,6 +178,8 @@ Git-declared and live-observed state remain separate evidence planes. A Git sour
 
 Observed resources outside the configured declared scope are not automatically classified as drift.
 
+Prometheus Operator configuration coverage is not promoted to scrape-health evidence.
+
 Raw Kubernetes Secret values are never collected and the Kubernetes observer RBAC has no Secret access or mutating verbs.
 
 `mutation_allowed` remains `false`.
@@ -164,6 +199,8 @@ sudo -u infra-assurance iia-inventory summary
 sudo -u infra-assurance iia-inventory list
 sudo -u infra-assurance iia-inventory list --attention-only
 sudo -u infra-assurance iia-inventory list --namespace validation
+sudo -u infra-assurance iia-inventory list --observability-status OPERATOR_MONITOR_MATCH
+sudo -u infra-assurance iia-inventory list --observability-status NO_OPERATOR_MONITOR_MATCH
 sudo -u infra-assurance iia-inventory show \
   --namespace validation \
   --kind Deployment \
@@ -215,5 +252,7 @@ See:
 - `docs/decisions/0006-git-declared-drift-without-plane-conflation.md` for drift semantics;
 - `docs/decisions/0007-dedicated-git-declared-observer.md` for the Git observer boundary;
 - `docs/decisions/0008-workload-centric-operational-inventory.md` for the first CMDB projection boundary;
+- `docs/decisions/0009-prometheus-operator-coverage-is-not-scrape-health.md` for observability coverage semantics;
 - `docs/milestone-2-history-diff-drift.md` for the Milestone 2 architecture;
-- `docs/milestone-3-workload-operational-inventory.md` for the current Milestone 3 slice.
+- `docs/milestone-3-workload-operational-inventory.md` for the workload inventory slice;
+- `docs/milestone-3-prometheus-operator-coverage.md` for the current observability coverage slice.

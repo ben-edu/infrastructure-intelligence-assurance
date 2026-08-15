@@ -15,10 +15,11 @@
     "entities"
   ],
   "properties": {
-    "inventory_version": {"const": "0.1"},
+    "inventory_version": {"enum": ["0.1", "0.2"]},
     "cluster_id": {"type": "string", "minLength": 1},
     "generated_at": {"type": "string", "format": "date-time"},
     "mutation_allowed": {"const": false},
+    "observability_source_status": {"enum": ["COMPLETE", "PARTIAL", "FAILED_TO_OBSERVE"]},
     "scope": {
       "type": "object",
       "additionalProperties": false,
@@ -59,7 +60,13 @@
         "service_links": {"type": "integer", "minimum": 0},
         "ingress_route_candidates": {"type": "integer", "minimum": 0},
         "pvc_links": {"type": "integer", "minimum": 0},
-        "related_drift_subjects": {"type": "integer", "minimum": 0}
+        "related_drift_subjects": {"type": "integer", "minimum": 0},
+        "prometheus_instances": {"type": "integer", "minimum": 0},
+        "service_monitors": {"type": "integer", "minimum": 0},
+        "pod_monitors": {"type": "integer", "minimum": 0},
+        "workloads_with_operator_monitor_match": {"type": "integer", "minimum": 0},
+        "workloads_without_operator_monitor_match": {"type": "integer", "minimum": 0},
+        "workloads_observability_unknown": {"type": "integer", "minimum": 0}
       }
     },
     "namespace_counts": {
@@ -147,6 +154,40 @@
         "evidence_ids": {"type": "array", "items": {"type": "string"}}
       }
     },
+    "monitor_path": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["prometheus", "monitor", "basis", "evidence_ids"],
+      "properties": {
+        "prometheus": {"type": "string"},
+        "monitor": {"type": "string"},
+        "service": {"type": "string"},
+        "basis": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+        "evidence_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true}
+      }
+    },
+    "observability": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "subject",
+        "status",
+        "scope_completeness",
+        "service_monitor_paths",
+        "pod_monitor_paths",
+        "evidence_ids",
+        "caveats"
+      ],
+      "properties": {
+        "subject": {"type": "string"},
+        "status": {"enum": ["OPERATOR_MONITOR_MATCH", "NO_OPERATOR_MONITOR_MATCH", "UNKNOWN"]},
+        "scope_completeness": {"enum": ["COMPLETE", "PARTIAL"]},
+        "service_monitor_paths": {"type": "array", "items": {"$ref": "#/$defs/monitor_path"}},
+        "pod_monitor_paths": {"type": "array", "items": {"$ref": "#/$defs/monitor_path"}},
+        "evidence_ids": {"type": "array", "items": {"type": "string"}, "uniqueItems": true},
+        "caveats": {"type": "array", "items": {"type": "string"}}
+      }
+    },
     "attention": {
       "type": "object",
       "additionalProperties": true,
@@ -180,6 +221,7 @@
         "subject": {"$ref": "#/$defs/subject"},
         "observed": {"$ref": "#/$defs/observed"},
         "declared": {"$ref": "#/$defs/declared"},
+        "observability": {"$ref": "#/$defs/observability"},
         "relationships": {
           "type": "object",
           "additionalProperties": false,
