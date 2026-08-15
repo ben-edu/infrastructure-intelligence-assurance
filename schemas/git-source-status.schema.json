@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/git-source-status.schema.json",
+  "title": "GitDeclaredSourceStatus",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "source_status_version",
+    "source_id",
+    "attempted_at",
+    "status",
+    "observed_at",
+    "revision",
+    "normalized_records",
+    "skipped_documents",
+    "errors"
+  ],
+  "properties": {
+    "source_status_version": {"const": "0.1"},
+    "source_id": {"type": "string", "minLength": 1},
+    "attempted_at": {"type": "string", "format": "date-time"},
+    "status": {"enum": ["COMPLETE", "PARTIAL", "FAILED_TO_OBSERVE"]},
+    "observed_at": {
+      "oneOf": [
+        {"type": "string", "format": "date-time"},
+        {"type": "null"}
+      ]
+    },
+    "revision": {
+      "oneOf": [
+        {"type": "string", "minLength": 1},
+        {"type": "null"}
+      ]
+    },
+    "normalized_records": {"type": "integer", "minimum": 0},
+    "skipped_documents": {"type": "integer", "minimum": 0},
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "summary"],
+        "properties": {
+          "code": {"type": "string", "minLength": 1},
+          "summary": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"status": {"const": "FAILED_TO_OBSERVE"}},
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "observed_at": {"type": "null"},
+          "revision": {"type": "null"},
+          "errors": {"minItems": 1}
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {"status": {"enum": ["COMPLETE", "PARTIAL"]}},
+        "required": ["status"]
+      },
+      "then": {
+        "properties": {
+          "observed_at": {"type": "string", "format": "date-time"},
+          "revision": {"type": "string", "minLength": 1}
+        }
+      }
+    }
+  ]
+}

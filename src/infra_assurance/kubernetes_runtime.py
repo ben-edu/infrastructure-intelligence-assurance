@@ -15,7 +15,8 @@ from .operational_context import build_operational_context, render_operational_c
 from .snapshot_diff import build_snapshot_diff, render_snapshot_diff_markdown
 
 DEFAULT_HISTORY_DIR = Path("/var/lib/infra-assurance/history/kubernetes")
-DEFAULT_DECLARED_DIR = Path("/etc/infra-assurance/declared")
+DEFAULT_DECLARED_DIR = Path("/var/lib/infra-assurance/declared/current")
+DEFAULT_DECLARED_STATUS = Path("/var/lib/infra-assurance/declared/source-status.json")
 
 
 def _seed_history_from_existing_latest(
@@ -40,7 +41,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
             "Collect Kubernetes evidence and emit current context, topology, bounded history, "
-            "snapshot diff, declared-vs-observed drift, and compact change context."
+            "snapshot diff, Git-declared drift, and compact change context."
         )
     )
     parser.add_argument("--cluster-id", default=os.environ.get("IIA_CLUSTER_ID"))
@@ -61,6 +62,7 @@ def main() -> int:
     parser.add_argument("--diff-out", type=Path)
     parser.add_argument("--diff-summary-out", type=Path)
     parser.add_argument("--declared-dir", type=Path, default=DEFAULT_DECLARED_DIR)
+    parser.add_argument("--declared-status", type=Path, default=DEFAULT_DECLARED_STATUS)
     parser.add_argument("--drift-out", type=Path)
     parser.add_argument("--drift-summary-out", type=Path)
     parser.add_argument("--change-context-out", type=Path)
@@ -90,7 +92,10 @@ def main() -> int:
         previous_snapshot_id=previous_entry["snapshot_id"] if previous_entry else None,
         current_snapshot_id=current_snapshot_id,
     )
-    declared_load = load_declared_records(args.declared_dir)
+    declared_load = load_declared_records(
+        args.declared_dir,
+        source_status_path=args.declared_status,
+    )
     drift = build_drift_report(snapshot, declared_load)
     change_context = build_change_context(diff, drift)
 
