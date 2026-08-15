@@ -123,7 +123,7 @@ Configured PVE storage of type `pbs` would prove a PVE-to-PBS configuration, not
 
 ## Exact next step — existing Proxmox credential metadata + bounded authenticated GET preflight
 
-Use the existing local Proxmox env file only for a bounded discovery preflight. Do not print credential values and do not adopt this credential as the platform observer identity merely because it works.
+Use the existing local Proxmox env file only for a bounded discovery preflight. This existing token is discovery-only unless a later accepted check proves it is an appropriate least-privilege observer identity.
 
 Preflight requirements:
 
