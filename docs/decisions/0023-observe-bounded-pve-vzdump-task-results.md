@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed. Repository and manual live acceptance are required before merge.
+Accepted on 2026-08-15 after repository and manual live acceptance.
 
 ## Context
 
@@ -87,8 +87,31 @@ The existing BM2 token remains discovery-only. It is broad/admin-like, stored in
 
 The adapter must not be wired into runtime until a separate least-privilege observer identity and trusted TLS path are accepted.
 
+## Accepted evidence
+
+Repository/manual live gate:
+
+```text
+249 passed in 1.61s
+source artifact unchanged: true
+source status: COMPLETE
+HTTP status: 200
+rows returned: 22
+successful task results: 22
+strict recovery-point/task matches: 9
+recovery points without strict match in returned history: 3
+limit saturated: false
+historical completeness: NOT_ESTABLISHED
+forbidden projected keys: none
+raw URL markers: false
+credential material projection: none
+restore/integrity/RPO/RTO promotion: none
+```
+
+The three older retained recovery points for VMIDs 106, 107, and 108 remained unmatched and were not attached to distant nearest tasks.
+
 ## Consequences
 
-A later derived integration may use observed successful task results to strengthen the `LAST_SUCCESSFUL_BACKUP` assurance dimension while preserving explicit task-history scope and freshness limitations.
+A later derived integration may use `STRICT_SUCCESS_TASK_MATCH` evidence to strengthen the `LAST_SUCCESSFUL_BACKUP` assurance dimension while preserving explicit task-history and freshness limitations.
 
 No restore, integrity, RPO, RTO, or universal protection claim is created by this source artifact.
