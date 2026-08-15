@@ -1,12 +1,12 @@
 # ADR 0019 — Integrate Exact Prometheus Rule Context into Incident Drill-down
 
-Status: Proposed; pending repository and management-host live acceptance.
+Status: Accepted after repository and management-host live validation.
 
 ## Context
 
 PR #26 established an accepted, bounded Prometheus rule-context source for current ACTIVE incident alert names. The source is read-only, reuses the existing Prometheus Kubernetes Service-proxy boundary, and intentionally excludes PromQL expressions, labels, annotations, raw payloads, URLs, credentials, and current rule-input metric values.
 
-The current active Platform candidate still carries a generic verification target:
+The active Platform candidate previously carried a generic verification target:
 
 ```text
 VERIFY_PLATFORM_SIGNAL_INPUTS -> PROMETHEUS_KUBERNETES
@@ -97,6 +97,27 @@ If the rule source is `PARTIAL` or `FAILED_TO_OBSERVE`, candidate context is mis
 
 Suppressed candidates are not enriched by this slice.
 
+## Accepted live evidence
+
+Repository/live acceptance on `mgmt-automation` established:
+
+```text
+RBAC changes: none
+query-capable markers: none
+204 passed in 1.29s
+all runtime stages: status=0/SUCCESS
+incident_candidates_version: 0.4
+integration mode: EXACT_COMPLETE_ONLY
+rule source: COMPLETE
+active candidates considered: 1
+complete exact candidate contexts: 1
+integration unknowns: 0
+forbidden projected keys: none
+raw URL markers: false
+```
+
+The current active `Platform/k3s-main` candidate exactly matched `KubeCPUOvercommit` and `Watchdog`, retained `PROMETHEUS_ALERTMANAGER`, and narrowed the generic Platform evidence target to `PROMETHEUS_RULE_INPUTS`.
+
 ## Runtime order
 
 ```text
@@ -113,3 +134,5 @@ prometheus_rule_context_integration
 ## Consequences
 
 The operator gets exact rule identity/state context directly beside the active incident candidate and a narrower next evidence target, while current metric inputs remain explicitly unobserved. The slice introduces no RBAC expansion, no new telemetry query, no Loki/OpenTelemetry ingestion, and no mutation capability.
+
+This accepted slice is sufficient for Milestone 4's evidence-first drill-down boundary: recommended live checks may remain delegated to authoritative observability systems rather than being automatically executed by the platform.
