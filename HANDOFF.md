@@ -15,7 +15,7 @@ This is the compact continuation checkpoint for the Infrastructure Intelligence 
 
 - repository: `ben-edu/infrastructure-intelligence-assurance`
 - stable branch: `main`
-- current main checkpoint before PR #22 merge: `236751b9218ddfd93047ed1a4fb488727659bb49`
+- accepted code checkpoint after PR #22 merge: `bd496c3a88c63f2ded7180d0dcb459009a778bcd`
 - management host: `mgmt-automation`
 - checkout: `~/projects/infrastructure-intelligence-assurance`
 - cluster: `k3s-main`
@@ -33,7 +33,7 @@ Milestone 4 accepted/live-validated slices:
 - PR #16 — incident candidates/drill-down;
 - PR #18 — bounded EndpointSlice/Pod/ReplicaSet routing ownership;
 - PR #20 — alert resource scope identity validation;
-- PR #22 — routing ownership integration into inventory/incident context; accepted and ready to merge.
+- PR #22 — routing ownership integration into inventory/incident context, merged at `bd496c3a88c63f2ded7180d0dcb459009a778bcd`.
 
 Known real drift remains intentionally unresolved:
 
@@ -96,15 +96,17 @@ raw URL markers: false
 
 ## PR #22 accepted routing context integration
 
-- PR: `#22 Milestone 4 integrate routing ownership context`
-- branch: `feature/m4-routing-ownership-integration`
-- package version: `0.15.0`
-- status: repository and live accepted; ready for squash merge
-- base main: `236751b9218ddfd93047ed1a4fb488727659bb49`
-- no RBAC change
-- no new Kubernetes/Prometheus/Alertmanager/Loki query
+Merged commit:
 
-Design:
+```text
+bd496c3a88c63f2ded7180d0dcb459009a778bcd
+```
+
+Package version: `0.15.0`.
+
+No RBAC or new Kubernetes/Prometheus/Alertmanager/Loki query was added.
+
+Runtime order:
 
 ```text
 kubernetes_runtime
@@ -126,7 +128,7 @@ Selector inference remains separately visible under `relationships.services`. Co
 
 For exact Service incident candidates, complete routing is preferred over selector inference and all real backend controllers are retained. `NON_POD_ROUTING`, `NO_ENDPOINTS_OBSERVED`, partial/unknown states do not create workload ownership. Missing exact routing can retain selector inference as weaker fallback. Non-Service scopes are never promoted through Service routing.
 
-Repository/live acceptance:
+Accepted repository/live facts:
 
 ```text
 RBAC changes: none
@@ -178,7 +180,7 @@ SUPPRESSED Namespace/moodle      alerts=2 related_workloads=2
 ACTIVE     Platform/k3s-main     alerts=2 related_workloads=0
 ```
 
-No Service-scoped incident existed in this live cycle. Service-candidate routing replacement is therefore acceptance-covered by repository regression tests; do not claim it was exercised by the current live alert set.
+No Service-scoped incident existed in that live cycle. Service-candidate routing replacement is acceptance-covered by repository regression tests; do not claim it was exercised by the current live alert set.
 
 Relevant docs:
 
@@ -190,14 +192,20 @@ docs/reports/2026-08-15-m4-routing-ownership-integration-live-test-gate.md
 
 ## Exact next step
 
-1. Squash PR #22 to one commit and merge it.
-2. Update `main` Handoff with the actual merge commit.
-3. Create a separate Milestone 4 scope-aware drill-down recommendation slice.
-4. Drive that slice from the accepted live evidence: current active `Platform/k3s-main` contains `KubeCPUOvercommit` and `Watchdog` yet receives generic `LOKI_CANDIDATE` because there is no related Warning Event.
-5. For Platform scope, prefer Prometheus rule/input and current cluster-state verification; do not recommend logs by default without a concrete Service/Workload log-bearing subject.
-6. Preserve existing recommendations where evidence/scope supports them; do not suppress operator options globally.
-7. Derived-only: no new telemetry source, infrastructure query, or RBAC in that slice.
-8. Do not add Loki/OpenTelemetry ingestion yet.
+Create a separate Milestone 4 scope-aware drill-down recommendation slice.
+
+Evidence driving it: the accepted live cycle has active `Platform/k3s-main` alerts `KubeCPUOvercommit` and `Watchdog`, but the current generic active/no-Event rule also emits `LOKI_CANDIDATE`. Platform scope has no concrete Service/Workload log-bearing subject.
+
+Requirements:
+
+1. Derived-only; no new infrastructure query, telemetry source, or RBAC.
+2. Make recommended evidence targets scope-aware.
+3. For Platform scope, prefer Prometheus rule/input and current cluster-state verification.
+4. Do not recommend logs by default when there is no concrete Service/Workload log-bearing subject.
+5. Preserve log recommendations for supported concrete scopes where logs can materially help.
+6. Preserve existing Event/change/drift verification semantics.
+7. Do not add Loki/OpenTelemetry ingestion yet.
+8. Keep recommendations as evidence requests, not remediation or root-cause claims.
 
 ## Trust invariants
 
