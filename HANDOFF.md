@@ -95,11 +95,11 @@ Accepted Prometheus Operator coverage:
 
 Configuration coverage is not scrape-health evidence.
 
-## Milestone 4 — accepted first slice
+### Milestone 4 — Prometheus runtime intelligence
 
-PR #10 `Milestone 4 Prometheus runtime intelligence` has passed final live acceptance and is ready to merge.
+Accepted and ready for merge through PR #10.
 
-The slice consumes read-only Prometheus runtime evidence through the Kubernetes Service proxy using exact least-privilege authorization:
+Exact read-only proxy boundary:
 
 ```text
 namespace: monitoring
@@ -108,15 +108,7 @@ resourceName: kube-prom-stack-prometheus:9090
 verb: get
 ```
 
-Denied in the accepted gate:
-
-- unrelated Service proxy in `monitoring`;
-- same proxy identity in `default`;
-- unqualified Prometheus Service proxy;
-- Secret listing;
-- Kubernetes mutation.
-
-Final accepted live run:
+Accepted live run:
 
 ```text
 pytest: 102 passed in 0.74s
@@ -141,7 +133,15 @@ raw URL markers: false
 mutation_allowed: false
 ```
 
-The 11 firing alerts were deliberately not force-mapped to workloads. Their current labels identify Services such as `kube-prom-stack-kubelet` where no current evidence-backed Service-to-controller inference exists in the relevant scope. The runtime records `PROMETHEUS_ALERT_WORKLOAD_MAPPING_UNRESOLVED` rather than inventing ownership.
+Denied in the accepted gate:
+
+- unrelated Service proxy in `monitoring`;
+- same proxy identity in `default`;
+- unqualified Prometheus Service proxy;
+- Secret listing;
+- Kubernetes mutation.
+
+The 11 firing alerts were deliberately not force-mapped to workloads. Current labels identify Services such as `kube-prom-stack-kubelet` where no current evidence-backed Service-to-controller inference exists in the relevant scope. The runtime records `PROMETHEUS_ALERT_WORKLOAD_MAPPING_UNRESOLVED` instead of inventing ownership.
 
 Likewise, 10 targets remain unattributed where no current controller-level mapping is supported.
 
@@ -155,16 +155,17 @@ docs/reports/2026-08-15-m4-prometheus-runtime-live-test-gate.md
 
 ## Exact next step after PR #10 merge
 
-Continue Milestone 4 with the smallest useful correlation slice around the 11 real active alerts.
+Continue Milestone 4 with a small Alertmanager correlation slice around the 11 real active alerts.
 
-Preferred next slice:
+Preferred scope:
 
 - observe existing Alertmanager read-only;
-- capture active alert delivery-state context such as active/silenced/inhibited status where safely available;
-- keep free-form annotations and sensitive receiver/configuration data excluded;
-- correlate Alertmanager evidence with the already-normalized Prometheus alert identities/labels;
+- capture only safe alert-handling state such as active/silenced/inhibited status where the API supports it;
+- exclude receiver configuration, credentials, free-form annotations, notification payloads, and other sensitive data;
+- correlate Alertmanager records with normalized Prometheus alert identities/allowlisted labels;
+- retain namespace/node/platform-scoped alerts as first-class operational evidence when workload attribution is unsupported;
 - do not invent workload ownership for kubelet/node/platform alerts;
-- begin an operational alert-attention projection that can represent namespace/node/platform-scoped alerts as first-class evidence, not only workload-attached alerts.
+- produce a compact alert-attention projection suitable for later cross-signal incident grouping.
 
 Do not expand to Loki/OpenTelemetry yet. First prove that Prometheus alert evaluation and Alertmanager handling context can be joined reliably.
 
