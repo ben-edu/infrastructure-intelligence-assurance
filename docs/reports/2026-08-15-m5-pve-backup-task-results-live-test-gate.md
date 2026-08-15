@@ -2,62 +2,61 @@
 
 ## Status
 
-Pending repository and manual live acceptance.
+Accepted.
 
 ## Scope
 
-Validate package `0.22.0` and `pve_backup_task_results_version=0.1` against BM2 PVE using the already accepted recovery-point source artifact.
+Validated package `0.22.0` and `pve_backup_task_results_version=0.1` against BM2 PVE using the already accepted recovery-point source artifact.
 
 The collector remains manual-only.
 
-## Repository gate
-
-Required:
-
-- full pytest suite passes;
-- schema validation passes;
-- no Kubernetes RBAC change;
-- no systemd wiring;
-- no runtime Proxmox credential wiring;
-- no control/mutation HTTP methods;
-- no raw task-log endpoint;
-- current package version is `0.22.0` only in the current-slice wiring test.
-
-## Manual live gate
-
-Inputs:
+## Accepted repository gate
 
 ```text
-/tmp/proxmox-ve-backup-evidence.json
-/home/ben/projects/afpa-infra-rebuild/mcp/proxmox/proxmox.env
+RBAC changes: none
+systemd changes: none
+missing required markers: none
+runtime wiring: none
+control/mutation markers: none
+249 passed in 1.61s
 ```
 
-Expected current source identity:
+The accepted PVE recovery-point source artifact remained byte-identical during collection:
+
+```text
+SHA-256 before: 7cd293e49ff09bb7bfb89493b288aae198930dff7f5c1c3c6a73e0fa6732e826
+SHA-256 after:  7cd293e49ff09bb7bfb89493b288aae198930dff7f5c1c3c6a73e0fa6732e826
+```
+
+## Accepted live source result
 
 ```text
 source_id: pve-bm2
 node: delfan
-PVE recovery-point source status: COMPLETE
+source status: COMPLETE
+operation: GET_BOUNDED_VZDUMP_TASK_RESULTS
+request mode: SERVER_FILTERED_VZDUMP
+task limit: 500
+limit saturated: false
+historical completeness: NOT_ESTABLISHED
+runtime credential approved: false
+credential file mode secure: false
+TLS verification: false
+discovery override used: true
 ```
 
-Manual execution must use explicit discovery overrides because the current credential is not runtime-approved.
-
-## Trust acceptance
-
-Validate:
+Observation:
 
 ```text
-pve_backup_task_results_version: 0.1
-mutation_allowed: false
-source.status: COMPLETE
-source.historical_completeness: NOT_ESTABLISHED
-source.runtime_credential_approved: false
-observation.status: COMPLETE
+operation: GET_VZDUMP_TASK_RESULTS
+status: COMPLETE
+HTTP status: 200
+rows returned: 22
 ```
 
-The source artifact must remain unchanged during task-result collection.
+All 22 projected returned `vzdump` task records normalized to `SUCCESS`.
 
-Persist only bounded safe task fields:
+Persisted task fields remained bounded to:
 
 ```text
 task_result_id
@@ -69,35 +68,50 @@ end_time
 result
 ```
 
-No complete UPID, user/token identity, raw error/status text, task log, command line, URL, or credential material may enter output.
+## Accepted recovery-point correlation
 
-## Current expected correlation behavior
-
-The discovery preflight observed 22 successful returned `vzdump` tasks.
-
-For current retained recovery points, strict matches should occur only when same-VMID successful task start time is within two seconds of recovery-point creation.
-
-Based on the accepted preflight:
+Current retained recovery-point correlation:
 
 ```text
-strict matches expected: 9
-no strict match in returned history expected: 3
+strict success matches: 9
+no strict match in returned history: 3
 ```
 
-Do not hard-code timestamps into source semantics; the live gate should derive and print current values.
+Strict matches occurred only for same-VMID successful task start times within the accepted two-second threshold. Observed deltas were 0 or 1 second.
 
-The three older recovery points outside the returned task-history range must not be attached to a distant nearest task.
+The three older retained points remained explicitly unmatched:
 
-## Safety gate
+```text
+VMID 106 2025-11-24T08:50:52Z -> NO_STRICT_MATCH_IN_RETURNED_HISTORY
+VMID 107 2025-11-21T10:19:36Z -> NO_STRICT_MATCH_IN_RETURNED_HISTORY
+VMID 108 2025-11-21T10:29:32Z -> NO_STRICT_MATCH_IN_RETURNED_HISTORY
+```
 
-No backup, restore, snapshot, prune, verify, GC, schedule, ACL, credential, VM, Kubernetes, or PVE configuration mutation is allowed.
+No nearest-task heuristic was used for those older records.
 
-No task log endpoint is allowed.
+## History semantics
 
-No runtime wiring is allowed.
+`TASK_HISTORY_COMPLETENESS_NOT_ESTABLISHED` remains explicit.
 
-A missing historical task must remain an unknown/history-retention limitation, not a failed-backup conclusion.
+The returned row count did not saturate the configured limit, so `TASK_RESULT_LIMIT_SATURATED` was not emitted. This does not establish complete historical retention.
 
-## Acceptance result
+A missing historical task remains an unknown/history-retention limitation, not failed-backup evidence.
 
-Pending.
+## Safety acceptance
+
+```text
+forbidden projected keys: none
+raw URL markers: false
+credential material projection: none
+restore/integrity/RPO/RTO promotion: none
+```
+
+No raw task log endpoint, complete UPID, user/token identity, raw error/status text, command line, URL, credential material, or raw API payload entered the artifact.
+
+No backup, restore, snapshot, prune, verify, GC, schedule, ACL, credential, VM, Kubernetes, systemd, RBAC, or PVE configuration mutation occurred.
+
+## Acceptance meaning
+
+The source artifact is accepted as bounded authoritative PVE task-result evidence for returned `vzdump` records.
+
+A later derived slice may strengthen `LAST_SUCCESSFUL_BACKUP` only for recovery points carrying `STRICT_SUCCESS_TASK_MATCH`. The three unmatched historical recovery points must remain unknown for task-result support. Restore verification, integrity verification, RPO, RTO, and universal protection remain outside this acceptance.
