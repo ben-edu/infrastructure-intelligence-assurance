@@ -23,12 +23,24 @@ rules:
       - persistentvolumeclaims
       - events
     verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources:
+      - pods
+    verbs: ["get"]
   - apiGroups: ["apps"]
     resources:
       - deployments
       - statefulsets
       - daemonsets
     verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources:
+      - replicasets
+    verbs: ["get"]
+  - apiGroups: ["discovery.k8s.io"]
+    resources:
+      - endpointslices
+    verbs: ["list"]
   - apiGroups: ["networking.k8s.io"]
     resources:
       - ingresses
