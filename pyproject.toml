@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "infrastructure-intelligence-assurance"
-version = "0.20.0"
+version = "0.21.0"
 description = "Evidence-first infrastructure intelligence, observability drill-down, and backup/recovery assurance foundations"
 requires-python = ">=3.11"
 
@@ -29,6 +29,7 @@ iia-prometheus-rule-context = "infra_assurance.prometheus_rule_context:main"
 iia-prometheus-rule-integration = "infra_assurance.prometheus_rule_context_integration:main"
 iia-backup-assurance-foundation = "infra_assurance.backup_assurance_foundation:main"
 iia-proxmox-ve-backup-evidence = "infra_assurance.proxmox_ve_backup_evidence:main"
+iia-vm-backup-assurance = "infra_assurance.vm_backup_assurance:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
