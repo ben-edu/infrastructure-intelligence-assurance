@@ -95,11 +95,11 @@ These facts mean:
 - no cluster backup job is currently declared in the returned scope;
 - no PBS storage is currently configured in BM2 PVE.
 
-The operator explicitly confirms that PBS does not exist today. Therefore PBS current state is treated as `NOT_CONFIGURED_BY_OPERATOR` for current architecture planning, while previous network timeouts remain non-authoritative evidence by themselves.
+The operator explicitly confirms that PBS does not exist today. Therefore PBS is not part of current live protection state. Previous network timeouts remain non-authoritative evidence by themselves.
 
 ## PBS future-compatibility requirement
 
-The platform must remain ready for a future Proxmox Backup Server without redesigning the core Backup and Recovery Assurance contract.
+The operator requires the platform to remain ready for a future Proxmox Backup Server without redesigning the core Backup and Recovery Assurance contract.
 
 Future PBS support must be added as another authoritative source adapter rather than changing the meaning of existing asset/assurance fields.
 
@@ -119,6 +119,8 @@ RTO_TARGET_AND_RESULT
 A future PBS adapter may satisfy some of these fields from PBS-native evidence, while current PVE/local-backup evidence may satisfy them from PVE-native evidence. Source identity/provenance must remain explicit so evidence from PVE local storage and PBS is never conflated.
 
 No current field should require a PBS-specific identifier in order to represent protection. PBS datastore/namespace/snapshot identity, if later required, should live inside source-specific evidence/provenance context behind the common assurance model.
+
+Official Proxmox storage semantics also reinforce this adapter boundary: PVE can configure a PBS backend as storage type `pbs`, while PBS has its own datastore/backup evidence. Configured integration and authoritative backup evidence remain separate dimensions.
 
 ## Current security observations
 
@@ -151,7 +153,7 @@ No backup, restore, snapshot, prune, verify, garbage collection, schedule mutati
 - zero configured backup jobs means no cluster backup job was observed in the returned complete scope, not that no manual backup artifact can exist;
 - PVE endpoint reachability is not PBS presence;
 - network timeout is not absence when firewall/source restrictions may apply;
-- operator-confirmed current PBS nonexistence may guide current design, but future PBS compatibility remains required;
+- operator-confirmed current PBS nonexistence guides current architecture but does not remove future PBS compatibility;
 - a configured future `pbs` storage will prove PVE-to-PBS configuration, not successful backups;
 - backup-job configuration proves declared schedule, not successful execution;
 - successful backup evidence is not restore verification;
