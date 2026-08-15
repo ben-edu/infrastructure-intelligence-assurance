@@ -2,58 +2,39 @@
 
 ## Status
 
-Repository gate accepted after correction. Management-host runtime executed successfully; final artifact acceptance is pending one stdlib-only verification pass because the manual acceptance helper used `sudo python3` with an unavailable optional `jsonschema` package.
+Accepted on `mgmt-automation`.
 
 ## Purpose
 
 Validate that alert label dimensions are no longer treated as authoritative Kubernetes resource identity unless the same-cycle Kubernetes snapshot supports that exact subject.
 
-## First management-host attempt
+## Repository gate
 
-The first PR #20 run passed the static guards before pytest:
+The first test attempt exposed a real implementation defect in fallback warning provenance:
+
+```text
+KeyError: 'evidence_id'
+3 failed, 153 passed in 1.56s
+```
+
+Alert-attention records carry `evidence_ids`, not a singular `evidence_id`. The validator was corrected to preserve the existing evidence list and a regression assertion was added.
+
+The corrected full suite then passed:
+
+```text
+156 passed in 0.89s
+```
+
+Static guards also passed:
 
 ```text
 RBAC changes: none
 query-capable client markers: none
 ```
 
-The repository test gate then stopped execution before bootstrap:
+## Runtime acceptance
 
-```text
-3 failed, 153 passed in 1.56s
-```
-
-All three failures reached fallback scope paths and raised:
-
-```text
-KeyError: 'evidence_id'
-```
-
-Root cause: alert-attention records carry an `evidence_ids` array, not a singular `evidence_id` field. The new scope validator incorrectly referenced `alert["evidence_id"]` when constructing fallback warnings. This was an implementation defect that would also affect live fallback processing; it was not a test-fixture defect.
-
-Correction on the active branch:
-
-- fallback warnings now preserve the existing `alert.evidence_ids` list;
-- no synthetic singular evidence field is introduced;
-- a regression assertion verifies that original alert evidence survives an unverified Service-to-Namespace fallback.
-
-Because pytest failed, `bootstrap-observer.sh` did not execute in this first attempt. No runtime/systemd acceptance claim is derived from it.
-
-## Corrected repository gate
-
-The corrected branch was fast-forwarded on `mgmt-automation` and the full repository suite passed:
-
-```text
-156 passed in 0.89s
-```
-
-This establishes repository-level correctness for the corrected implementation.
-
-## Second management-host attempt — runtime succeeded, helper dependency failed
-
-`bootstrap-observer.sh` completed and the systemd oneshot finished successfully.
-
-Observed execution order and status:
+`bootstrap-observer.sh` completed successfully. The systemd oneshot executed in the intended order:
 
 ```text
 kubernetes_runtime   status=0/SUCCESS
@@ -62,83 +43,119 @@ alert_scope_runtime status=0/SUCCESS
 incident_runtime    status=0/SUCCESS
 ```
 
-The oneshot returned to `inactive (dead)` after successful completion, which is expected.
+The oneshot returned to `inactive (dead)` after successful completion, as expected.
 
-The manual Python acceptance helper then stopped before printing its JSON assertions with:
-
-```text
-ModuleNotFoundError: No module named 'jsonschema'
-```
-
-This is an acceptance-helper environment defect, not a platform runtime failure. Repository tests already exercise the schema with `jsonschema`; the root/system Python used by the manual helper does not have that optional test dependency installed. No package installation is required for the runtime and none should be added solely to satisfy this helper.
-
-Useful live evidence emitted by the successfully completed runtime before the helper failure:
+Git declared-state observation remained `COMPLETE` with 27 normalized records at revision:
 
 ```text
-Alert attention records: 11
-Active: 5
-Inhibited: 6
-Correlated to Prometheus: 11
-Workload scoped: 0
-Node scoped: 0
-Service scoped: 0
-Namespace scoped: 9
-Platform scoped: 2
+5767e0a4c583d0a0e8c87b2e24c42eaeb822a3b4
 ```
 
-The final attention context explicitly reported six `ALERT_SCOPE_SERVICE_SIGNAL_NOT_OBSERVED` corrections for kubelet-labelled signals in monitoring, moodle, and keycloak. They fell back to their observed Namespace scopes; no pseudo-Service scope remained in the rendered context and no automatic rewrite to the real kube-system Service was performed.
+A first manual artifact helper attempted to import the optional test-only `jsonschema` package under root Python and stopped with `ModuleNotFoundError`. That was an acceptance-helper environment defect, not a platform runtime failure. No runtime dependency was installed to work around it.
 
-Incident grouping after corrected scope identity produced:
+A subsequent stdlib-only artifact inspection passed completely:
 
 ```text
-Alert attention records: 11
-Incident candidates: 4
-Active candidates: 4
-Suppressed candidates: 0
-Unknown candidates: 0
+PR #20 LIVE ACCEPTANCE: PASS
 ```
 
-Current candidates were:
+## Accepted artifact facts
+
+Trust/source state:
 
 ```text
-Namespace/keycloak
-Namespace/monitoring
-Namespace/moodle
-Platform/k3s-main
+alert_attention_version: 0.2
+mutation_allowed: false
+Prometheus: COMPLETE
+Alertmanager: COMPLETE
+Kubernetes scope validation: COMPLETE
 ```
 
-This is consistent with the intended correction: synthetic kubelet Service identities are no longer used downstream.
+Cardinality was preserved:
 
-## Remaining live acceptance evidence
+```text
+Alertmanager alerts: 11
+Alert attention:     11
+Event correlations: 11
+```
 
-Run one stdlib-only artifact inspection; do not reinstall dependencies or rerun pytest/bootstrap unnecessarily.
+Final scope distribution:
 
-The remaining check must confirm:
+```text
+NAMESPACE: 9
+PLATFORM:  2
+SERVICE:   0
+WORKLOAD:  0
+NODE:      0
+```
 
-1. final `alert-attention.json` version is `0.2`;
-2. `source_status.kubernetes_scope` is explicit and current;
-3. Attention cardinality equals current Alertmanager alert cardinality;
-4. Event correlation cardinality equals final attention cardinality;
-5. every final attention record contains `scope_validation`;
-6. no final `SERVICE` scope lacks an observed Kubernetes Service;
-7. the kubelet pseudo-Service subjects do not remain;
-8. no automatic rewrite to `Service/kube-system/kube-prom-stack-kubelet` occurred;
-9. original `service=kube-prom-stack-kubelet` signal labels remain preserved;
-10. Event correlation and incident grouping use corrected scopes;
-11. sensitive/free-form field guards remain clean and `mutation_allowed=false`.
+Validation distribution:
 
-Schema validation does not need to be repeated in this root-Python live helper because the accepted repository test suite already validates the v0.2 schema.
+```text
+VALIDATED_INFRASTRUCTURE_SUBJECT: 3
+UNVERIFIED_SIGNAL_DIMENSION:      6
+PLATFORM_FALLBACK:                2
+```
 
-## Expected interpretation
+All remaining Service-scope validation checks passed:
 
-A reduced number of Service-scoped incident candidates is expected if previous Service identities were synthetic combinations of metric dimensions.
+```text
+Service scopes without observed Service: none
+```
 
-A Namespace fallback does not claim that the whole namespace is affected. It means only that the namespace label is an observed infrastructure identity while the stronger Service identity was not validated.
+The known synthetic kubelet subjects are gone:
 
-`UNVERIFIED_SIGNAL_DIMENSION` is not a source failure when the relevant Kubernetes collection is complete. It is a completed validation result showing that a signal dimension did not map to the claimed resource identity.
+```text
+Service/keycloak/kube-prom-stack-kubelet
+Service/monitoring/kube-prom-stack-kubelet
+Service/moodle/kube-prom-stack-kubelet
+```
 
-If Kubernetes scope validation is partial/failed, downstream no-match evidence must remain uncertain.
+Accepted guards:
 
-## Trust boundary
+```text
+pseudo attention scopes: none
+pseudo incident scopes:  none
+automatic kube-system rewrite: none
+label mismatches: none
+current kubelet-labelled alerts: 6
+```
 
-This slice corrects identity semantics only. It does not add telemetry, infer root cause, infer business impact, change Prometheus/Alertmanager rules, or introduce remediation.
+The original `service=kube-prom-stack-kubelet` signal dimension remains preserved. No alert was rewritten to `Service/kube-system/kube-prom-stack-kubelet` merely because that real Service exists elsewhere.
+
+## Downstream result
+
+Corrected incident grouping produced four candidates:
+
+```text
+Namespace/keycloak    alerts=2
+Namespace/monitoring  alerts=5
+Namespace/moodle      alerts=2
+Platform/k3s-main     alerts=2
+```
+
+The six unverified kubelet Service claims are explicitly represented by `ALERT_SCOPE_SERVICE_SIGNAL_NOT_OBSERVED` and retain the weaker observed Namespace scope. This is a completed validation result, not a source failure.
+
+Sensitive/free-form guards passed:
+
+```text
+forbidden projected keys: none
+raw URL markers: false
+```
+
+## Acceptance decision
+
+PR #20 is accepted for merge.
+
+The slice proves the intended trust boundary:
+
+- alert labels remain signal dimensions;
+- exact resource identity is accepted only when same-cycle Kubernetes evidence supports it;
+- missing identity under complete observation does not trigger heuristic rewriting;
+- failed observation remains distinct from absence;
+- Event correlation and incident grouping consume the corrected scopes;
+- no telemetry query, RBAC expansion, mutation, secret access, or root-cause inference was added.
+
+## Next step
+
+After merge, create a separate Milestone 4 integration slice that consumes the already accepted routing-ownership artifact and prefers complete routing evidence over selector inference where supported. Keep ambiguous/non-Pod/unknown routing explicit and do not add Loki/OpenTelemetry in that integration slice.
