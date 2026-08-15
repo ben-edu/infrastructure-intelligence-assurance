@@ -1,27 +1,37 @@
 # Milestone 5 — Proxmox VE Backup Evidence
 
+## Status
+
+Accepted and live validated on 2026-08-15.
+
 ## Goal
 
-Add the first authoritative backup-source adapter without changing infrastructure, reusing an administrative credential in runtime, or prematurely classifying protection quality.
+Add the first authoritative VM backup/recovery evidence source without turning source facts into premature platform protection claims and without wiring an administrative credential into runtime.
 
-Selected source: BM2 Proxmox VE.
+## Scope
 
-## Output
+This slice adds a bounded Proxmox VE source adapter and a standalone source artifact.
 
-Manual/live-test artifact paths are caller-selected. The accepted source artifact contract is:
+It does not:
+
+- modify Proxmox;
+- trigger backup, restore, snapshot, prune, verification, or garbage collection;
+- change backup schedules;
+- change guest state;
+- change ACLs or credentials;
+- read Terraform state/tfvars;
+- wire Proxmox credentials into systemd;
+- modify Kubernetes RBAC;
+- rewrite the existing Kubernetes PVC Backup Assurance artifact.
+
+## Source artifact
 
 ```text
 proxmox_ve_backup_evidence_version: 0.1
-source.type: proxmox_ve_api
-source.operation: BOUNDED_HTTP_GET_BACKUP_EVIDENCE
 mutation_allowed: false
 ```
 
-This slice is not wired into `infra-assurance-kubernetes.service`.
-
-## Queries
-
-HTTP GET only:
+The adapter performs bounded HTTP GET observations only:
 
 ```text
 /api2/json/version
@@ -32,69 +42,26 @@ HTTP GET only:
 /api2/json/nodes/<node>/storage/<selected-storage>/content?content=backup
 ```
 
-No mutating API method or Proxmox control CLI is permitted.
-
 ## Safe projection
 
-Persist:
+The artifact may contain only bounded source evidence such as:
 
-- PVE version/release/repository identity;
-- node identity/status;
-- guest VMID/type/status/node;
-- storage ID/type/backup capability/disabled state/bounded retention policy/PBS-backend boolean;
+- PVE version/release identity;
+- node name/status;
+- current guest VMID/type/status/node;
+- storage ID/type and bounded backup-capability/retention state;
+- whether the storage backend type is `pbs`;
 - bounded cluster backup-job metadata;
-- storage-content observation status;
-- recovery-point VMID/node/storage/format/time/size/source-native archive protection flag;
-- deterministic projected recovery-point ID;
+- selected node/storage content observation status;
+- recovery-point VMID, node, storage, format, creation time and size;
+- source-native archive protection flag;
 - per-guest selected-storage recovery-point coverage.
 
-Do not persist:
-
-- token ID or secret;
-- raw endpoint URL;
-- raw API payload;
-- raw volume ID/path;
-- guest name;
-- storage server/path/username/password;
-- certificate fingerprint;
-- encryption-key references;
-- Terraform state/tfvars;
-- arbitrary labels/configuration.
-
-## Credential boundary
-
-Normal collector execution rejects:
-
-- credential files readable by group/other;
-- disabled TLS verification.
-
-Manual discovery/live-test may use explicit flags:
-
-```text
---allow-discovery-credential
---allow-insecure-tls-discovery
-```
-
-These flags do not approve the credential for runtime. The current BM2 token is broad/admin-like and must remain discovery-only.
+It does not persist raw `volid`, raw API payload, raw URL, guest names, token material, storage server/path/username, fingerprints, encryption-key references, or arbitrary storage configuration.
 
 ## Failure semantics
 
-A successful empty storage-content response is complete evidence for that exact selected storage scope:
-
-```text
-NO_RECOVERY_POINT_OBSERVED_IN_COMPLETE_STORAGE_SCOPE
-```
-
-A failed/unauthorized content request is:
-
-```text
-FAILED_TO_OBSERVE
-coverage: UNKNOWN
-```
-
-Do not convert failed observation into zero backup artifacts.
-
-Overall source status:
+Source status is:
 
 ```text
 COMPLETE
@@ -102,76 +69,114 @@ PARTIAL
 FAILED_TO_OBSERVE
 ```
 
-## Recovery-point semantics
-
-A projected backup-content record is an observed recovery-point artifact.
-
-It does not prove:
+Selected-storage guest coverage is:
 
 ```text
-restore verification
-integrity verification
-application consistency
-current scheduled protection
-RPO compliance
-RTO compliance
+RECOVERY_POINT_OBSERVED
+NO_RECOVERY_POINT_OBSERVED_IN_COMPLETE_STORAGE_SCOPE
+UNKNOWN
 ```
 
-The Proxmox field `protected` is persisted only as:
+A complete empty storage-content scope is a valid scoped negative observation. A failed observation remains unknown and must not become an empty scope.
+
+## Assurance boundary
+
+A PVE backup artifact establishes an observed recovery point in the exact source/node/storage scope.
+
+It does not establish:
+
+- restore verification;
+- integrity verification;
+- application consistency;
+- current scheduled protection;
+- RPO compliance;
+- RTO compliance.
+
+The PVE archive `protected` flag is represented only as source-native `archive_protection_flag`. It must never map to platform `PROTECTED` or `UNPROTECTED`.
+
+A VM with no recovery point in a complete selected storage scope is not automatically universally unprotected because other backup sources may exist now or later.
+
+## Credential boundary
+
+The currently available BM2 token is broad/admin-like, its env file is mode `0644`, and TLS verification is disabled.
+
+Normal collector execution refuses insecure file mode and disabled TLS verification. Manual live validation may use explicit discovery overrides, but the artifact always keeps:
 
 ```text
-archive_protection_flag
+credential_runtime_approved: false
 ```
 
-It is never platform `protection_status` and never maps to `PROTECTED` or `UNPROTECTED`.
-
-## Current live discovery baseline
-
-Before implementation, source discovery observed on BM2:
-
-```text
-PVE: 9.1.9
-node: delfan
-current QEMU guests: 12
-storage: local / dir / backup-enabled
-retention projection: keep-all=1
-PBS storage: none configured
-cluster backup jobs: 0
-local recovery-point artifacts: 12
-VMIDs with local recovery points: 100,101,106,107,108,109
-current VMIDs without local recovery point in this complete scope: 102,103,104,105,110,9000
-```
-
-This baseline may change; live acceptance should verify invariants and current-source agreement rather than treating every count as immutable.
+This source slice does not auto-approve credentials. Runtime approval requires a separate least-privilege access-control decision.
 
 ## Future PBS compatibility
 
-PBS is not present today, but future support is mandatory.
+There is no PBS today. Future PBS support is mandatory without redesigning the common assurance model.
 
-Do not encode PBS-specific identifiers into common assurance semantics. A future PBS-native adapter must preserve separate source provenance and satisfy the same common assurance dimensions where authoritative evidence exists.
+PVE-local evidence and future PBS-native evidence remain separate source adapters with explicit provenance. PBS-specific datastore/namespace/snapshot identity stays source-specific while common assurance dimensions remain source-neutral.
 
-## Acceptance boundary
+## Accepted repository gate
 
-Repository acceptance must prove:
+```text
+package: 0.20.0
+RBAC changes: none
+systemd changes: none
+control/mutation markers: none
+runtime Proxmox wiring: none
+228 passed in 1.34s
+```
 
-- package version `0.20.0`;
-- full tests pass;
-- schema validation passes;
-- adapter contains only HTTP GET and no control CLI/client;
-- existing systemd runtime does not invoke the adapter or expose Proxmox credentials;
-- complete empty scope differs from failed observation;
-- source-native `protected` cannot become platform protection classification;
-- unsafe/raw fields are absent from projections.
+## Accepted BM2 live gate
 
-Manual BM2 live acceptance must prove:
+```text
+source status: COMPLETE
+mutation_allowed: false
+credential_runtime_approved: false
+credential_file_mode_secure: false
+TLS verification: false
+discovery override used: true
+PVE: 9.1.9 / release 9.1
+node: delfan / ONLINE
+storage: local / dir / backup-enabled
+retention: keep-all=1
+pbs backend: false
+cluster backup jobs: 0
+current guests: 12
+recovery points: 12
+VMs with recovery point in selected scope: 6
+VMs without recovery point in complete selected scope: 6
+selected-scope UNKNOWN: 0
+forbidden projected keys: none
+raw URL markers: false
+credential material projection: none
+```
 
-- source status `COMPLETE` for the bounded GET scope;
-- runtime credential approved remains false;
-- discovery override is explicit for the current 0644/TLS-insecure credential;
-- current node/storage/guest/recovery-point facts are safely projected;
-- every current guest has exactly one selected-storage coverage record;
-- complete storage scope can identify observed and not-observed recovery-point states without global `UNPROTECTED` claims;
-- no token/URL/raw volume/config sensitive field enters JSON/Markdown;
-- no backup/restore/snapshot/prune/verify/GC or other mutation occurs.
+Current selected-scope recovery-point VMIDs:
 
-Do not wire runtime credentials or systemd in this slice.
+```text
+100,101,106,107,108,109
+```
+
+Current selected-scope negative VMIDs:
+
+```text
+102,103,104,105,110,9000
+```
+
+Required unknowns remain explicit:
+
+```text
+RESTORE_VERIFICATION_NOT_OBSERVED
+INTEGRITY_VERIFICATION_NOT_OBSERVED
+RPO_RTO_NOT_OBSERVED
+SCHEDULED_PROTECTION_NOT_INFERRED
+```
+
+## Next slice
+
+Consume this accepted source artifact in a derived-only source-neutral Backup Assurance integration.
+
+VM assets must remain a separate domain from Kubernetes PVC assets. Do not invent a VMID-to-PVC relation.
+
+The integration may strengthen facts such as observed backup mechanism and last observed recovery point while preserving restore/integrity/RPO/RTO as unknown. Selected-scope absence remains scoped evidence rather than universal `UNPROTECTED`.
+
+No new Proxmox query, credential, RBAC, systemd wiring, or infrastructure mutation belongs in that integration slice.
