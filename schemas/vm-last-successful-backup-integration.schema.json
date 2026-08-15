@@ -1,0 +1,172 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://soria.local/schemas/vm-last-successful-backup-integration.schema.json",
+  "title": "VM Last Successful Backup Integration",
+  "type": "object",
+  "required": [
+    "vm_backup_assurance_version",
+    "generated_at",
+    "mutation_allowed",
+    "scope",
+    "source_status",
+    "last_successful_backup_integration",
+    "assets",
+    "summary",
+    "unknowns"
+  ],
+  "properties": {
+    "vm_backup_assurance_version": {"const": "0.2"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "mutation_allowed": {"const": false},
+    "scope": {
+      "type": "object",
+      "required": ["asset_type", "derived_only", "source_neutral_assurance", "kubernetes_pvc_assurance_modified"],
+      "properties": {
+        "asset_type": {"const": "VIRTUAL_MACHINE"},
+        "derived_only": {"const": true},
+        "source_neutral_assurance": {"const": true},
+        "kubernetes_pvc_assurance_modified": {"const": false}
+      },
+      "additionalProperties": true
+    },
+    "source_status": {"type": "object"},
+    "last_successful_backup_integration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version",
+        "mode",
+        "source_type",
+        "source_id",
+        "source_artifact_version",
+        "source_status",
+        "source_generated_at",
+        "source_freshness",
+        "historical_completeness"
+      ],
+      "properties": {
+        "version": {"const": "0.1"},
+        "mode": {"const": "STRICT_CORRELATION_ONLY"},
+        "source_type": {"const": "PROXMOX_VE_VZDUMP_TASK_RESULTS"},
+        "source_id": {"type": "string", "minLength": 1, "maxLength": 200},
+        "source_artifact_version": {"const": "0.1"},
+        "source_status": {"enum": ["COMPLETE", "FAILED_TO_OBSERVE"]},
+        "source_generated_at": {"type": ["string", "null"], "format": "date-time"},
+        "source_freshness": {"const": "UNKNOWN"},
+        "historical_completeness": {"const": "NOT_ESTABLISHED"}
+      }
+    },
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["asset_type", "subject", "assurance", "required_evidence", "source_recovery_point_ids"],
+        "properties": {
+          "asset_type": {"const": "VIRTUAL_MACHINE"},
+          "subject": {
+            "type": "object",
+            "required": ["system", "source_id", "kind", "vmid"],
+            "properties": {
+              "system": {"const": "proxmox_ve"},
+              "source_id": {"type": "string", "minLength": 1},
+              "kind": {"const": "VirtualMachine"},
+              "vmid": {"type": "integer", "minimum": 1}
+            },
+            "additionalProperties": true
+          },
+          "assurance": {
+            "type": "object",
+            "required": [
+              "protection_status",
+              "last_successful_backup_status",
+              "last_successful_backup_at",
+              "last_successful_backup_evidence",
+              "integrity_verification_status",
+              "restore_verification_status",
+              "failure_domain_status",
+              "scheduled_protection_status",
+              "rpo_status",
+              "rto_status"
+            ],
+            "properties": {
+              "protection_status": {"const": "UNKNOWN"},
+              "last_successful_backup_status": {"enum": ["OBSERVED", "UNKNOWN"]},
+              "last_successful_backup_at": {"type": ["string", "null"], "format": "date-time"},
+              "last_successful_backup_evidence": {
+                "oneOf": [
+                  {"type": "null"},
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["source_type", "source_id", "recovery_point_id", "task_result_id", "basis"],
+                    "properties": {
+                      "source_type": {"const": "PROXMOX_VE_VZDUMP_TASK_RESULT"},
+                      "source_id": {"type": "string", "minLength": 1},
+                      "recovery_point_id": {"type": "string", "pattern": "^pve-rp-[a-f0-9]{24}$"},
+                      "task_result_id": {"type": "string", "pattern": "^pve-task-[a-f0-9]{24}$"},
+                      "basis": {
+                        "type": "array",
+                        "items": {"const": "STRICT_SUCCESS_TASK_MATCH"},
+                        "minItems": 1,
+                        "maxItems": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              "integrity_verification_status": {"const": "UNKNOWN"},
+              "restore_verification_status": {"const": "UNKNOWN"},
+              "failure_domain_status": {"const": "UNKNOWN"},
+              "scheduled_protection_status": {"const": "UNKNOWN"},
+              "rpo_status": {"const": "UNKNOWN"},
+              "rto_status": {"const": "RTO_UNKNOWN"}
+            },
+            "additionalProperties": true
+          },
+          "required_evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["target", "status", "statement"],
+              "properties": {
+                "target": {"type": "string"},
+                "status": {"enum": ["OBSERVED", "PARTIAL", "REQUIRED"]},
+                "statement": {"type": "string"}
+              },
+              "additionalProperties": true
+            }
+          },
+          "source_recovery_point_ids": {
+            "type": "array",
+            "items": {"type": "string", "pattern": "^pve-rp-[a-f0-9]{24}$"}
+          }
+        },
+        "additionalProperties": true
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": [
+        "assets_total",
+        "last_successful_backup_observed",
+        "last_successful_backup_unknown",
+        "strict_success_correlations_consumed",
+        "unmatched_recovery_points_in_returned_task_history",
+        "unprotected_claims",
+        "kubernetes_pvc_assets_modified"
+      ],
+      "properties": {
+        "assets_total": {"type": "integer", "minimum": 0},
+        "last_successful_backup_observed": {"type": "integer", "minimum": 0},
+        "last_successful_backup_unknown": {"type": "integer", "minimum": 0},
+        "strict_success_correlations_consumed": {"type": "integer", "minimum": 0},
+        "unmatched_recovery_points_in_returned_task_history": {"type": "integer", "minimum": 0},
+        "unprotected_claims": {"const": 0},
+        "kubernetes_pvc_assets_modified": {"const": 0}
+      },
+      "additionalProperties": true
+    },
+    "unknowns": {"type": "array"}
+  },
+  "additionalProperties": true
+}
