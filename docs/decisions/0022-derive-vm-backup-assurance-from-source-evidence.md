@@ -2,7 +2,9 @@
 
 ## Status
 
-Proposed. Repository and manual derived live acceptance are required before merge.
+Accepted.
+
+Repository and manual derived live acceptance passed on 2026-08-15.
 
 ## Context
 
@@ -32,7 +34,7 @@ source_neutral_assurance: true
 kubernetes_pvc_assurance_modified: false
 ```
 
-No systemd/runtime wiring is added in this slice because the PVE source collector itself is not runtime-wired.
+No systemd/runtime wiring is added because the PVE source collector itself is not runtime-wired.
 
 ### Assurance semantics
 
@@ -108,10 +110,36 @@ Future PBS-native evidence must enter through a separate source adapter and may 
 
 A VM may eventually have evidence from multiple adapters. Source-scoped negative evidence from PVE local storage must not override stronger positive PBS evidence.
 
+## Accepted evidence
+
+Repository/live gate:
+
+```text
+240 passed in 1.25s
+source artifact unchanged during derivation: true
+source status: COMPLETE
+source freshness: UNKNOWN
+VM assets: 12
+recovery-point observed: 6
+complete selected-scope negative: 6
+recovery-point unknown: 0
+backup mechanism observed: 6
+retention configuration observed: 12
+protection unknown: 12
+restore verification unknown: 12
+integrity verification unknown: 12
+RPO unknown: 12
+RTO unknown: 12
+unprotected claims: 0
+Kubernetes PVC assets modified: 0
+```
+
+The accepted VM asset set exactly matches the 12 source VMIDs. No sensitive/raw source fields were projected and no URL markers were present.
+
 ## Consequences
 
-The platform gains a useful VM-level assurance view now without broadening infrastructure access or conflating recovery-point existence with verified recoverability.
+The platform now has a useful VM-level assurance view without broadening infrastructure access or conflating recovery-point existence with verified recoverability.
 
 The accepted Kubernetes PVC assurance artifact remains unchanged.
 
-A later slice may unify multiple VM backup source adapters or add authoritative task-result/restore evidence, but that is outside this slice.
+The next useful VM evidence should strengthen a currently unresolved assurance dimension, preferably authoritative backup task-result evidence for `LAST_SUCCESSFUL_BACKUP`, before adding broader source coverage. Runtime credential wiring remains out of scope until its separate trust prerequisites are met.
