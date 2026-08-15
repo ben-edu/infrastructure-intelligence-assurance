@@ -2,49 +2,147 @@
 
 ## Status
 
-Pending management-host live acceptance.
+Accepted on `mgmt-automation`.
 
 ## Scope
 
 Validate bounded recent Kubernetes Event observation and conservative correlation with the already accepted Prometheus/Alertmanager alert-attention projection.
 
-## Required acceptance evidence
-
-1. Full repository tests pass.
-2. Existing Kubernetes, Git, history, drift, inventory, Prometheus Operator, Prometheus runtime, and Alertmanager runtime sources remain healthy.
-3. Observer can list Kubernetes Events cluster-wide.
-4. Observer cannot create Kubernetes Events.
-5. Secret listing and Kubernetes mutation remain denied.
-6. Normal runtime emits:
+## Accepted repository/runtime gate
 
 ```text
-/var/lib/infra-assurance/evidence/kubernetes-event-runtime.json
-/var/lib/infra-assurance/evidence/kubernetes-event-runtime.md
-/var/lib/infra-assurance/evidence/kubernetes-event-correlation.json
-/var/lib/infra-assurance/evidence/kubernetes-event-correlation.md
+branch: feature/m4-kubernetes-event-correlation
+head tested: 0e656734eb53b8b3f5789313ed29b3d8a74c9121
+pytest: 125 passed in 0.89s
+observer service: status=0/SUCCESS
+Git declared source: COMPLETE
+Prometheus source: COMPLETE
+Alertmanager source: COMPLETE
+Kubernetes Event source: COMPLETE
+mutation_allowed: false
 ```
 
-7. Event source state is explicit: `COMPLETE`, `PARTIAL`, or `FAILED_TO_OBSERVE`.
-8. Default recent window is one hour with a maximum of 500 persisted records.
-9. If the Event window is truncated, source state becomes `PARTIAL`.
-10. Raw Event `message`/`note`, source host/reporting instance, arbitrary annotations/labels, raw object UIDs, credentials, and Secret values are absent from persisted evidence.
-11. Event reason is either a safe bounded token or `REDACTED_REASON`.
-12. Only recent Warning Events are attached to alert-attention records in this slice.
-13. Exact Service/Node/Workload identity can correlate directly.
-14. Namespace-scoped attention can receive namespace-membership Event context with an explicit `NAMESPACE_SCOPE_MEMBERSHIP` basis.
-15. Platform-scoped alerts are not automatically related to every cluster Event.
-16. Pod Events are not mapped to Deployment/StatefulSet/DaemonSet by Pod-name heuristics.
-17. A related Event is described as supporting context, not root cause.
-18. A failed/partial Event source makes unsupported no-match correlation `UNKNOWN`, not false `NO_DIRECT_EVENT_MATCH`.
-19. `mutation_allowed=false` remains in generated Event artifacts.
+The systemd oneshot completed successfully and the existing Git declared-state observer remained `COMPLETE` at revision `5767e0a4c583d0a0e8c87b2e24c42eaeb822a3b4` with 27 normalized declarations.
 
-## Expected interpretation
+## Accepted RBAC boundary
 
-The gate does not require zero Warning Events or a specific number of Event/alert matches.
+```text
+list Events cluster-wide: yes
+create Event: no
+list Pods cluster-wide: no
+list Secrets cluster-wide: no
+create Deployment: no
+```
 
-Real recent Warning Events are evidence under test. A complete source with no direct matches is valid. A partial source due to the configured record bound is also valid if partiality is explicit and no-match results become unknown.
+This slice adds only read-only core/v1 Event access. It does not add Pod read access and does not add any mutation capability.
 
-The first live run should be used to decide whether the one-hour/500-record defaults are appropriate for this cluster; they are not assumed to be final long-term retention policy.
+## Accepted Event source bounds
+
+```text
+window_seconds: 3600
+max_events: 500
+window_truncated: false
+```
+
+The first live run returned one current Event and therefore did not exercise truncation in production. The `PARTIAL` truncation behavior remains covered by tests.
+
+## Current live Event evidence
+
+```text
+events_seen_from_api: 1
+events_recent: 1
+events_warning: 1
+events_normal: 0
+events_unknown_type: 0
+```
+
+The single recent Warning Event was:
+
+```text
+reason: ProbeWarning
+subject: Pod/moodle/moodle-b49d869bd-flsr6
+count: 758740
+```
+
+The large occurrence count is retained as Kubernetes-reported structured evidence. It is not interpreted as severity or root cause by this slice.
+
+## Current live correlation
+
+The current alert-attention projection contained 10 records in this run. This differs from the prior accepted Alertmanager run that observed 11 alerts; alert state is time-varying evidence, and the Event-correlation artifact correctly used the 10 attention records generated in the same current runtime cycle.
+
+```text
+alert attention records: 10
+event correlation records: 10
+cardinality match: true
+attention_with_related_warning_events: 1
+attention_without_direct_warning_match: 9
+attention_event_correlation_unknown: 0
+warning_events_recent: 1
+warning_events_related_to_attention: 1
+warning_events_without_attention_match: 0
+```
+
+The one match was:
+
+```text
+attention scope: Namespace/moodle
+handling: INHIBITED
+related Event: ProbeWarning on Pod/moodle/moodle-b49d869bd-flsr6
+basis:
+  NAMESPACE_SCOPE_MEMBERSHIP
+  RECENT_KUBERNETES_WARNING_EVENT
+```
+
+This is intentionally namespace-level supporting context. The Pod name was not used to infer Deployment/StatefulSet/DaemonSet ownership.
+
+Both current `Platform/k3s-main` attention records remained:
+
+```text
+NO_DIRECT_EVENT_MATCH
+```
+
+with zero related Events. Platform alerts are therefore not broadly associated with unrelated cluster Events.
+
+## Sensitive/free-form exclusion
+
+Accepted live guard:
+
+```text
+forbidden projected keys: none
+raw URL markers: false
+```
+
+Persisted Event evidence excludes:
+
+- `message` / `note`;
+- deprecated source host / reporting instance;
+- arbitrary annotations and labels;
+- raw object UID;
+- credentials, passwords, tokens, private keys, and Secret values.
+
+Event reason is restricted to a bounded structural token; URL-like/free-form values are converted to `REDACTED_REASON`.
+
+## Failure and bounded-window semantics
+
+The accepted live run was `COMPLETE`, so its nine no-match records can safely be represented as `NO_DIRECT_EVENT_MATCH` for the modeled one-hour Event window.
+
+If a future Event read fails, source state becomes `FAILED_TO_OBSERVE`. If more than 500 recent Events require truncation, source state becomes `PARTIAL`. In either case unsupported no-match correlation becomes `UNKNOWN` rather than a false negative.
+
+## Acceptance conclusion
+
+The slice is accepted because:
+
+1. all repository tests passed;
+2. prior Git/Kubernetes/Prometheus/Alertmanager evidence remained healthy;
+3. Event access is read-only and Pod/Secret/mutation access remains denied;
+4. Event source bounds are explicit;
+5. free-form Event text and sensitive fields are excluded;
+6. one real current Warning Event was retained as structured evidence;
+7. correlation used an explicit namespace-membership basis;
+8. Pod-name controller inference was not introduced;
+9. platform alerts were not broadly correlated;
+10. Event relations remain supporting context rather than root-cause claims;
+11. `mutation_allowed=false` remains binding.
 
 ## Trust boundary
 
