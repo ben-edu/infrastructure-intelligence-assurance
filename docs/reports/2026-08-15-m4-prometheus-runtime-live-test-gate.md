@@ -2,117 +2,159 @@
 
 ## Status
 
-Pending final corrected management-host live acceptance.
+Accepted.
 
-Two live attempts have now validated the failure semantics and progressively tightened the Service-proxy authorization boundary. M4 is not accepted yet.
+The third management-host run passed the final corrected live gate. The first two runs remain documented because they validated failure semantics and progressively refined the least-privilege Service-proxy boundary.
 
 ## Scope
 
 Validate the first Milestone 4 runtime observability slice against the existing Prometheus instance without modifying Prometheus, Kubernetes workloads, or alerting configuration.
 
-## First live attempt
+## Final accepted run
 
-Repository regression suite passed:
-
-```text
-102 passed in 0.72s
-```
-
-The observer systemd service completed with `status=0/SUCCESS`; Git declared-state observation remained `COMPLETE` at revision `5767e0a4c583d0a0e8c87b2e24c42eaeb822a3b4`.
-
-Bootstrap stopped because the original authorization check used `kubectl auth can-i get services/proxy`, which tests `TYPE/NAME` rather than safely proving the proxy subresource. The gate was corrected to use `--subresource=proxy`.
-
-## Second live attempt
-
-Repository regression suite passed again:
+Repository regression suite:
 
 ```text
-102 passed in 0.65s
+102 passed in 0.74s
 ```
 
-Bootstrap authorization checks reported:
+The normal observer service completed with `status=0/SUCCESS`; Git declared-state observation remained `COMPLETE` at revision `5767e0a4c583d0a0e8c87b2e24c42eaeb822a3b4`.
+
+### Exact Service-proxy authorization
+
+The observer authorization boundary was verified as:
 
 ```text
-Prometheus Service / monitoring : yes
-Other Service / monitoring      : no
-Prometheus Service / default    : no
-Secrets                         : no
-Create Deployment               : no
+kube-prom-stack-prometheus:9090 proxy / monitoring = yes
+not-authorized:9090 proxy / monitoring             = no
+kube-prom-stack-prometheus:9090 proxy / default    = no
+unqualified kube-prom-stack-prometheus / monitoring = no
+list Secrets                                        = no
 ```
 
-However, the real Prometheus API proxy request failed with:
+The Role is therefore constrained to the actual port-qualified Prometheus Service-proxy identity used by the runtime.
+
+### Prometheus API observation
+
+Both read-only API probes succeeded:
 
 ```text
-services "kube-prom-stack-prometheus:9090" is forbidden
+targets API: success
+active targets: 21
+alerts API: success
+active alerts: 11
 ```
 
-The runtime handled that failure correctly:
+Normalized runtime source:
 
 ```text
-source.status = FAILED_TO_OBSERVE
-runtime workload UNKNOWN = 68
-runtime/inventory cardinality = 68/68
-source errors = PROMETHEUS_PROXY_FORBIDDEN for targets and alerts
-forbidden projected keys = none
-raw URL markers present = false
+status: COMPLETE
+mutation_allowed: false
 ```
 
-No false zero-target, zero-alert, or healthy-workload conclusion was produced.
+### Target evidence
 
-### Root cause
+```text
+targets_total: 21
+targets_up: 21
+targets_down: 0
+targets_unknown: 0
+targets_attributed_to_workloads: 11
+targets_unattributed: 10
+```
 
-The API server proxy URL uses a port-qualified Service name:
+Seven workload entities received `PROMETHEUS_TARGETS_UP`; 61 received `NO_RUNTIME_SIGNAL_MATCH`.
+
+`PROMETHEUS_TARGETS_UP` remains signal-scoped scrape evidence and is not presented as generic application health.
+
+### Active alert evidence
+
+```text
+active_alerts_total: 11
+active_alerts_firing: 11
+active_alerts_pending: 0
+active_alerts_unknown: 0
+alerts_attributed_to_workloads: 0
+alerts_unattributed: 11
+```
+
+The implementation did not force attribution for these alerts. Current alert labels identify Services such as `kube-prom-stack-kubelet` for which no current Service-to-workload controller inference exists in the corresponding scope. The alerts remain valid operational evidence while workload attribution remains unresolved.
+
+This is preferred to inventing controller ownership.
+
+### Explicit unresolved mappings
+
+The runtime emitted evidence-backed unknowns such as:
+
+```text
+PROMETHEUS_TARGET_WORKLOAD_MAPPING_UNRESOLVED
+PROMETHEUS_ALERT_WORKLOAD_MAPPING_UNRESOLVED
+```
+
+Examples include the Kubernetes API Service and kubelet monitoring Services, where no current controller-level selector inference exists.
+
+These unknowns do not downgrade the Prometheus source itself; API observation was complete.
+
+### Cardinality and sensitive-data gate
+
+```text
+runtime workloads: 68
+inventory entities: 68
+cardinality match: true
+forbidden projected keys: none
+raw URL markers: false
+```
+
+No raw scrape URLs, discovered labels, alert annotations, metric samples, credentials, Secret values, or other forbidden projected fields were found in the persisted runtime artifact.
+
+## Earlier live attempts
+
+### Attempt 1
+
+Tests passed, but bootstrap used an incorrect `kubectl auth can-i get services/proxy` check. That syntax did not safely test the proxy subresource. The gate was corrected to use `--subresource=proxy`.
+
+### Attempt 2
+
+Tests passed and the corrected subresource checks succeeded for the unqualified Service name, but the real proxy request was denied because Kubernetes authorized the actual port-qualified resource name:
 
 ```text
 kube-prom-stack-prometheus:9090
 ```
 
-Kubernetes Service proxy URLs explicitly support `<service_name>:<port_name-or-number>`. RBAC `resourceNames` matches the resource name carried by the authorization request, so restricting the rule to only `kube-prom-stack-prometheus` does not authorize the actual port-qualified proxy request.
-
-### Final correction
-
-The reviewed Role is now pinned to the exact proxy resource name used by the runtime:
+Runtime failure semantics were correct during that failure:
 
 ```text
-namespace: monitoring
-resource: services/proxy
-resourceName: kube-prom-stack-prometheus:9090
-verb: get
+source.status = FAILED_TO_OBSERVE
+runtime workload UNKNOWN = 68
+runtime/inventory cardinality = 68/68
+PROMETHEUS_PROXY_FORBIDDEN for targets and alerts
+forbidden projected keys = none
+raw URL markers = false
 ```
 
-Bootstrap is also pinned to the exact source tuple:
+No false zero-target, zero-alert, or healthy-workload conclusion was produced.
 
-```text
-monitoring / kube-prom-stack-prometheus / 9090
-```
+The Role was then narrowed to the exact port-qualified proxy identity rather than broadened.
 
-and verifies:
+## Acceptance conclusion
 
-```text
-get services/kube-prom-stack-prometheus:9090 --subresource=proxy -n monitoring = yes
-get services/not-authorized:9090 --subresource=proxy -n monitoring = no
-get services/kube-prom-stack-prometheus:9090 --subresource=proxy -n default = no
-get services/kube-prom-stack-prometheus --subresource=proxy -n monitoring = no
-list secrets --all-namespaces = no
-```
+Accepted because:
 
-## Required final acceptance evidence
-
-1. Repository tests pass after the port-qualified authorization correction.
-2. Existing Git, Kubernetes, history, drift, topology, configuration coverage, and inventory outputs remain healthy.
-3. The exact Prometheus port-qualified Service proxy request succeeds.
-4. Unrelated Service proxy access in `monitoring` remains denied.
-5. Cross-namespace proxy access remains denied.
-6. The unqualified Prometheus Service proxy name remains denied, proving the rule is constrained to the actual port-qualified request.
-7. Secret access and Kubernetes mutation remain denied.
-8. Prometheus targets and alerts APIs return successful observations.
-9. Runtime workload cardinality matches inventory cardinality from the same run.
-10. Raw scrape URLs, discovered labels, alert annotations, metric samples, credentials, Secret values, and arbitrary labels remain absent from persisted runtime evidence.
-11. Any real down targets or active alerts remain visible as evidence and are not treated as test failures.
-12. `mutation_allowed` remains `false`.
+1. repository tests pass;
+2. Prometheus targets and alert APIs are observable through the reviewed read-only path;
+3. proxy authorization is constrained to one port-qualified Service identity in one namespace;
+4. Secret access and Kubernetes mutation remain denied;
+5. source failures remain explicit and produce `UNKNOWN` rather than false absence;
+6. current target and alert evidence is normalized without raw/sensitive payload persistence;
+7. workload attribution occurs only when the existing evidence-backed Service-to-controller path supports it;
+8. unresolved mappings remain explicit;
+9. runtime/inventory cardinality is consistent;
+10. `mutation_allowed=false` remains intact.
 
 ## Trust boundary
 
-Prometheus remains authoritative for scrape-target and alert-evaluation state. The platform stores a narrow current evidence projection and does not replace Prometheus or Alertmanager.
+Prometheus remains authoritative for scrape-target and alert-evaluation state. The platform stores a narrow current projection and does not replace Prometheus or Alertmanager.
 
-The two failed live attempts are accepted evidence about the integration boundary, not hidden implementation noise: the first exposed incorrect authorization-test syntax; the second exposed the port-qualified resource name used by the real Service proxy request.
+A Prometheus target reporting `UP` proves scrape-target reachability at the observed time, not application correctness or user-visible health.
+
+Active Prometheus alerts remain operational evidence even when workload attribution is unresolved. The platform must not manufacture ownership merely to make alerts fit the workload inventory model.
