@@ -2,7 +2,7 @@
 
 ## Goal
 
-Turn the declared-vs-observed drift engine into an autonomous evidence loop for a real private infrastructure repository while preserving a strict boundary between Git declarations and live Kubernetes observation.
+Turn the existing declared-vs-observed drift engine into an autonomous evidence loop for a real private infrastructure repository.
 
 ## Source
 
@@ -14,9 +14,7 @@ branch: main
 cluster identity: k3s-main
 ```
 
-Declared targets are renderer-aware rather than a recursive scan of every YAML file.
-
-Direct manifests:
+Direct manifest targets:
 
 ```text
 kubernetes/bookstack/01-pvc.yaml
@@ -32,7 +30,7 @@ kubernetes/fastapi-platform/overlays/dev
 kubernetes/fastapi-platform/overlays/prod
 ```
 
-The observer does not discover arbitrary repositories, scan the operator's home directory, treat Kustomize bases/patches as final declarations, or interpret Helm values without a Helm renderer.
+The observer does not discover arbitrary repositories, scan the operator's home directory, or recursively treat every YAML file as an independent declaration.
 
 ## Runtime flow
 
@@ -41,10 +39,10 @@ GitHub private repository
   -> dedicated read-only deploy key
   -> verified SSH host identity
   -> shallow fetch into bare repository cache
-  -> exact Git revision
-  -> direct manifest reads + rendered Kustomize targets
+  -> explicit direct-manifest targets
+  -> explicit Kustomize render targets at exact revision
   -> top-level kind safety gate
-  -> local parser with no kubeconfig dependency
+  -> local parse of supported kinds only
   -> narrow normalization
   -> declared ObservationEnvelope records
   -> source-status evidence
@@ -58,25 +56,17 @@ The bootstrap generates a dedicated Ed25519 keypair on the management host.
 
 The private key is readable only by `infra-assurance`.
 
-The public key is registered on `ben-edu/api-cluster-infra` as a deploy key without write access.
+The public key is registered on the source repository as a deploy key without write access.
 
 The runtime does not reuse `/home/ben/.ssh` or another personal credential.
-
-## Parsing and rendering
-
-Direct supported manifests are parsed with `kubectl patch --local` using an empty merge patch. The parser environment removes `KUBECONFIG` and `KUBERNETES_MASTER`; Git-plane normalization therefore does not depend on Kubernetes API discovery.
-
-Kustomize targets are rendered with `kubectl kustomize` from a transient detached worktree at the exact fetched Git revision. The worktree is removed after rendering.
-
-This matters for FastAPI because the dev and prod overlays assign different namespaces and image tags. Raw base and patch files are not independent declarations.
 
 ## Source observation semantics
 
 The source status is independent from normalized records.
 
-`COMPLETE` means the configured Git revision was fetched and every configured declaration target was rendered/read and normalized without an error.
+`COMPLETE` means the configured Git revision was fetched and all supported configured declarations were normalized.
 
-`PARTIAL` means the revision was fetched but at least one configured target could not be rendered or normalized safely.
+`PARTIAL` means the revision was fetched but at least one supported configured document or render target could not be normalized safely.
 
 `FAILED_TO_OBSERVE` means the latest source attempt failed before a trustworthy current declared view could be produced.
 
@@ -96,11 +86,15 @@ Ingress
 PersistentVolumeClaim
 ```
 
-`Secret`, `ConfigMap`, and unmodeled kinds are gated before object parsing and skipped.
+Sensitive and unmodeled documents are skipped.
 
-The normalized projection omits arbitrary metadata, annotations, environment values, ConfigMap payloads, Secret payloads, and connection strings.
+The normalized data projection deliberately omits arbitrary metadata, annotations, environment values, ConfigMap payloads, Secret payloads, and connection strings.
 
-Git source references and exact revisions remain as provenance.
+Git paths and exact revisions remain as provenance.
+
+Direct manifests are parsed locally. FastAPI dev/prod are rendered from configured Kustomize targets at the exact fetched revision using a transient detached worktree. The worktree is removed after rendering and is not evidence storage.
+
+Helm values and example directories remain outside this declared-state contract.
 
 ## Drift behavior
 
@@ -108,7 +102,9 @@ The drift engine remains declaration-driven.
 
 It compares each current declared identity with matching current observed evidence.
 
-A failed Git source, partial source, stale declared envelope, failed Kubernetes collection, unsupported observed field, or cluster mismatch stays explicit and is not converted into a confident drift claim.
+A failed Git source, stale declared envelope, failed Kubernetes collection, unsupported observed field, or cluster mismatch produces unknown state rather than invented drift.
+
+A real field mismatch remains drift and is not repaired automatically.
 
 ## Operational cadence
 
@@ -116,12 +112,50 @@ The existing Kubernetes systemd service invokes the Git observer before each fiv
 
 Git refresh failure is fail-open for Kubernetes observation: Kubernetes evidence and history continue even if Git is temporarily unavailable.
 
-The drift report records the declared-source state explicitly.
+The drift report still records the declared source failure explicitly.
+
+## Live validation
+
+The management-host acceptance passed on 2026-08-15.
+
+The final local test run reported:
+
+```text
+64 passed in 0.71s
+```
+
+A Git sync as `infra-assurance`, with `KUBECONFIG` explicitly removed, reported:
+
+```text
+status: COMPLETE
+revision: 5767e0a4c583d0a0e8c87b2e24c42eaeb822a3b4
+normalized_records: 27
+skipped_documents: 3
+errors: []
+```
+
+The transient Kustomize worktree check left no residual paths.
+
+The subsequent drift evaluation reported:
+
+```text
+declared_records: 27
+in_sync: 26
+drift: 1
+unknown: 0
+loader_errors: 0
+```
+
+The single drift is evidence-backed: the Git revision declares `k3s-master.soria-academie.fr` for `Ingress/validation/nginx-validation`, while observed Kubernetes evidence reports `k3s-master.behnam.fr`.
+
+No mutation is attempted. The platform remains read-only.
 
 ## Current limitations
 
-The observer supports one explicitly configured Git source.
+The observer currently supports one explicitly configured Git source.
 
-It supports direct manifests plus explicitly configured Kustomize targets. It does not yet render Helm values or normalize arbitrary CRDs.
+It supports direct manifests and explicit Kustomize targets, but not Helm template rendering or arbitrary templates.
+
+It does not normalize CRDs.
 
 Those are deliberate deferred capabilities, not silent assumptions.
