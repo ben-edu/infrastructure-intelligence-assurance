@@ -40,7 +40,7 @@ def test_package_version_and_cli_are_in_sync():
 
     assert project_match is not None
     assert init_match is not None
-    assert project_match.group(1) == init_match.group(1) == "0.26.0"
+    assert project_match.group(1) == init_match.group(1)
     assert (
         'iia-mariadb-infrastructure-recovery-context = '
         '"infra_assurance.mariadb_infrastructure_recovery_context:main"'

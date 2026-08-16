@@ -7,17 +7,17 @@ Project Sources remain authoritative for durable goals, roadmap, trust principle
 1. Read Project Sources.
 2. Read `HANDOFF.md` from `main`.
 3. Check open PRs in `ben-edu/infrastructure-intelligence-assurance`.
-4. If an active project PR has newer `HANDOFF.md`, prefer that branch version for execution state.
+4. If an active project PR has a newer `HANDOFF.md`, prefer that branch version for execution state.
 5. Read only the ADR, milestone doc, and live/discovery report relevant to the active slice.
 6. Prefer repository and live evidence over chat reconstruction.
 
-## Active checkpoint
+## Active execution checkpoint
 
 ```text
 repository: ben-edu/infrastructure-intelligence-assurance
-accepted main after PR #49: b836ebbedea5027a7107e17db2d19ba6f38c37ad
-active branch: agent/m5-pvc-infrastructure-recovery-discovery
-package on accepted main: 0.26.0
+accepted main before PR #51: 5f28edc31f4ac5e9e34e697a502329c5df024bbd
+active branch: feature/m5-pvc-infrastructure-recovery-context
+package: 0.27.0
 Milestone 5: active
 mutation_allowed: false
 management host: mgmt-automation
@@ -25,19 +25,13 @@ Kubernetes cluster: k3s-main
 PVE source: pve-bm2 / delfan
 ```
 
+PR #51 passed its bounded live acceptance gate on 2026-08-16 and is ready to merge.
+
 PVE collection remains manual-only. Existing PVE credentials remain discovery-only and `runtime_credential_approved=false`.
 
 ## Stable Milestone 5 evidence
 
-### Kubernetes PVC foundation
-
-```text
-PVC assets: 37
-protection UNKNOWN: 37
-unprotected_claims: 0
-```
-
-### Accepted VM recovery evidence
+### VM recovery evidence
 
 VM Backup Assurance v0.2 remains `STRICT_CORRELATION_ONLY` and accepts only `STRICT_SUCCESS_TASK_MATCH` evidence.
 
@@ -69,157 +63,115 @@ sha256: 14ccd7a082a6c901df6941e4c0540d24bd13ff96f29146a0e6ad689d4f824c1a
 sha256: 18aaa4ad1a2dd260b4d0678e830f3c9267b2afaa1014b3563ec0e78a2b0135de
 ```
 
-### PVE storage relationship
+### Database infrastructure recovery contexts
 
-All 12 selected VMs resolved primary storage ID `local` and selected backup storage ID `local`.
-
-This is logical storage-ID evidence only. Physical failure-domain independence remains `UNKNOWN`.
-
-### PostgreSQL infrastructure recovery context
-
-PR #46 merged at:
+PostgreSQL Kubernetes context PR #46:
 
 ```text
 74a3c270e411a3823bd692abeb66e9fb3b6b6c04
-```
-
-Eight Kubernetes PostgreSQL workloads have accepted infrastructure recovery context:
-
-```text
 instances_total: 8
 infrastructure_recovery_observed: 8
-underlying_vm_last_successful_backup_observed: 8
 postgresql_protection_unknown: 8
-unprotected_claims: 0
-backup_stale_claims: 0
-rpo_violation_claims: 0
 ```
 
-Management-host PostgreSQL is related to PVE VMID 109 with accepted strict VM last-successful-backup evidence. PR #47 merged at:
+Management-host PostgreSQL relationship PR #47:
 
 ```text
 cc0b8f36bc889a86cdd0181b90f48f8b21bc1da2
+mgmt-automation -> PVE VMID 109
+VM LAST_SUCCESSFUL_BACKUP=OBSERVED
+local PostgreSQL infrastructure recovery=OBSERVED
 ```
 
-PostgreSQL database-aware mechanism, execution/result, artifact location, retention, restore, integrity, RPO, and RTO remain unknown.
-
-### MariaDB infrastructure recovery context
-
-Source discovery PR #48 merged at:
-
-```text
-460f72320071291c3eeecd95a89c99cc5e1fe656
-```
-
-MariaDB Infrastructure Recovery Context v0.1 PR #49 merged at:
+MariaDB Infrastructure Recovery Context v0.1 PR #49:
 
 ```text
 b836ebbedea5027a7107e17db2d19ba6f38c37ad
-```
-
-Accepted live gate:
-
-```text
-package: 0.26.0
-repository tests: 305 passed in 1.16s
-schema: PASS
 instances_total: 4
 persistence_observed: 3
 persistence_unknown: 1
 infrastructure_recovery_observed: 3
 infrastructure_recovery_unknown: 1
-underlying_vm_last_successful_backup_observed: 3
 mariadb_protection_unknown: 4
 unprotected_claims: 0
-backup_stale_claims: 0
-rpo_violation_claims: 0
-gate_rc: 0
 ```
 
-`misp/Deployment/mariadb-v2` remains `UNKNOWN`, not `UNPROTECTED`.
+Database-aware PostgreSQL and MariaDB backup mechanism, execution/result, artifact location, retention, restore, integrity, RPO, and RTO remain unknown.
 
-MariaDB database-aware mechanism, execution/result, artifact location, retention, restore, integrity, RPO, and RTO remain unknown.
+### PVC Infrastructure Recovery Context v0.1
 
-## Accepted PVC infrastructure recovery coverage discovery
-
-Report:
+Discovery PR #50 merged at:
 
 ```text
-docs/reports/2026-08-16-m5-pvc-infrastructure-recovery-coverage-discovery.md
+5f28edc31f4ac5e9e34e697a502329c5df024bbd
 ```
 
-Accepted live discovery on 2026-08-16:
+PR #51 accepted live gate:
 
 ```text
-accepted_foundation_pvc_assets: 37
+package: 0.27.0
+repository tests: 328 passed in 1.41s
+foundation schema: PASS
+foundation_assets: 37
 live_pvc_assets: 37
-foundation_count_match: true
-pvc_bound: 37
-current_workload_reference_observed: 22
-current_workload_reference_none_observed: 15
-explicit_storage_node_observed: 37
-explicit_storage_node_unknown: 0
-storage_node_failed_to_observe: 0
-pve_vm_mapping_observed: 37
-pve_vm_mapping_unknown: 0
-underlying_vm_last_successful_backup_observed: 37
-underlying_vm_last_successful_backup_unknown: 0
+storage_nodes_to_map: 3
+relationship_source_status: COMPLETE
+VM Backup Assurance v0.2 schema: PASS
+PVC context schema: PASS
+assets_total: 37
+direct_workload_reference_observed: 22
+direct_workload_reference_none_observed: 15
 infrastructure_recovery_observed: 37
 infrastructure_recovery_unknown: 0
 infrastructure_recovery_failed_to_observe: 0
-protection_promotions: 0
-unprotected_claims: 0
-backup_stale_claims: 0
-rpo_violation_claims: 0
-discovery_rc: 0
-```
-
-All 37 PVCs were `Bound` and exposed an explicit Kubernetes storage node in the bounded safe observation. All 37 nodes mapped to accepted PVE VMIDs with accepted strict VM last-successful-backup evidence.
-
-The 15 `NONE_OBSERVED` workload-reference results are bounded negative evidence only and are not orphan classifications.
-
-`infrastructure_recovery=OBSERVED` for a PVC means only:
-
-```text
-PVC Bound
-+ explicit PV storage node observed
-+ Kubernetes node -> PVE VMID observed
-+ accepted strict VM LAST_SUCCESSFUL_BACKUP=OBSERVED
-```
-
-It does not establish application/database-consistent backup, protection, retention, restore verification, integrity, failure-domain independence, RPO, or RTO.
-
-## Exact next step — PVC Infrastructure Recovery Context v0.1
-
-Implement a pure-derived, read-only context artifact for the existing 37-PVC foundation.
-
-Do not add a new live collector and do not add runtime/systemd wiring.
-
-The derivation should join bounded PVC relationship evidence to accepted VM Backup Assurance v0.2 and fail closed on missing/mismatched evidence.
-
-Expected semantics if live state remains unchanged:
-
-```text
-assets_total: 37
-infrastructure_recovery_observed: 37
-infrastructure_recovery_unknown: 0
 underlying_vm_last_successful_backup_observed: 37
 protection_unknown: 37
-restore_verification_unknown: 37
+backup_freshness_unknown: 37
+retention_effectiveness_unknown: 37
+failure_domain_unknown: 37
 integrity_verification_unknown: 37
+restore_verification_unknown: 37
 rpo_unknown: 37
 rto_unknown: 37
 unprotected_claims: 0
 backup_stale_claims: 0
 rpo_violation_claims: 0
+accepted_vm_timestamps_match: true
+acceptance_counters_match: true
+gate_rc: 0
 ```
 
-No workload-reference relationship is required to prove the infrastructure storage-node/VM chain. A missing direct workload reference must remain bounded context, not an orphan or protection classification.
+The accepted manual wrapper used `sudo cat` only to read normalized `kubernetes.json` and `topology.json`; the actual live gate ran as the non-root shell user. No permission/ownership or infrastructure state was changed.
+
+`infrastructure_recovery=OBSERVED` remains infrastructure context only. It does not establish application/database-consistent protection.
+
+## Exact next step — PVE backup policy and retention source discovery
+
+The next smallest read-only Milestone 5 gap is to identify authoritative PVE backup policy evidence before attempting retention/RPO claims.
+
+Discovery only. Do not change backup jobs, retention, storage, schedules, or credentials.
+
+Bounded questions:
+
+```text
+Which PVE backup jobs are currently declared?
+Which jobs are enabled?
+What guest scope is declared (all or explicit VMIDs)?
+What storage target is declared?
+What schedule/frequency is declared?
+What retention/prune policy is explicitly declared, if any?
+Can jobs be related to the accepted VMIDs 100..110/9000 without assuming execution success?
+Which policy fields are absent or unknown?
+```
+
+Preferred authoritative source is the PVE cluster backup-job API (read-only), with a safe projection only. Do not print free-form notes, notification secrets, hook scripts, credentials, raw configuration, or complete connection strings.
+
+Declared schedule/retention evidence must remain distinct from observed successful backup-task evidence. A configured job does not prove execution success, retention effectiveness, restore viability, RPO compliance, or protection.
 
 ## Milestone 5 gaps still open
 
 ```text
-PVC infrastructure recovery derived context
+PVE declared backup schedule/retention evidence
 PostgreSQL database-aware backup evidence
 MariaDB database-aware backup evidence
 PBS (future)
@@ -242,6 +194,7 @@ Milestone 8: Reliability and Hardening
 
 - infrastructure interaction remains read-only;
 - source artifacts and derived assurance remain separate;
+- declared backup policy is not observed backup success;
 - infrastructure recovery evidence is not application/database-consistent backup evidence;
 - source-scoped negative evidence is not universal absence;
 - recovery-point presence is not task-result success;

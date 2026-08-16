@@ -1,0 +1,314 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://soria.local/schemas/pvc-infrastructure-recovery-context.schema.json",
+  "title": "PVC Infrastructure Recovery Context",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "pvc_infrastructure_recovery_context_version",
+    "generated_at",
+    "mutation_allowed",
+    "cluster_id",
+    "scope",
+    "source_status",
+    "assets",
+    "summary",
+    "unknowns",
+    "caveats"
+  ],
+  "properties": {
+    "pvc_infrastructure_recovery_context_version": {"const": "0.1"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "mutation_allowed": {"const": false},
+    "cluster_id": {"type": "string", "minLength": 1},
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["asset_type", "derived_only", "application_aware_backup_source_integrated"],
+      "properties": {
+        "asset_type": {"const": "KUBERNETES_PVC"},
+        "derived_only": {"const": true},
+        "application_aware_backup_source_integrated": {"const": false}
+      }
+    },
+    "source_status": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pvc_foundation", "relationship_evidence", "vm_backup_assurance"],
+      "properties": {
+        "pvc_foundation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["version", "status", "generated_at"],
+          "properties": {
+            "version": {"const": "0.1"},
+            "status": {"enum": ["COMPLETE", "PARTIAL", "FAILED_TO_OBSERVE", "UNKNOWN"]},
+            "generated_at": {"type": ["string", "null"], "format": "date-time"}
+          }
+        },
+        "relationship_evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["version", "source_type", "source_id", "status", "generated_at"],
+          "properties": {
+            "version": {"const": "0.1"},
+            "source_type": {"const": "BOUNDED_KUBERNETES_PVE_RELATIONSHIP_OBSERVATION"},
+            "source_id": {"type": "string", "minLength": 1},
+            "status": {"enum": ["COMPLETE", "PARTIAL", "FAILED_TO_OBSERVE"]},
+            "generated_at": {"type": ["string", "null"], "format": "date-time"}
+          }
+        },
+        "vm_backup_assurance": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["version", "source_id", "status", "generated_at", "integration_mode", "freshness"],
+          "properties": {
+            "version": {"const": "0.2"},
+            "source_id": {"type": "string", "minLength": 1},
+            "status": {"enum": ["COMPLETE", "INCOMPLETE"]},
+            "generated_at": {"type": ["string", "null"], "format": "date-time"},
+            "integration_mode": {"const": "STRICT_CORRELATION_ONLY"},
+            "freshness": {"enum": ["CURRENT", "STALE", "UNKNOWN"]}
+          }
+        }
+      }
+    },
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "asset_id",
+          "asset_type",
+          "subject",
+          "foundation_context",
+          "infrastructure_recovery",
+          "assurance",
+          "required_evidence"
+        ],
+        "properties": {
+          "asset_id": {"type": "string", "minLength": 1},
+          "asset_type": {"const": "KUBERNETES_PVC"},
+          "subject": {
+            "type": "object",
+            "additionalProperties": true,
+            "required": ["cluster", "kind", "namespace", "name"],
+            "properties": {
+              "cluster": {"type": "string", "minLength": 1},
+              "kind": {"const": "PersistentVolumeClaim"},
+              "namespace": {"type": "string", "minLength": 1},
+              "name": {"type": "string", "minLength": 1}
+            }
+          },
+          "foundation_context": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["freshness", "storage", "workload_context"],
+            "properties": {
+              "freshness": {"enum": ["CURRENT", "STALE", "UNKNOWN"]},
+              "storage": {"type": "object", "additionalProperties": true},
+              "workload_context": {
+                "type": "object",
+                "additionalProperties": true,
+                "required": ["status", "related_workloads"],
+                "properties": {
+                  "status": {
+                    "enum": [
+                      "DIRECT_CONTROLLER_REFERENCES_OBSERVED",
+                      "NO_DIRECT_CONTROLLER_REFERENCE_OBSERVED",
+                      "UNKNOWN",
+                      "FAILED_TO_OBSERVE"
+                    ]
+                  },
+                  "related_workloads": {
+                    "type": "array",
+                    "items": {"type": "string", "minLength": 1},
+                    "uniqueItems": true
+                  }
+                }
+              }
+            }
+          },
+          "infrastructure_recovery": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "relationship_status",
+              "storage_node",
+              "pve_source_id",
+              "pve_node",
+              "vmid",
+              "underlying_vm_last_successful_backup_status",
+              "underlying_vm_last_successful_backup_at",
+              "underlying_vm_last_successful_backup_evidence",
+              "basis",
+              "evidence_ids"
+            ],
+            "properties": {
+              "relationship_status": {"enum": ["OBSERVED", "UNKNOWN", "FAILED_TO_OBSERVE"]},
+              "storage_node": {"type": ["string", "null"]},
+              "pve_source_id": {"type": ["string", "null"]},
+              "pve_node": {"type": ["string", "null"]},
+              "vmid": {"type": ["integer", "null"], "minimum": 1},
+              "underlying_vm_last_successful_backup_status": {"enum": ["OBSERVED", "UNKNOWN"]},
+              "underlying_vm_last_successful_backup_at": {"type": ["string", "null"], "format": "date-time"},
+              "underlying_vm_last_successful_backup_evidence": {
+                "oneOf": [
+                  {"type": "null"},
+                  {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["source_type", "source_id", "recovery_point_id", "task_result_id", "basis"],
+                    "properties": {
+                      "source_type": {"const": "PROXMOX_VE_VZDUMP_TASK_RESULT"},
+                      "source_id": {"type": "string", "minLength": 1},
+                      "recovery_point_id": {"type": "string", "pattern": "^pve-rp-[a-f0-9]{24}$"},
+                      "task_result_id": {"type": "string", "pattern": "^pve-backup-task:[a-f0-9]{24}$"},
+                      "basis": {
+                        "type": "array",
+                        "items": {"const": "STRICT_SUCCESS_TASK_MATCH"},
+                        "minItems": 1,
+                        "maxItems": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              "basis": {
+                "type": "array",
+                "items": {
+                  "enum": [
+                    "PVC_FOUNDATION_ASSET_OBSERVED",
+                    "BOUND_PVC_STORAGE_NODE_OBSERVED",
+                    "KUBERNETES_NODE_TO_PVE_VMID_OBSERVED",
+                    "VM_LAST_SUCCESSFUL_BACKUP_OBSERVED"
+                  ]
+                },
+                "uniqueItems": true
+              },
+              "evidence_ids": {
+                "type": "array",
+                "items": {"type": "string", "minLength": 1},
+                "uniqueItems": true
+              }
+            }
+          },
+          "assurance": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "protection_status",
+              "backup_freshness_status",
+              "backup_mechanism_status",
+              "retention_effectiveness_status",
+              "failure_domain_status",
+              "integrity_verification_status",
+              "restore_verification_status",
+              "rpo_status",
+              "rto_status",
+              "basis",
+              "statement"
+            ],
+            "properties": {
+              "protection_status": {"const": "UNKNOWN"},
+              "backup_freshness_status": {"const": "UNKNOWN"},
+              "backup_mechanism_status": {"const": "UNKNOWN"},
+              "retention_effectiveness_status": {"const": "UNKNOWN"},
+              "failure_domain_status": {"const": "UNKNOWN"},
+              "integrity_verification_status": {"const": "UNKNOWN"},
+              "restore_verification_status": {"const": "UNKNOWN"},
+              "rpo_status": {"const": "UNKNOWN"},
+              "rto_status": {"const": "RTO_UNKNOWN"},
+              "basis": {
+                "type": "array",
+                "items": {"const": "APPLICATION_AWARE_BACKUP_EVIDENCE_NOT_INTEGRATED"},
+                "minItems": 1,
+                "maxItems": 1
+              },
+              "statement": {"type": "string", "minLength": 1}
+            }
+          },
+          "required_evidence": {
+            "type": "array",
+            "minItems": 8,
+            "maxItems": 8,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["target", "status", "statement"],
+              "properties": {
+                "target": {"type": "string", "minLength": 1},
+                "status": {"const": "REQUIRED"},
+                "statement": {"type": "string", "minLength": 1}
+              }
+            }
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "assets_total",
+        "direct_workload_reference_observed",
+        "direct_workload_reference_none_observed",
+        "infrastructure_recovery_observed",
+        "infrastructure_recovery_unknown",
+        "infrastructure_recovery_failed_to_observe",
+        "underlying_vm_last_successful_backup_observed",
+        "protection_unknown",
+        "backup_freshness_unknown",
+        "retention_effectiveness_unknown",
+        "failure_domain_unknown",
+        "integrity_verification_unknown",
+        "restore_verification_unknown",
+        "rpo_unknown",
+        "rto_unknown",
+        "unprotected_claims",
+        "backup_stale_claims",
+        "rpo_violation_claims"
+      ],
+      "properties": {
+        "assets_total": {"type": "integer", "minimum": 0},
+        "direct_workload_reference_observed": {"type": "integer", "minimum": 0},
+        "direct_workload_reference_none_observed": {"type": "integer", "minimum": 0},
+        "infrastructure_recovery_observed": {"type": "integer", "minimum": 0},
+        "infrastructure_recovery_unknown": {"type": "integer", "minimum": 0},
+        "infrastructure_recovery_failed_to_observe": {"type": "integer", "minimum": 0},
+        "underlying_vm_last_successful_backup_observed": {"type": "integer", "minimum": 0},
+        "protection_unknown": {"type": "integer", "minimum": 0},
+        "backup_freshness_unknown": {"type": "integer", "minimum": 0},
+        "retention_effectiveness_unknown": {"type": "integer", "minimum": 0},
+        "failure_domain_unknown": {"type": "integer", "minimum": 0},
+        "integrity_verification_unknown": {"type": "integer", "minimum": 0},
+        "restore_verification_unknown": {"type": "integer", "minimum": 0},
+        "rpo_unknown": {"type": "integer", "minimum": 0},
+        "rto_unknown": {"type": "integer", "minimum": 0},
+        "unprotected_claims": {"const": 0},
+        "backup_stale_claims": {"const": 0},
+        "rpo_violation_claims": {"const": 0}
+      }
+    },
+    "unknowns": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "subject", "status", "statement"],
+        "properties": {
+          "code": {"type": "string", "minLength": 1},
+          "subject": {"type": ["string", "null"]},
+          "status": {"enum": ["UNKNOWN", "FAILED_TO_OBSERVE"]},
+          "statement": {"type": "string", "minLength": 1}
+        }
+      }
+    },
+    "caveats": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"type": "string", "minLength": 1}
+    }
+  }
+}

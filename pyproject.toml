@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "infrastructure-intelligence-assurance"
-version = "0.26.0"
+version = "0.27.0"
 description = "Evidence-first infrastructure intelligence, observability drill-down, and backup/recovery assurance foundations"
 requires-python = ">=3.11"
 
@@ -35,6 +35,7 @@ iia-vm-last-successful-backup = "infra_assurance.vm_last_successful_backup_integ
 iia-proxmox-ve-vm-storage-relationship = "infra_assurance.proxmox_ve_vm_storage_relationship:main"
 iia-postgresql-infrastructure-recovery-context = "infra_assurance.postgresql_infrastructure_recovery_context:main"
 iia-mariadb-infrastructure-recovery-context = "infra_assurance.mariadb_infrastructure_recovery_context:main"
+iia-pvc-infrastructure-recovery-context = "infra_assurance.pvc_infrastructure_recovery_context:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
