@@ -109,7 +109,7 @@ Operator confirms there is no PBS today. Future PBS compatibility remains mandat
 - output: `vm_backup_assurance_version=0.2`
 - integration: `last_successful_backup_integration.version=0.1`
 - mode: `STRICT_CORRELATION_ONLY`
-- status: Draft; repository/manual-derived gate pending
+- status: Draft; first derived gate exposed an output-schema defect; focused retry pending after fix
 - network/Proxmox query: none
 - credential access: none
 - RBAC change: none
@@ -124,6 +124,7 @@ src/infra_assurance/vm_last_successful_backup_integration.py
 schemas/vm-last-successful-backup-integration.schema.json
 tests/test_vm_last_successful_backup_integration.py
 tests/test_vm_last_successful_backup_integration_wiring.py
+tests/test_vm_last_successful_backup_schema_contract.py
 docs/decisions/0024-integrate-strict-backup-task-success-into-vm-assurance.md
 docs/milestone-5-vm-last-successful-backup-integration.md
 docs/reports/2026-08-15-m5-vm-last-successful-backup-integration-live-test-gate.md
@@ -204,6 +205,41 @@ rto_status: RTO_UNKNOWN
 Recovery-point status, backup mechanism, retention context and Kubernetes PVC assurance must not be recomputed or changed.
 
 Task-result source freshness remains `UNKNOWN`. Historical completeness remains `NOT_ESTABLISHED`.
+
+## First PR #41 derived gate — schema defect found
+
+The first gate on 2026-08-16 produced the expected semantic output but failed mandatory output-schema validation.
+
+Observed successful checks:
+
+```text
+261 passed in 1.21s
+both input artifact hashes unchanged: true
+VM assets: 12
+strict correlations consumed: 9
+last_successful_backup OBSERVED: 6
+last_successful_backup UNKNOWN: 6
+unmatched historical recovery points: 3
+unprotected_claims: 0
+forbidden projected keys: none
+raw URL markers: false
+```
+
+Schema failure root cause:
+
+```text
+accepted PR #38 task_result_id contract:
+  ^pve-backup-task:[a-f0-9]{24}$
+
+incorrect PR #41 integration schema pattern:
+  ^pve-task-[a-f0-9]{24}$
+```
+
+The generated output correctly preserved accepted source IDs such as `pve-backup-task:<24hex>`; the integration schema and synthetic unit fixture were stale.
+
+The integration schema is now corrected to the accepted PR #38 contract and a dedicated regression test asserts source/integration task-result ID pattern equality. The first run is NOT accepted even though its later semantic script printed PASS; schema validation takes precedence.
+
+Exact next action: rerun only repository tests + local derivation + output schema/acceptance. Do not rerun any PVE collector or use any Proxmox credential.
 
 ## Exact acceptance requirements for PR #41
 
