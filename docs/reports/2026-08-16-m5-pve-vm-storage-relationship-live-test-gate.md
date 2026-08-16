@@ -6,6 +6,23 @@ Pending live source-artifact acceptance.
 
 The bounded manual preflight has passed. The versioned collector introduced by this slice has not yet been accepted against BM2.
 
+## First repository-gate attempt
+
+The first full repository gate on `mgmt-automation` reached the test suite before any live collector execution and was rejected:
+
+```text
+272 passed
+1 failed
+```
+
+The only failure was a stale regression assertion in `tests/test_vm_last_successful_backup_integration_wiring.py` that hard-coded package version `0.23.0` even though this slice intentionally advances the package to `0.24.0`.
+
+That assertion represented the wrong invariant. The previous integration CLI must remain exposed and package metadata versions must remain synchronized, but a later compatible slice must be allowed to advance the package version. The test was corrected to compare the `pyproject.toml` project version with `infra_assurance.__version__` while continuing to require the previous integration CLI.
+
+Because the interactive shell had `set -euo pipefail`, the pytest failure terminated that SSH shell before the live collector command was reached. Therefore this rejected attempt produced no new PVE live observation and no source artifact acceptance.
+
+Future operator commands in this gate must not enable `set -e` directly in an interactive SSH shell.
+
 ## Preflight result already established
 
 Operator-run manual preflight on `mgmt-automation` used the existing discovery-only BM2 credential and issued HTTP GET requests only.
@@ -76,11 +93,9 @@ package version: 0.24.0
 
 ## Live collector gate required
 
-On `mgmt-automation`:
+On `mgmt-automation`, run without setting `-e` in the interactive shell:
 
 ```bash
-set -euo pipefail
-
 cd ~/projects/infrastructure-intelligence-assurance
 
 ENV_FILE="/home/ben/projects/afpa-infra-rebuild/mcp/proxmox/proxmox.env"
