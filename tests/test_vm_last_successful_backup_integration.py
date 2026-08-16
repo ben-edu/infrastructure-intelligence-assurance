@@ -126,7 +126,7 @@ def _task_artifact() -> dict:
         "observation": {},
         "task_results": [
             {
-                "task_result_id": "pve-task-aaaaaaaaaaaaaaaaaaaaaaaa",
+                "task_result_id": "pve-backup-task:aaaaaaaaaaaaaaaaaaaaaaaa",
                 "task_type": "VZDUMP",
                 "node": "delfan",
                 "vmid": 106,
@@ -140,7 +140,7 @@ def _task_artifact() -> dict:
                 "recovery_point_id": "pve-rp-4aec7ab32df95c5091c9efd6",
                 "vmid": 106,
                 "status": "STRICT_SUCCESS_TASK_MATCH",
-                "task_result_id": "pve-task-aaaaaaaaaaaaaaaaaaaaaaaa",
+                "task_result_id": "pve-backup-task:aaaaaaaaaaaaaaaaaaaaaaaa",
                 "start_delta_seconds": 1,
                 "basis": ["VMID", "RECOVERY_POINT_CREATED_AT", "VZDUMP_START_TIME"],
             },
@@ -178,7 +178,7 @@ def test_strict_success_strengthens_only_last_successful_backup():
         "source_type": "PROXMOX_VE_VZDUMP_TASK_RESULT",
         "source_id": "pve-bm2",
         "recovery_point_id": "pve-rp-4aec7ab32df95c5091c9efd6",
-        "task_result_id": "pve-task-aaaaaaaaaaaaaaaaaaaaaaaa",
+        "task_result_id": "pve-backup-task:aaaaaaaaaaaaaaaaaaaaaaaa",
         "basis": ["STRICT_SUCCESS_TASK_MATCH"],
     }
     assert assurance["protection_status"] == "UNKNOWN"
@@ -213,7 +213,7 @@ def test_latest_strict_success_uses_successful_task_completion_time():
     tasks = _task_artifact()
     tasks["task_results"].append(
         {
-            "task_result_id": "pve-task-bbbbbbbbbbbbbbbbbbbbbbbb",
+            "task_result_id": "pve-backup-task:bbbbbbbbbbbbbbbbbbbbbbbb",
             "task_type": "VZDUMP",
             "node": "delfan",
             "vmid": 106,
@@ -229,7 +229,7 @@ def test_latest_strict_success_uses_successful_task_completion_time():
             "recovery_point_id": "pve-rp-bbbbbbbbbbbbbbbbbbbbbbbb",
             "vmid": 106,
             "status": "STRICT_SUCCESS_TASK_MATCH",
-            "task_result_id": "pve-task-bbbbbbbbbbbbbbbbbbbbbbbb",
+            "task_result_id": "pve-backup-task:bbbbbbbbbbbbbbbbbbbbbbbb",
             "start_delta_seconds": 0,
             "basis": ["VMID", "RECOVERY_POINT_CREATED_AT", "VZDUMP_START_TIME"],
         }
@@ -238,7 +238,7 @@ def test_latest_strict_success_uses_successful_task_completion_time():
     result = build_vm_last_successful_backup_integration(vm, tasks)
     assurance = result["assets"][0]["assurance"]
     assert assurance["last_successful_backup_at"] == "2026-08-15T10:20:00Z"
-    assert assurance["last_successful_backup_evidence"]["task_result_id"] == "pve-task-bbbbbbbbbbbbbbbbbbbbbbbb"
+    assert assurance["last_successful_backup_evidence"]["task_result_id"] == "pve-backup-task:bbbbbbbbbbbbbbbbbbbbbbbb"
 
 
 def test_source_identity_mismatch_is_rejected():
