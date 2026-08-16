@@ -87,7 +87,7 @@ ENV_FILE="/home/ben/projects/afpa-infra-rebuild/mcp/proxmox/proxmox.env"
 OUT="/tmp/pve-vm-storage-relationship-v0.1.json"
 SUMMARY="/tmp/pve-vm-storage-relationship-v0.1.md"
 
-python3 -m infra_assurance.proxmox_ve_vm_storage_relationship \
+PYTHONPATH=src python3 -m infra_assurance.proxmox_ve_vm_storage_relationship \
   --credential-env-file "$ENV_FILE" \
   --source-id pve-bm2 \
   --node delfan \
@@ -101,7 +101,7 @@ python3 -m infra_assurance.proxmox_ve_vm_storage_relationship \
 cat "$SUMMARY"
 ```
 
-If the installed package rather than source-tree module execution is used, the equivalent CLI is `iia-proxmox-ve-vm-storage-relationship`.
+If package `0.24.0` is installed rather than source-tree execution, the equivalent CLI is `iia-proxmox-ve-vm-storage-relationship`.
 
 ## Acceptance checks
 
