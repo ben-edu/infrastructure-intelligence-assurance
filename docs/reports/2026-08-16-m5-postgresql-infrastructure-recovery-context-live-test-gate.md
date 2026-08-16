@@ -2,11 +2,11 @@
 
 ## Status
 
-Pending live acceptance on `mgmt-automation`.
+Accepted.
 
-Do not treat this slice as accepted until the repository, bounded live relationship, accepted-source hash, derivation, and schema gates all pass.
+The bounded PostgreSQL infrastructure-recovery context v0.1 passed the full repository gate and the live read-only acceptance gate on `mgmt-automation`.
 
-## Implementation under test
+## Accepted implementation
 
 ```text
 branch: feature/m5-postgresql-infrastructure-recovery-context
@@ -15,138 +15,99 @@ postgresql_infrastructure_recovery_context_version: 0.1
 mutation_allowed: false
 ```
 
-The implementation is pure derivation and is not runtime-wired.
+The implementation is pure derivation and is not runtime/systemd-wired.
 
-A reusable live-gate script is versioned at:
+Reusable live gate:
 
 ```text
 scripts/live_gates/m5_postgresql_infrastructure_recovery_context.py
 ```
 
-## First live attempt — rejected gate projection, not infrastructure evidence
-
-The first live attempt reached the bounded Kubernetes relationship stage after a successful repository gate:
+## Repository gate
 
 ```text
-package: 0.25.0
-repository tests: 290 passed in 1.72s
+292 passed in 1.23s
 repository gate: PASS
-kubectl context: default
 ```
 
-It then rejected at the first PV hostname-affinity projection:
+## Live relationship gate
+
+Observed persistent PostgreSQL workload relationships:
 
 ```text
-stage: PV node affinity
-detail: pvc-98449df4-8cd6-4bf6-afc1-2581f493ac87 explicit hostname nodes=0
-Python gate rc=2
-SSH shell remained active
+8
 ```
 
-This result is not accepted as evidence that PV hostname affinity disappeared. The earlier accepted bounded discovery observed the same PV with explicit storage node `k3s-worker-02`.
-
-The failed attempt used a nested kubectl JSONPath range to project `nodeSelectorTerms[*].matchExpressions[*]`. That projection did not return the previously observed hostname value and therefore failed closed before any recovery-context derivation occurred.
-
-The retry gate replaces that nested JSONPath projection with a bounded Go-template that emits only values from expressions where:
+Bounded PVE node-to-VM mappings:
 
 ```text
-key = kubernetes.io/hostname
-operator = In
+k3s-master-01 -> VMID 106
+k3s-worker-01 -> VMID 107
+k3s-worker-02 -> VMID 108
 ```
 
-The retry still does not project PV backing paths, CSI volume handles, annotations, Secret values, Pod environment values, or other raw PV/Pod data.
-
-No infrastructure mutation occurred during the rejected attempt.
-
-## Gate plan
-
-### 1. Repository gate
-
-Run the complete repository test suite on the management host.
-
-Acceptance requires zero failures.
-
-### 2. Bounded PostgreSQL relationship observation
-
-Observe only the eight accepted Kubernetes PostgreSQL workload subjects and their required persistence chain:
+All eight workload/PVC/node/VM relationships matched the accepted discovery:
 
 ```text
-workload -> mounted PVC -> bound PV -> explicit hostname node affinity
+discovery_mapping_match: true
 ```
 
-Then perform the existing bounded read-only PVE guest lookup for only:
+Accepted instance mapping:
 
 ```text
-k3s-master-01
-k3s-worker-01
-k3s-worker-02
+drfarah-staging       -> k3s-worker-02 -> VMID 108
+fastapi-platform      -> k3s-worker-01 -> VMID 107
+fastapi-platform-dev  -> k3s-worker-01 -> VMID 107
+keycloak              -> k3s-master-01 -> VMID 106
+openproject           -> k3s-worker-01 -> VMID 107
+soria-academie        -> k3s-worker-02 -> VMID 108
+soria-prospecting     -> k3s-worker-01 -> VMID 107
+toilettage            -> k3s-worker-01 -> VMID 107
 ```
 
-Safe output is limited to workload/PVC/PV identifiers, storage node, PostgreSQL image identity, PVE VMID, PVE node, source status, and bounded provenance.
+The PVE credential remained discovery-only:
 
-No Secret values, environment values, PV backing paths, CSI handles, VM config, network values, credentials, or raw API payloads may be persisted.
+```text
+runtime_credential_approved: false
+```
 
-### 3. Accepted VM source verification
+## Accepted VM source verification
 
-Before deriving VM Backup Assurance v0.2, byte-verify the two accepted input artifacts:
+Both previously accepted input artifacts matched their recorded SHA256 values:
 
 ```text
 /tmp/vm-backup-assurance.json
-expected sha256: 14ccd7a082a6c901df6941e4c0540d24bd13ff96f29146a0e6ad689d4f824c1a
+sha256: 14ccd7a082a6c901df6941e4c0540d24bd13ff96f29146a0e6ad689d4f824c1a
+hash_match: true
 
 /tmp/proxmox-ve-backup-task-results.json
-expected sha256: 18aaa4ad1a2dd260b4d0678e830f3c9267b2afaa1014b3563ec0e78a2b0135de
+sha256: 18aaa4ad1a2dd260b4d0678e830f3c9267b2afaa1014b3563ec0e78a2b0135de
+hash_match: true
 ```
 
-A hash mismatch rejects the gate. Do not substitute current live PVE collection in that case without a separate source-acceptance decision.
-
-### 4. Pure derivation
-
-Derive VM Backup Assurance v0.2 from the byte-verified accepted inputs, then derive PostgreSQL infrastructure recovery context v0.1 from:
+VM Backup Assurance v0.2 derivation:
 
 ```text
-bounded relationship evidence v0.1
-accepted VM Backup Assurance v0.2
+schema: PASS
+VM assets: 12
+LAST_SUCCESSFUL_BACKUP observed: 6
 ```
 
-### 5. Schema gate
-
-Validate the output against:
-
-```text
-schemas/postgresql-infrastructure-recovery-context.schema.json
-```
-
-## Expected bounded result
-
-If the discovery state remains unchanged, expected instance relationships are:
-
-```text
-keycloak              -> k3s-master-01 -> VMID 106
-fastapi-platform      -> k3s-worker-01 -> VMID 107
-fastapi-platform-dev  -> k3s-worker-01 -> VMID 107
-openproject           -> k3s-worker-01 -> VMID 107
-soria-prospecting     -> k3s-worker-01 -> VMID 107
-toilettage            -> k3s-worker-01 -> VMID 107
-drfarah-staging       -> k3s-worker-02 -> VMID 108
-soria-academie        -> k3s-worker-02 -> VMID 108
-```
-
-Expected accepted VM latest-success timestamps:
+Relevant accepted VM timestamps:
 
 ```text
 106 -> 2026-08-14T16:39:53Z
 107 -> 2026-08-14T17:39:32Z
 108 -> 2026-04-15T12:36:38Z
+accepted_vm_timestamps_match: true
 ```
 
-These are comparison expectations only; the gate must derive them from accepted evidence.
-
-## Acceptance counters
-
-The gate is expected to produce:
+## PostgreSQL context gate
 
 ```text
+PostgreSQL context schema: PASS
+version: 0.1
+mutation_allowed: false
 instances_total: 8
 infrastructure_recovery_observed: 8
 infrastructure_recovery_unknown: 0
@@ -162,47 +123,35 @@ postgresql_rto_unknown: 8
 unprotected_claims: 0
 backup_stale_claims: 0
 rpo_violation_claims: 0
+acceptance_counters_match: true
+gate_rc: 0
 ```
 
-Any change in live relationship state must be reported as observed rather than forced to these expected counters.
+## Trust interpretation
 
-## Trust boundary
-
-Even if all eight infrastructure recovery relationships are `OBSERVED`, the gate does not establish:
+`infrastructure_recovery=OBSERVED` means the bounded chain was observed and joined successfully:
 
 ```text
-PostgreSQL-consistent backup
-PostgreSQL backup execution/result
-PostgreSQL backup artifact location
-PostgreSQL retention effectiveness
-PostgreSQL restore verification
-PostgreSQL integrity verification
-PostgreSQL RPO satisfaction
-PostgreSQL RTO satisfaction
+PostgreSQL workload
+-> persistent PVC
+-> explicit PV storage node
+-> K3s node
+-> PVE VMID
+-> accepted strict VM LAST_SUCCESSFUL_BACKUP evidence
 ```
 
-The old VMID 108 timestamp must not be classified as `BACKUP_STALE` or `RPO_VIOLATION` because no accepted target exists.
+It does not establish PostgreSQL-consistent backup, PostgreSQL backup execution/result, artifact location, retention effectiveness, restore verification, integrity verification, RPO satisfaction, or RTO satisfaction.
+
+The VMID 108 timestamp is retained as observed evidence only. No `BACKUP_STALE` or `RPO_VIOLATION` classification is accepted because no RPO/freshness target exists.
+
+## First live attempt
+
+The first live attempt passed 290 repository tests but rejected at the PV hostname-affinity projection because the nested kubectl JSONPath returned zero hostname values. That rejection was a gate-projection failure, not evidence that node affinity disappeared.
+
+The retry replaced that projection with a bounded Go-template and added safety tests for the versioned live-gate script. The accepted retry then passed 292 repository tests and reproduced all eight previously observed relationships.
 
 ## Safety boundary
 
-The gate must remain read-only.
+The accepted gate did not read or project Kubernetes Secret values, Pod environment values, PV backing paths, CSI volume handles, VM configuration, database rows, dump contents, or credential values.
 
-Prohibited:
-
-```text
-backup execution
-restore execution
-WAL changes
-retention changes
-PostgreSQL configuration changes
-service restarts
-Kubernetes mutations
-PVE mutations
-credential changes
-secret projection
-raw database or dump content
-```
-
-## Acceptance evidence
-
-Pending retry with the versioned live-gate script.
+No backup, restore, WAL, retention, PostgreSQL configuration, service, Kubernetes, PVE, or credential mutation occurred.
