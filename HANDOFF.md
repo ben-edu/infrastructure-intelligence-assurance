@@ -15,8 +15,8 @@ Project Sources remain authoritative for durable goals, roadmap, trust principle
 
 ```text
 repository: ben-edu/infrastructure-intelligence-assurance
-accepted main after PR #51: e41d3efaabdeaec1dd5861e786b1f3946d426e00
-active branch: agent/m5-pve-backup-policy-retention-discovery
+accepted main after PR #52: cb70c2a13e81dd4d4fcd360317709a98334d62de
+active branch: agent/m5-pve-vzdump-provenance-discovery
 package on accepted main: 0.27.0
 Milestone 5: active
 mutation_allowed: false
@@ -78,13 +78,10 @@ package: 0.27.0
 repository tests: 328 passed
 assets_total: 37
 infrastructure_recovery_observed: 37
-infrastructure_recovery_unknown: 0
 underlying_vm_last_successful_backup_observed: 37
 protection_unknown: 37
-backup_freshness_unknown: 37
 retention_effectiveness_unknown: 37
 failure_domain_unknown: 37
-integrity_verification_unknown: 37
 restore_verification_unknown: 37
 rpo_unknown: 37
 rto_unknown: 37
@@ -98,95 +95,113 @@ This remains infrastructure recovery context only, not application/database-cons
 
 ### Database infrastructure recovery contexts
 
-PostgreSQL Kubernetes context:
-
 ```text
-instances_total: 8
-infrastructure_recovery_observed: 8
-postgresql_protection_unknown: 8
-```
+PostgreSQL Kubernetes instances_total: 8
+PostgreSQL infrastructure_recovery_observed: 8
+PostgreSQL protection_unknown: 8
 
-Management-host PostgreSQL:
+Management-host PostgreSQL: mgmt-automation -> PVE VMID 109
+local PostgreSQL infrastructure recovery: OBSERVED
 
-```text
-mgmt-automation -> PVE VMID 109
-VM LAST_SUCCESSFUL_BACKUP=OBSERVED
-local PostgreSQL infrastructure recovery=OBSERVED
-```
-
-MariaDB context:
-
-```text
-instances_total: 4
-persistence_observed: 3
-persistence_unknown: 1
-infrastructure_recovery_observed: 3
-infrastructure_recovery_unknown: 1
-mariadb_protection_unknown: 4
+MariaDB instances_total: 4
+MariaDB persistence_observed: 3
+MariaDB persistence_unknown: 1
+MariaDB infrastructure_recovery_observed: 3
+MariaDB infrastructure_recovery_unknown: 1
+MariaDB protection_unknown: 4
 ```
 
 PostgreSQL and MariaDB database-aware backup mechanism, execution/result, artifact location, retention, restore, integrity, RPO, and RTO remain unknown.
 
 ## Accepted PVE current backup-policy discovery
 
-Report:
+PR #52 merged at:
 
 ```text
-docs/reports/2026-08-16-m5-pve-backup-policy-retention-discovery.md
+cb70c2a13e81dd4d4fcd360317709a98334d62de
 ```
 
-Accepted read-only live discovery:
+Accepted result:
 
 ```text
-selected_vmids_expected: 12
-selected_vmids_observed: 12
+selected_vmids_observed: 12/12
 backup_job_source_status: COMPLETE
 declared_jobs: 0
 selected_vmids_with_declared_job_scope: 0
 selected_vmids_without_declared_job_scope_observed: 12
-retention_prune_backups: 0
-retention_legacy_maxfiles: 0
+job-level retention/prune declarations observed: 0
 discovery_rc: 0
 ```
 
-Current authoritative PVE `/cluster/backup` state returned no backup jobs.
+Current `/cluster/backup` state returned no backup jobs. This does not invalidate historical successful VZDUMP evidence and does not establish `UNPROTECTED`, retention ineffectiveness, or RPO violation.
 
-This is current declared state only. It does not invalidate historical successful VZDUMP evidence and does not prove that backups were manual, unscheduled, deleted-policy executions, or externally orchestrated.
+## Accepted PVE historical VZDUMP provenance discovery
 
-The accepted distinction is:
-
-```text
-current declared PVE backup jobs: NONE_OBSERVED
-historical successful VZDUMP execution evidence: OBSERVED for 6/12 VMs
-execution provenance relative to scheduler/policy: UNKNOWN
-```
-
-No current job-level retention/prune declaration was observed. Retention effectiveness remains unknown.
-
-## Exact next step — historical VZDUMP execution provenance discovery
-
-Perform one bounded read-only discovery over the already accepted successful VZDUMP task records.
-
-Goal: determine whether authoritative PVE task metadata explicitly exposes execution provenance. Do not infer provenance from timestamp patterns, current job absence, or user identity alone.
-
-Allowed classifications:
+Report:
 
 ```text
-SCHEDULED_PROVENANCE_OBSERVED
-MANUAL_PROVENANCE_OBSERVED
-EXTERNAL_ORCHESTRATION_PROVENANCE_OBSERVED
-PROVENANCE_NOT_EXPLICITLY_RETURNED
-FAILED_TO_OBSERVE
+docs/reports/2026-08-16-m5-pve-vzdump-execution-provenance-discovery.md
 ```
 
-If task status/detail metadata contains no explicit scheduler/job/provenance field, classify `PROVENANCE_NOT_EXPLICITLY_RETURNED` and close the path. Do not read or print raw task logs, raw UPIDs, commands, hook scripts, notification targets, credentials, or backup contents.
+Accepted result:
 
-The accepted successful task records remain execution evidence regardless of whether provenance is knowable.
+```text
+strict_success_tasks_total: 9
+task_list_matches: 9
+task_detail_complete: 9
+task_detail_failed_to_observe: 0
+scheduled_provenance_observed: 0
+manual_provenance_observed: 0
+external_orchestration_provenance_observed: 0
+provenance_not_explicitly_returned: 9
+failed_to_observe: 0
+discovery_rc: 0
+```
+
+All nine accepted strict successful VZDUMP tasks were present in returned task history and had successful task-status/detail observations, but no explicit scheduler/job/manual/external provenance field was returned.
+
+Accepted distinction:
+
+```text
+historical successful VZDUMP execution: OBSERVED
+current declared backup jobs: NONE_OBSERVED
+historical execution provenance: PROVENANCE_NOT_EXPLICITLY_RETURNED
+```
+
+Do not infer provenance from timestamps, current job absence, user identity, or task success.
+
+## Exact next step — PVE storage-level retention declaration discovery
+
+Inspect authoritative PVE storage configuration for the storage target(s) that contain accepted VM recovery points.
+
+Discovery only. Do not modify storage or retention configuration.
+
+Questions:
+
+```text
+Which PVE storage IDs currently support backup content?
+Which storage target contains the accepted recovery points?
+Does that storage configuration explicitly return prune-backups?
+Does it explicitly return legacy maxfiles?
+What is the safe declared retention value, if any?
+Is the retention field absent from the current authoritative storage config?
+```
+
+Keep semantics strict:
+
+```text
+storage retention declaration != retention effectiveness
+storage retention declaration != successful prune execution
+storage retention declaration != restore verification
+field absence != global absence outside inspected source
+```
+
+Safe output may include storage ID/type, whether backup content is supported, and sanitized retention declaration fields. Do not print paths, endpoints, credentials, secrets, complete connection strings, raw storage objects, or backup contents.
 
 ## Milestone 5 gaps still open
 
 ```text
-historical VZDUMP execution provenance
+PVE storage-level retention declaration
 PostgreSQL database-aware backup evidence
 MariaDB database-aware backup evidence
 PBS (future)
@@ -211,6 +226,7 @@ Milestone 8: Reliability and Hardening
 - source artifacts and derived assurance remain separate;
 - declared backup policy is not observed backup success;
 - current job absence does not determine historical execution provenance;
+- task success does not establish provenance when provenance fields are absent;
 - infrastructure recovery evidence is not application/database-consistent backup evidence;
 - source-scoped negative evidence is not universal absence;
 - recovery-point presence is not task-result success;
