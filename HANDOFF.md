@@ -14,8 +14,9 @@ Project Sources remain authoritative for durable goals, roadmap, trust principle
 ## Stable checkpoint
 
 - repository: `ben-edu/infrastructure-intelligence-assurance`
-- `main` before PR #43: `cf6fabc20e962e8b37a48c1962a9865aa66fe394`
+- current `main` HEAD after PR #43 merge: `3fb60c23e8a885f9015f07d6c34270a425197189`
 - accepted PR #41 implementation merge: `d0c9d28711aecb19150988dbf53003a98aa91ff8`
+- accepted PR #43 PVE VM storage relationship merge: `3fb60c23e8a885f9015f07d6c34270a425197189`
 - management host: `mgmt-automation`
 - checkout: `~/projects/infrastructure-intelligence-assurance`
 - Kubernetes cluster: `k3s-main`
@@ -83,10 +84,8 @@ Unknown VMIDs:
 102,103,104,105,110,9000
 ```
 
-## Accepted PR #43 gate — PVE VM storage relationship source
+## Accepted PR #43 — PVE VM storage relationship source
 
-- PR: `#43 Milestone 5 add bounded PVE VM storage relationship evidence`
-- branch: `agent/m5-pve-vm-storage-relationship`
 - package: `0.24.0`
 - source artifact: `pve_vm_storage_relationship_version=0.1`
 - ADR: `docs/decisions/0025-observe-bounded-pve-vm-storage-relationships.md`
@@ -133,8 +132,6 @@ local shared_status: NOT_EXPLICITLY_RETURNED
 local node restrictions: none returned
 ```
 
-The first repository-gate attempt was rejected with `272 passed, 1 failed` due only to a stale test that froze package version `0.23.0`. It occurred before live collection. The test was corrected to enforce version synchronization rather than a frozen package version, and the accepted retry passed all 273 tests.
-
 Trust interpretation:
 
 - same PVE storage ID is accepted source evidence;
@@ -146,9 +143,7 @@ Trust interpretation:
 - collector remained HTTP GET only and manual-only;
 - no infrastructure mutation occurred.
 
-If PR #43 is still open, its acceptance gates are satisfied and it may be merged. Do not add stronger failure-domain claims during merge.
-
-## Exact next step after PR #43
+## Exact next step — PostgreSQL backup/recovery source discovery
 
 Do not keep extending the PVE failure-domain path from the current evidence. It has reached a bounded evidence limit because storage locality/physical failure-domain metadata is not authoritative enough for promotion.
 
