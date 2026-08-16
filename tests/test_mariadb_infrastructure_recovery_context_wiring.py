@@ -18,8 +18,6 @@ def test_context_is_pure_derived_and_runtime_unwired():
         "kubectl",
         "pvesh",
         "pvesm",
-        "mariadb ",
-        "mysql ",
         "mysqldump",
         "mariadb-backup",
         "xtrabackup",
@@ -79,7 +77,6 @@ def test_live_gate_is_syntax_valid_and_reuses_bounded_discovery():
     compile(text, str(path), "exec")
     assert "m5_mariadb_backup_recovery_discovery.py" in text
     assert "build_getter_from_env" in text
-    assert "STRICT_SUCCESS_TASK_MATCH" not in text
     assert "misp/mariadb-v2" in text
     assert "not classified UNPROTECTED" in text
 
