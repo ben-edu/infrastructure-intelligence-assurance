@@ -2,13 +2,15 @@
 
 ## Status
 
-Proposed. Repository and manual derived acceptance are required before merge.
+Accepted.
+
+Accepted by repository and manual derived gate on 2026-08-16.
 
 ## Context
 
 Accepted VM Backup Assurance v0.1 distinguishes observed recovery points from protection quality and keeps `LAST_SUCCESSFUL_BACKUP` unknown.
 
-Accepted PVE Backup Task Results v0.1 provides authoritative returned `vzdump` task-result records and strict recovery-point correlations. The accepted BM2 live gate currently contains 22 successful task results, nine `STRICT_SUCCESS_TASK_MATCH` correlations, and three older retained recovery points with no strict match in returned history.
+Accepted PVE Backup Task Results v0.1 provides authoritative returned `vzdump` task-result records and strict recovery-point correlations. The accepted BM2 source contains 22 successful task results, nine `STRICT_SUCCESS_TASK_MATCH` correlations, and three older retained recovery points with no strict match in returned history.
 
 Task-history completeness remains `NOT_ESTABLISHED`.
 
@@ -49,6 +51,14 @@ task VMID matches correlation VMID
 
 A contract mismatch fails the integration rather than creating inferred evidence.
 
+The accepted task-result identifier contract is:
+
+```text
+^pve-backup-task:[a-f0-9]{24}$
+```
+
+The first derived gate exposed a schema-only mismatch where the integration schema expected a different identifier shape. That run was rejected. The schema and fixtures were aligned to the accepted PR #38 source contract and the focused retry passed.
+
 ## LAST_SUCCESSFUL_BACKUP semantics
 
 For a VM with one or more valid strict matches:
@@ -87,7 +97,7 @@ A VM may still have `last_successful_backup_status=OBSERVED` when an older retai
 
 ## Unchanged assurance dimensions
 
-This integration must not alter:
+This integration does not alter:
 
 ```text
 protection_status
@@ -99,7 +109,7 @@ rpo_status
 rto_status
 ```
 
-Current values therefore remain UNKNOWN/RTO_UNKNOWN.
+Current values remain UNKNOWN/RTO_UNKNOWN.
 
 Recovery-point status, backup-mechanism evidence, and retention context remain as previously derived.
 
@@ -113,14 +123,45 @@ PVE task-result source v0.1 has no TTL/expiry contract. Task-result source fresh
 
 Kubernetes PVC assurance is not modified.
 
-Future PBS-native task/result evidence may satisfy the same source-neutral `LAST_SUCCESSFUL_BACKUP` dimension through a separate adapter and explicit provenance. The common VM assurance contract must not depend on PVE-specific identifiers beyond source evidence references.
+Future PBS-native task/result evidence may satisfy the same source-neutral `LAST_SUCCESSFUL_BACKUP` dimension through a separate adapter and explicit provenance. The common VM assurance contract does not depend on PBS being present today.
+
+## Accepted live baseline
+
+Focused retry on 2026-08-16:
+
+```text
+262 passed in 1.32s
+input artifacts unchanged: true
+output schema: PASS
+VM assets: 12
+last_successful_backup OBSERVED: 6
+last_successful_backup UNKNOWN: 6
+strict success correlations consumed: 9
+unmatched historical recovery points: 3
+unprotected_claims: 0
+kubernetes_pvc_assets_modified: 0
+sensitive/raw projection: none
+```
+
+Observed VMIDs:
+
+```text
+100, 101, 106, 107, 108, 109
+```
+
+Unknown VMIDs:
+
+```text
+102, 103, 104, 105, 110, 9000
+```
 
 ## Consequences
 
-The platform can now distinguish:
+The platform can distinguish:
 
 - recovery point exists;
 - authoritative backup task completed successfully;
+- last successful backup is observed for strictly supported VMs;
 - protection quality remains unknown;
 - restore/integrity/RPO/RTO remain unknown.
 
