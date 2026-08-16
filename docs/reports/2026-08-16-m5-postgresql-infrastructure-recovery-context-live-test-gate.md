@@ -17,6 +17,47 @@ mutation_allowed: false
 
 The implementation is pure derivation and is not runtime-wired.
 
+A reusable live-gate script is versioned at:
+
+```text
+scripts/live_gates/m5_postgresql_infrastructure_recovery_context.py
+```
+
+## First live attempt — rejected gate projection, not infrastructure evidence
+
+The first live attempt reached the bounded Kubernetes relationship stage after a successful repository gate:
+
+```text
+package: 0.25.0
+repository tests: 290 passed in 1.72s
+repository gate: PASS
+kubectl context: default
+```
+
+It then rejected at the first PV hostname-affinity projection:
+
+```text
+stage: PV node affinity
+detail: pvc-98449df4-8cd6-4bf6-afc1-2581f493ac87 explicit hostname nodes=0
+Python gate rc=2
+SSH shell remained active
+```
+
+This result is not accepted as evidence that PV hostname affinity disappeared. The earlier accepted bounded discovery observed the same PV with explicit storage node `k3s-worker-02`.
+
+The failed attempt used a nested kubectl JSONPath range to project `nodeSelectorTerms[*].matchExpressions[*]`. That projection did not return the previously observed hostname value and therefore failed closed before any recovery-context derivation occurred.
+
+The retry gate replaces that nested JSONPath projection with a bounded Go-template that emits only values from expressions where:
+
+```text
+key = kubernetes.io/hostname
+operator = In
+```
+
+The retry still does not project PV backing paths, CSI volume handles, annotations, Secret values, Pod environment values, or other raw PV/Pod data.
+
+No infrastructure mutation occurred during the rejected attempt.
+
 ## Gate plan
 
 ### 1. Repository gate
@@ -41,7 +82,7 @@ k3s-worker-01
 k3s-worker-02
 ```
 
-Safe output is limited to workload/PVC/PV identifiers, storage node, PostgreSQL image identity, PVE VMID, PVE node, guest type/status, source status, and bounded provenance.
+Safe output is limited to workload/PVC/PV identifiers, storage node, PostgreSQL image identity, PVE VMID, PVE node, source status, and bounded provenance.
 
 No Secret values, environment values, PV backing paths, CSI handles, VM config, network values, credentials, or raw API payloads may be persisted.
 
@@ -164,4 +205,4 @@ raw database or dump content
 
 ## Acceptance evidence
 
-Pending live run.
+Pending retry with the versioned live-gate script.
