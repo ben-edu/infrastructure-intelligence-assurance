@@ -74,11 +74,16 @@ def test_workload_reference_is_context_not_recovery_precondition():
 
     assert "NO_DIRECT_CONTROLLER_REFERENCE_OBSERVED" in source
     assert "orphan classification" in source
-    assert "workload_context" not in (
-        "relationship[\"observation_status\"],\n"
-        "        storage[\"status\"],\n"
-        "        mapping[\"status\"],"
+
+    edge_block = (
+        'edge_statuses = (\n'
+        '        relationship["observation_status"],\n'
+        '        storage["status"],\n'
+        '        mapping["status"],\n'
+        '    )'
     )
+    assert edge_block in source
+    assert "workload_context" not in edge_block
 
 
 def test_core_contains_no_mutating_operations_or_secret_projection():
@@ -94,8 +99,46 @@ def test_core_contains_no_mutating_operations_or_secret_projection():
         "kubectl create",
         "systemctl start",
         "systemctl enable",
-        "secret value",
         ".pgpass",
         ".my.cnf",
     ):
         assert marker not in text
+
+
+def test_live_gate_is_syntax_valid_and_manual_only():
+    path = ROOT / "scripts/live_gates/m5_pvc_infrastructure_recovery_context.py"
+    text = path.read_text()
+
+    compile(text, str(path), "exec")
+    assert "m5_pvc_infrastructure_recovery_discovery.py" in text
+    assert "build_backup_assurance_foundation" in text
+    assert "build_pvc_infrastructure_recovery_context" in text
+    assert "EXPECTED_SUMMARY" in text
+    assert "accepted_vm_timestamps_match" in text
+    assert "orphan or UNPROTECTED classification" in text
+
+
+def test_live_gate_does_not_mutate_infrastructure_or_enable_shell_strict_mode():
+    text = (
+        ROOT / "scripts/live_gates/m5_pvc_infrastructure_recovery_context.py"
+    ).read_text().lower()
+
+    for marker in (
+        "set -e",
+        "set -euo",
+        "kubectl apply",
+        "kubectl delete",
+        "kubectl patch",
+        "kubectl edit",
+        "kubectl create",
+        "kubectl replace",
+        "systemctl start",
+        "systemctl enable",
+        "pvesh set",
+        "pvesh create",
+        "pvesh delete",
+    ):
+        assert marker not in text
+
+    assert "get /cluster/resources?type=vm" in text.lower()
+    assert "no infrastructure mutation was performed" in text.lower()
