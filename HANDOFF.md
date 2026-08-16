@@ -7,7 +7,7 @@ This is the compact continuation checkpoint for the Infrastructure Intelligence 
 1. Read Project Sources.
 2. Read `HANDOFF.md` from `main`.
 3. Check open PRs in `ben-edu/infrastructure-intelligence-assurance`.
-4. If an active project PR has a newer `HANDOFF.md`, prefer that branch version for execution state.
+4. If an active project PR has newer `HANDOFF.md`, prefer that branch version for execution state.
 5. Read only the ADR, milestone doc, and live-test report relevant to the active slice.
 6. Prefer repository/live evidence over chat reconstruction.
 
@@ -15,18 +15,17 @@ This is the compact continuation checkpoint for the Infrastructure Intelligence 
 
 - repository: `ben-edu/infrastructure-intelligence-assurance`
 - stable branch: `main`
-- current main HEAD after PR #38 merge: `f33506ba59281dac31485616c439126d7b41c30d`
+- main before PR #41 merge: `7a86faffa33c4cbe6d8fc46695f6d4c032e95d5b`
 - accepted PR #30 foundation merge: `0e6f96a9f1b4adba34c43803a21a70116423b65c`
 - accepted PR #32 discovery merge: `b0f139a531536531cff2a76bf2243c0cc7ca1770`
 - accepted PR #33 PVE recovery-point adapter merge: `58dca4289a3c302ef9098564da59b7d312aae71e`
 - accepted PR #35 VM assurance merge: `59924eb93cbed0ecfef6c2dc6ffbd98af031c547`
 - accepted PR #38 PVE task-result merge: `f33506ba59281dac31485616c439126d7b41c30d`
+- post-PR38 Handoff merge: `7a86faffa33c4cbe6d8fc46695f6d4c032e95d5b`
 - management host: `mgmt-automation`
 - checkout: `~/projects/infrastructure-intelligence-assurance`
 - Kubernetes cluster: `k3s-main`
 - PVE collectors remain manual-only; no systemd credential wiring
-
-A connector housekeeping mistake briefly created `__do_not_create__` on `main` and immediately deleted it before PR #38. It produced no net project-content or runtime change.
 
 Milestones 0–3 are live validated. Milestone 4 evidence-first vertical path is accepted and sufficiently complete. Milestone 5 is active.
 
@@ -46,24 +45,17 @@ Accepted BM2 PVE recovery-point source from PR #33:
 ```text
 proxmox_ve_backup_evidence_version: 0.1
 source: pve-bm2
-PVE: 9.1.9
-node: delfan / ONLINE
-source status: COMPLETE
 current guests: 12
-storage: local / dir / backup-enabled
-retention projection: keep-all=1
-PBS backend: false
-cluster backup jobs: 0
 recovery points: 12
 VMIDs with recovery points: 100,101,106,107,108,109
 VMIDs with no recovery point in complete local scope: 102,103,104,105,110,9000
+PBS backend: false
 credential_runtime_approved: false
 ```
 
-Accepted VM Backup Assurance from PR #35:
+Accepted VM Backup Assurance v0.1 from PR #35:
 
 ```text
-vm_backup_assurance_version: 0.1
 VM assets: 12
 recovery-point observed: 6
 complete selected-scope negative: 6
@@ -76,75 +68,139 @@ Kubernetes PVC assets modified: 0
 Accepted PVE task-result evidence from PR #38:
 
 ```text
-package: 0.22.0
 pve_backup_task_results_version: 0.1
 source: pve-bm2
-node: delfan
-source status: COMPLETE
-request mode: SERVER_FILTERED_VZDUMP
-HTTP status: 200
 rows returned: 22
 successful task results: 22
 strict recovery-point/task matches: 9
-recovery points without strict match in returned history: 3
-limit: 500
-limit saturated: false
+unmatched retained recovery points: 3
 historical completeness: NOT_ESTABLISHED
 runtime credential approved: false
 ```
 
-Strict correlation contract:
+Strict correlation contract is same VMID + successful VZDUMP + recovery-point/task-start delta <=2 seconds. Current accepted deltas are 0 or 1 second.
+
+## Accepted PR #41 — VM LAST_SUCCESSFUL_BACKUP integration
+
+- PR: `#41 Milestone 5 integrate last successful VM backup evidence`
+- branch: `feature/m5-vm-last-successful-backup`
+- package: `0.23.0`
+- output: `vm_backup_assurance_version=0.2`
+- integration version: `0.1`
+- mode: `STRICT_CORRELATION_ONLY`
+- repository/manual-derived gate: Accepted on 2026-08-16 after focused retry
+- network/Proxmox query: none
+- credential access: none
+- RBAC change: none
+- systemd change: none
+- infrastructure mutation: none
+- Kubernetes PVC mutation: none
+
+The first PR #41 gate was rejected because the integration schema expected an incorrect task-result ID shape. Accepted PR #38 source IDs use:
 
 ```text
-same VMID
-successful VZDUMP task
-absolute(recovery_point.created_at - task.start_time) <= 2 seconds
+^pve-backup-task:[a-f0-9]{24}$
 ```
 
-Current strict deltas are 0 or 1 second.
-
-The three old retained points that remain unmatched are:
+The schema, fixtures, and regression tests were corrected to reuse that authoritative contract. The focused retry passed:
 
 ```text
-VMID 106 -> 2025-11-24T08:50:52Z
-VMID 107 -> 2025-11-21T10:19:36Z
-VMID 108 -> 2025-11-21T10:29:32Z
+262 passed in 1.32s
+task ID contract alignment: PASS
+both source artifacts unchanged: true
+output schema: PASS
+last_successful_backup OBSERVED: 6
+last_successful_backup UNKNOWN: 6
+strict success correlations consumed: 9
+unmatched historical recovery points: 3
+unprotected_claims: 0
+kubernetes_pvc_assets_modified: 0
+sensitive/raw projection: none
 ```
 
-Missing historical task evidence is not failed-backup evidence because task-history completeness is not established.
+Observed VMIDs:
+
+```text
+100, 101, 106, 107, 108, 109
+```
+
+Unknown VMIDs:
+
+```text
+102, 103, 104, 105, 110, 9000
+```
+
+Current last successful backup timestamps use the successful task `end_time`, not archive creation time.
+
+Every VM still preserves:
+
+```text
+protection_status: UNKNOWN
+integrity_verification_status: UNKNOWN
+restore_verification_status: UNKNOWN
+failure_domain_status: UNKNOWN
+scheduled_protection_status: UNKNOWN
+rpo_status: UNKNOWN
+rto_status: RTO_UNKNOWN
+```
+
+Missing historical task evidence remains a history limitation, not backup failure.
+
+## PVE credential/runtime boundary
 
 The existing BM2 token remains discovery-only: broad/admin-like, env file mode `0644`, TLS verification false. Runtime PVE collection remains blocked until a separate least-privilege observer identity and trusted TLS path are accepted.
 
 Operator confirms there is no PBS today. Future PBS compatibility remains mandatory through separate source adapters with explicit provenance and common assurance dimensions.
 
-## Exact next step — derived LAST_SUCCESSFUL_BACKUP integration
+## Exact next step — bounded VM primary-storage failure-domain preflight
 
-Build a derived-only VM assurance integration that consumes local accepted artifacts:
+The next smallest useful M5 gap is `BACKUP_FAILURE_DOMAIN` for the current PVE VM domain.
+
+Current backup recovery points are on `pve-bm2 / delfan / local`, a PVE-local backup storage scope. This does not by itself prove whether the backup copy is in the same failure domain as each VM's primary disks.
+
+Run a manual read-only preflight against BM2 using the existing discovery-only credential. Do not persist or print raw VM config.
+
+The preflight should determine only safe primary-storage identity for current accepted VMIDs:
 
 ```text
-VM Backup Assurance v0.1
-PVE Backup Task Results v0.1
+100,101,102,103,104,105,106,107,108,109,110,9000
 ```
 
-No new Proxmox query, credential access, RBAC change, systemd wiring, or infrastructure mutation is allowed.
+Required safe projection per VM:
 
-Required semantics:
+```text
+vmid
+node
+primary storage IDs referenced by VM disk devices
+whether each storage is shared or node-local, when authoritative storage metadata proves it
+```
 
-1. consume the accepted strict correlation result; do not recalculate a looser time heuristic;
-2. validate source identity compatibility before enrichment;
-3. for a VM with one or more `STRICT_SUCCESS_TASK_MATCH` recovery points, set `last_successful_backup_status=OBSERVED`;
-4. expose only the latest strictly supported successful backup timestamp and bounded task/recovery-point evidence IDs;
-5. `LAST_SUCCESSFUL_BACKUP` required-evidence dimension becomes `OBSERVED` only for strictly supported VMs;
-6. VMs with recovery points but no strict task support remain `last_successful_backup_status=UNKNOWN`;
-7. unmatched historical task evidence is not backup failure;
-8. complete selected-source negative recovery-point evidence remains scoped negative only and never becomes `UNPROTECTED`;
-9. `protection_status` remains `UNKNOWN` for all VMs;
-10. restore verification, integrity verification, failure domain, scheduled protection, RPO and RTO remain unchanged/unknown;
-11. source freshness stays explicit; no TTL/currentness may be invented;
-12. Kubernetes PVC assurance remains untouched;
-13. future PBS evidence must be able to satisfy the same common `LAST_SUCCESSFUL_BACKUP` dimension without redesigning VM assurance.
+Do not project:
 
-Implement this as a separate derived artifact/versioned integration. Do not wire runtime PVE collection until least-privilege identity and trusted TLS are accepted.
+```text
+raw disk strings
+volid
+file paths
+serial numbers
+cloud-init content
+network config
+MAC addresses
+IP addresses
+credentials
+snippets
+raw VM config
+```
+
+Trust rules:
+
+1. same node alone is not enough to classify failure-domain separation;
+2. storage type/name alone must not be overinterpreted without authoritative shared/local metadata;
+3. if VM primary disks and backup storage are authoritatively node-local on the same PVE node, record a bounded same-node failure-domain candidate only; do not promote VM assurance until a separate source artifact is accepted;
+4. if evidence is incomplete or permission-limited, result is UNKNOWN/FAILED_TO_OBSERVE, not separated or absent;
+5. no VM config, storage, backup, snapshot, schedule, ACL, token, or infrastructure mutation;
+6. do not use raw broad-token data in runtime artifacts; this remains manual discovery only.
+
+Only if the preflight proves a safe authoritative join should a new source artifact/ADR be implemented.
 
 ## Milestone 5 roadmap coverage still open
 
@@ -152,7 +208,6 @@ Implement this as a separate derived artifact/versioned integration. Do not wire
 PostgreSQL
 MariaDB
 PVC assurance beyond foundation
-VM last-successful-backup integration
 PBS (future; not present today)
 external backup targets
 failure-domain evidence
@@ -172,7 +227,7 @@ restore tests
 - observation credentials remain separate from control credentials;
 - stale/current/unknown semantics remain explicit;
 - network timeout is not absence unless observation scope is known complete;
-- no secrets, tokens, private keys, raw Kubernetes Secret values, Terraform state, raw sensitive Proxmox configuration, complete sensitive connection strings, or raw task logs enter evidence/AI context;
+- no secrets, tokens, private keys, raw Kubernetes Secret values, Terraform state, raw sensitive Proxmox configuration, complete sensitive connection strings, raw task logs, or raw VM config enter evidence/AI context;
 - generated operational artifacts keep `mutation_allowed=false`.
 
 ## Maintenance rule

@@ -3,12 +3,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_package_exposes_task_result_cli_and_current_version():
+def test_package_exposes_task_result_cli():
     pyproject = (ROOT / "pyproject.toml").read_text()
-    init = (ROOT / "src/infra_assurance/__init__.py").read_text()
-
-    assert 'version = "0.22.0"' in pyproject
-    assert '__version__ = "0.22.0"' in init
     assert 'iia-proxmox-ve-backup-task-results = "infra_assurance.proxmox_ve_backup_task_results:main"' in pyproject
 
 
