@@ -14,9 +14,8 @@ Project Sources remain authoritative for durable goals, roadmap, trust principle
 ## Stable checkpoint
 
 - repository: `ben-edu/infrastructure-intelligence-assurance`
-- current `main` ref before PR #43: `cf6fabc20e962e8b37a48c1962a9865aa66fe394`
+- `main` before PR #43: `cf6fabc20e962e8b37a48c1962a9865aa66fe394`
 - accepted PR #41 implementation merge: `d0c9d28711aecb19150988dbf53003a98aa91ff8`
-- `cf6fabc` is the post-PR41 handoff refresh commit
 - management host: `mgmt-automation`
 - checkout: `~/projects/infrastructure-intelligence-assurance`
 - Kubernetes cluster: `k3s-main`
@@ -84,117 +83,103 @@ Unknown VMIDs:
 102,103,104,105,110,9000
 ```
 
-## Completed bounded VM primary-storage preflight
-
-The manual read-only BM2 preflight requested by the previous handoff has passed.
-
-Current safe result:
-
-```text
-VMIDs: 100,101,102,103,104,105,106,107,108,109,110,9000
-backup storage ID: local
-all 12 VM observations: COMPLETE
-all 12 resolved primary storage IDs: local
-direct/unresolved disk count: 0
-SAME_PVE_STORAGE_ID_AS_BACKUP: 12
-UNKNOWN: 0
-FAILED_TO_OBSERVE: 0
-storage local type: dir
-storage local shared: NOT_EXPLICITLY_RETURNED
-storage local node restrictions: none explicitly returned
-```
-
-This proves a bounded PVE storage-ID relationship only. It does not prove same physical disk/hardware failure domain or failure-domain separation. `BACKUP_FAILURE_DOMAIN` remains `UNKNOWN`.
-
-No raw VM config, raw disk value, volid, path, serial, cloud-init, network/MAC/IP value, credential, or snippet was persisted. Only HTTP GET requests were used and no infrastructure mutation occurred.
-
-## Active slice — PR #43
+## Accepted PR #43 gate — PVE VM storage relationship source
 
 - PR: `#43 Milestone 5 add bounded PVE VM storage relationship evidence`
 - branch: `agent/m5-pve-vm-storage-relationship`
-- base: current `main` checkpoint `cf6fabc20e962e8b37a48c1962a9865aa66fe394`
 - package: `0.24.0`
 - source artifact: `pve_vm_storage_relationship_version=0.1`
 - ADR: `docs/decisions/0025-observe-bounded-pve-vm-storage-relationships.md`
 - milestone doc: `docs/milestone-5-pve-vm-storage-relationship.md`
-- live gate: `docs/reports/2026-08-16-m5-pve-vm-storage-relationship-live-test-gate.md`
-- PR status: draft; do not merge before full repository and live acceptance gates pass
+- live report: `docs/reports/2026-08-16-m5-pve-vm-storage-relationship-live-test-gate.md`
 
-The new collector records only bounded storage relationships:
-
-```text
-SAME_PVE_STORAGE_ID_AS_BACKUP
-DIFFERENT_PVE_STORAGE_ID_FROM_BACKUP
-UNKNOWN
-FAILED_TO_OBSERVE
-```
-
-It does not modify VM Backup Assurance and does not promote `BACKUP_FAILURE_DOMAIN`.
-
-Focused fixture testing of the proposed logic passed before publication.
-
-The first authoritative full-repository gate attempt was rejected with `272 passed, 1 failed` because `tests/test_vm_last_successful_backup_integration_wiring.py` hard-coded the previous package version `0.23.0`. The failure occurred before the live collector command, so no new PVE live observation was made. The regression test has been corrected to enforce package-version synchronization and preservation of the previous CLI without freezing future package bumps.
-
-Do not use `set -e` directly in the interactive SSH shell for this gate; the first rejected attempt closed the session when pytest returned non-zero.
-
-## Exact next step — PR #43 repository + live gate retry
-
-On `mgmt-automation`, update the active branch and rerun the full repository tests. Only continue to the live collector if pytest passes:
-
-```bash
-cd ~/projects/infrastructure-intelligence-assurance
-
-git fetch origin
-git switch agent/m5-pve-vm-storage-relationship
-git pull --ff-only origin agent/m5-pve-vm-storage-relationship
-
-python3 -m pytest -q
-TEST_RC=$?
-
-if [ "$TEST_RC" -ne 0 ]; then
-  echo "Repository gate failed with rc=$TEST_RC; live collector NOT run."
-else
-  ENV_FILE="/home/ben/projects/afpa-infra-rebuild/mcp/proxmox/proxmox.env"
-  OUT="/tmp/pve-vm-storage-relationship-v0.1.json"
-  SUMMARY="/tmp/pve-vm-storage-relationship-v0.1.md"
-
-  PYTHONPATH=src python3 -m infra_assurance.proxmox_ve_vm_storage_relationship \
-    --credential-env-file "$ENV_FILE" \
-    --source-id pve-bm2 \
-    --node delfan \
-    --backup-storage-id local \
-    --vmids 100,101,102,103,104,105,106,107,108,109,110,9000 \
-    --out "$OUT" \
-    --summary-out "$SUMMARY" \
-    --allow-discovery-credential \
-    --allow-insecure-tls-discovery
-  COLLECT_RC=$?
-
-  if [ "$COLLECT_RC" -ne 0 ]; then
-    echo "Live collector failed with rc=$COLLECT_RC."
-  else
-    cat "$SUMMARY"
-  fi
-fi
-```
-
-Expected only if live state remains equivalent to the accepted preflight:
+Accepted gate on 2026-08-16:
 
 ```text
+repository tests: 273 passed in 1.23s
+schema: PASS
+source status: COMPLETE
+mutation_allowed: false
+runtime credential approved: false
 target_vms: 12
+config_complete: 12
 same_pve_storage_id_as_backup: 12
 different_pve_storage_id_from_backup: 0
 unknown: 0
 failed_to_observe: 0
 direct_or_unresolved_disks: 0
-local storage_type: dir
-local shared_status: NOT_EXPLICITLY_RETURNED
-local node_restrictions_status: NOT_EXPLICITLY_RETURNED
+referenced_storage_ids: 1
 ```
 
-If live evidence differs, preserve the live result and investigate; do not force it to match the preflight.
+Accepted VMIDs:
 
-After the gate, update the live-test report and ADR status only if acceptance actually passes. Keep PR #43 unmerged until then.
+```text
+100,101,102,103,104,105,106,107,108,109,110,9000
+```
+
+For all 12 selected VMs:
+
+```text
+primary storage ID: local
+backup storage ID: local
+relationship: SAME_PVE_STORAGE_ID_AS_BACKUP
+```
+
+Accepted storage metadata:
+
+```text
+local storage_type: dir
+local shared_status: NOT_EXPLICITLY_RETURNED
+local node restrictions: none returned
+```
+
+The first repository-gate attempt was rejected with `272 passed, 1 failed` due only to a stale test that froze package version `0.23.0`. It occurred before live collection. The test was corrected to enforce version synchronization rather than a frozen package version, and the accepted retry passed all 273 tests.
+
+Trust interpretation:
+
+- same PVE storage ID is accepted source evidence;
+- it is not proof of the same physical disk/hardware/power failure domain;
+- `local` + `dir` is not interpreted as node-local without authoritative explicit evidence;
+- different storage IDs would not by themselves prove independent failure domains;
+- `BACKUP_FAILURE_DOMAIN` remains `UNKNOWN`;
+- no raw VM config, disk values, volids, paths, serials, cloud-init, network/MAC/IP data, credentials, snippets, or raw API payloads were persisted;
+- collector remained HTTP GET only and manual-only;
+- no infrastructure mutation occurred.
+
+If PR #43 is still open, its acceptance gates are satisfied and it may be merged. Do not add stronger failure-domain claims during merge.
+
+## Exact next step after PR #43
+
+Do not keep extending the PVE failure-domain path from the current evidence. It has reached a bounded evidence limit because storage locality/physical failure-domain metadata is not authoritative enough for promotion.
+
+The next smallest useful Milestone 5 slice is a read-only PostgreSQL backup/recovery source discovery.
+
+Discovery goal:
+
+```text
+Identify current PostgreSQL instances in accepted infrastructure scope and determine, without mutation, what authoritative backup/recovery mechanisms and evidence sources exist for each instance.
+```
+
+Start with discovery only. Do not implement a collector until the discovery proves a safe authoritative evidence path.
+
+Required questions:
+
+```text
+Which PostgreSQL instances are currently in scope?
+What host/VM/Kubernetes workload owns each instance?
+What backup mechanism is actually configured or used?
+What authoritative source can prove backup execution/result?
+Where are backup artifacts stored?
+Is retention configuration observable?
+Is restore/integrity verification observable?
+What is unknown and what requires live verification?
+```
+
+Safe projection should prefer identifiers, versions, mechanism names, timestamps/statuses, and bounded provenance only.
+
+Never project database passwords, connection-string credentials, raw `.pgpass`, secret environment values, Kubernetes Secret values, private keys, complete sensitive connection strings, raw dump contents, or database data.
+
+Initial interaction remains read-only. No backup, restore, WAL manipulation, retention change, PostgreSQL configuration change, service restart, or infrastructure mutation is allowed.
 
 ## PVE credential/runtime boundary
 
@@ -226,5 +211,5 @@ restore tests
 - observation credentials remain separate from control credentials;
 - stale/current/unknown semantics remain explicit;
 - network timeout is not absence unless observation scope is known complete;
-- no secrets, raw sensitive config/state, raw task logs, or raw VM config enter evidence/AI context;
+- no secrets, raw sensitive config/state, raw task logs, raw VM config, or database data enter evidence/AI context;
 - generated operational artifacts keep `mutation_allowed=false`.
