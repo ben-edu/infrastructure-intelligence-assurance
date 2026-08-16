@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from collections import Counter
 from copy import deepcopy
 from datetime import datetime, timezone
@@ -17,6 +18,8 @@ DATABASE_ENGINE = "POSTGRESQL"
 RELATIONSHIP_SOURCE_TYPE = "BOUNDED_KUBERNETES_PVE_RELATIONSHIP_OBSERVATION"
 
 _OBSERVATION_STATUSES = {"OBSERVED", "UNKNOWN", "FAILED_TO_OBSERVE"}
+_RECOVERY_POINT_ID = re.compile(r"^pve-rp-[a-f0-9]{24}$")
+_TASK_RESULT_ID = re.compile(r"^pve-backup-task:[a-f0-9]{24}$")
 
 
 def _rfc3339(value: datetime) -> str:
@@ -188,19 +191,58 @@ def _validate_vm_assurance(
     return source_id, usable_status, index
 
 
-def _safe_vm_backup_evidence(
+def _validated_vm_last_success(
     assurance: dict[str, Any],
-) -> dict[str, Any] | None:
+    *,
+    vm_source_id: str,
+) -> tuple[str, str | None, dict[str, Any] | None]:
+    status = assurance.get("last_successful_backup_status", "UNKNOWN")
+    if status == "UNKNOWN":
+        if assurance.get("last_successful_backup_at") is not None:
+            raise ValueError("UNKNOWN VM last-successful-backup must not carry a timestamp")
+        if assurance.get("last_successful_backup_evidence") is not None:
+            raise ValueError("UNKNOWN VM last-successful-backup must not carry evidence")
+        return "UNKNOWN", None, None
+    if status != "OBSERVED":
+        raise ValueError("unsupported VM last-successful-backup status")
+
+    observed_at = _require_nonempty_string(
+        assurance.get("last_successful_backup_at"),
+        "last_successful_backup_at",
+    )
     evidence = assurance.get("last_successful_backup_evidence")
     if not isinstance(evidence, dict):
-        return None
-    return {
-        "source_type": evidence.get("source_type"),
-        "source_id": evidence.get("source_id"),
-        "recovery_point_id": evidence.get("recovery_point_id"),
-        "task_result_id": evidence.get("task_result_id"),
-        "basis": deepcopy(evidence.get("basis", [])),
+        raise ValueError("OBSERVED VM last-successful-backup requires strict evidence")
+    if evidence.get("source_type") != "PROXMOX_VE_VZDUMP_TASK_RESULT":
+        raise ValueError("OBSERVED VM last-successful-backup has unsupported evidence source")
+    if evidence.get("source_id") != vm_source_id:
+        raise ValueError("OBSERVED VM last-successful-backup evidence source does not match VM source")
+
+    recovery_point_id = _require_nonempty_string(
+        evidence.get("recovery_point_id"),
+        "last_successful_backup_evidence.recovery_point_id",
+    )
+    if not _RECOVERY_POINT_ID.fullmatch(recovery_point_id):
+        raise ValueError("OBSERVED VM last-successful-backup has invalid recovery point ID")
+
+    task_result_id = _require_nonempty_string(
+        evidence.get("task_result_id"),
+        "last_successful_backup_evidence.task_result_id",
+    )
+    if not _TASK_RESULT_ID.fullmatch(task_result_id):
+        raise ValueError("OBSERVED VM last-successful-backup has invalid task result ID")
+
+    if evidence.get("basis") != ["STRICT_SUCCESS_TASK_MATCH"]:
+        raise ValueError("OBSERVED VM last-successful-backup requires STRICT_SUCCESS_TASK_MATCH")
+
+    safe_evidence = {
+        "source_type": "PROXMOX_VE_VZDUMP_TASK_RESULT",
+        "source_id": vm_source_id,
+        "recovery_point_id": recovery_point_id,
+        "task_result_id": task_result_id,
+        "basis": ["STRICT_SUCCESS_TASK_MATCH"],
     }
+    return "OBSERVED", observed_at, safe_evidence
 
 
 def _postgresql_assurance_unknown() -> dict[str, Any]:
@@ -297,37 +339,6 @@ def _derive_instance(
         mapping["status"],
     )
 
-    vmid = mapping.get("vmid") if mapping.get("status") == "OBSERVED" else None
-    vm_asset = vm_index.get(vmid) if isinstance(vmid, int) else None
-    vm_assurance = (
-        vm_asset.get("assurance", {}) if isinstance(vm_asset, dict) else {}
-    )
-    vm_last_status = vm_assurance.get("last_successful_backup_status", "UNKNOWN")
-    if vm_last_status not in {"OBSERVED", "UNKNOWN"}:
-        vm_last_status = "UNKNOWN"
-    vm_last_at = (
-        vm_assurance.get("last_successful_backup_at")
-        if vm_last_status == "OBSERVED"
-        else None
-    )
-
-    if "FAILED_TO_OBSERVE" in edge_statuses:
-        recovery_status = "FAILED_TO_OBSERVE"
-    elif any(status != "OBSERVED" for status in edge_statuses):
-        recovery_status = "UNKNOWN"
-    elif relationship_source_status != "COMPLETE" or vm_source_status != "COMPLETE":
-        recovery_status = "UNKNOWN"
-    elif mapping.get("pve_source_id") != vm_source_id:
-        raise ValueError(
-            "node-to-VM mapping PVE source does not match VM assurance source"
-        )
-    elif vm_asset is None:
-        recovery_status = "UNKNOWN"
-    elif vm_last_status == "OBSERVED":
-        recovery_status = "OBSERVED"
-    else:
-        recovery_status = "UNKNOWN"
-
     if (
         mapping.get("status") == "OBSERVED"
         and mapping.get("pve_source_id") != vm_source_id
@@ -335,6 +346,32 @@ def _derive_instance(
         raise ValueError(
             "node-to-VM mapping PVE source does not match VM assurance source"
         )
+
+    vmid = mapping.get("vmid") if mapping.get("status") == "OBSERVED" else None
+    vm_asset = vm_index.get(vmid) if isinstance(vmid, int) else None
+    vm_assurance = (
+        vm_asset.get("assurance", {}) if isinstance(vm_asset, dict) else {}
+    )
+    if vm_asset is None:
+        vm_last_status, vm_last_at, vm_last_evidence = "UNKNOWN", None, None
+    else:
+        vm_last_status, vm_last_at, vm_last_evidence = _validated_vm_last_success(
+            vm_assurance,
+            vm_source_id=vm_source_id,
+        )
+
+    if "FAILED_TO_OBSERVE" in edge_statuses:
+        recovery_status = "FAILED_TO_OBSERVE"
+    elif any(status != "OBSERVED" for status in edge_statuses):
+        recovery_status = "UNKNOWN"
+    elif relationship_source_status != "COMPLETE" or vm_source_status != "COMPLETE":
+        recovery_status = "UNKNOWN"
+    elif vm_asset is None:
+        recovery_status = "UNKNOWN"
+    elif vm_last_status == "OBSERVED":
+        recovery_status = "OBSERVED"
+    else:
+        recovery_status = "UNKNOWN"
 
     unknown = None
     if recovery_status != "OBSERVED":
@@ -380,9 +417,7 @@ def _derive_instance(
             "vmid": vmid,
             "underlying_vm_last_successful_backup_status": vm_last_status,
             "underlying_vm_last_successful_backup_at": vm_last_at,
-            "underlying_vm_last_successful_backup_evidence": (
-                _safe_vm_backup_evidence(vm_assurance)
-            ),
+            "underlying_vm_last_successful_backup_evidence": vm_last_evidence,
             "basis": (
                 [
                     "POSTGRESQL_WORKLOAD_OBSERVED",
