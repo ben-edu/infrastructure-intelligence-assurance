@@ -15,7 +15,7 @@ The purpose was to identify current PostgreSQL instances in accepted infrastruct
 Eight persistent PostgreSQL database workload candidates were observed:
 
 ```text
-d rfarah-staging      StatefulSet/drfarah-staging-postgres  postgres:16-alpine
+drfarah-staging      StatefulSet/drfarah-staging-postgres  postgres:16-alpine
 fastapi-platform      Deployment/postgres                  postgres:18
 fastapi-platform-dev  Deployment/postgres                  postgres:18
 keycloak              StatefulSet/keycloak-postgresql      bitnamilegacy/postgresql:17.4.0
@@ -30,7 +30,7 @@ The earlier `soria-academie/academie-api-migrate` PostgreSQL-image match was cla
 All eight database candidates had a Bound PVC using the `local-path` StorageClass:
 
 ```text
-d rfarah-staging      5Gi   k3s-worker-02
+drfarah-staging      5Gi   k3s-worker-02
 fastapi-platform      10Gi  k3s-worker-01
 fastapi-platform-dev  10Gi  k3s-worker-01
 keycloak              8Gi   k3s-master-01
@@ -132,7 +132,7 @@ soria-prospecting
 toilettage
   -> k3s-worker-01 -> VMID 107 -> last successful VM backup 2026-08-14T17:39:32Z
 
-d rfarah-staging
+drfarah-staging
 soria-academie
   -> k3s-worker-02 -> VMID 108 -> last successful VM backup 2026-04-15T12:36:38Z
 ```
