@@ -2,7 +2,7 @@
 
 ## Status
 
-Pending repository and manual derived acceptance.
+Retry required after a schema-contract defect was found in the first derived gate.
 
 ## Scope
 
@@ -123,6 +123,49 @@ Output must not contain credentials, URLs, raw UPIDs, raw task logs, user/token 
 
 No infrastructure, backup, restore, task, schedule, ACL, credential, RBAC, systemd, Kubernetes PVC, or Proxmox mutation is allowed.
 
+## First derived gate result — 2026-08-16
+
+Repository and semantic checks largely succeeded:
+
+```text
+261 passed in 1.21s
+both input artifact hashes unchanged: true
+VM assets: 12
+strict correlations: 9
+last_successful_backup OBSERVED: 6
+last_successful_backup UNKNOWN: 6
+unmatched historical recovery points: 3
+unprotected_claims: 0
+forbidden projected keys: none
+raw URL markers: false
+```
+
+However, output schema validation failed before final acceptance.
+
+The accepted PR #38 source contract uses task result identifiers shaped as:
+
+```text
+pve-backup-task:<24 lowercase hex characters>
+```
+
+The new integration schema incorrectly expected:
+
+```text
+pve-task-<24 lowercase hex characters>
+```
+
+The generated integration output correctly preserved the accepted source `task_result_id`, so the defect was in the integration schema/test fixture, not in live source evidence or correlation logic.
+
+The branch was corrected to reuse the authoritative PR #38 identifier contract:
+
+```text
+^pve-backup-task:[a-f0-9]{24}$
+```
+
+A dedicated regression test now asserts that the source and integration schemas use the same task-result ID pattern and that the stale fixture shape is rejected.
+
+The first run is therefore not accepted despite the later semantic script printing `PR #41 LIVE ACCEPTANCE: PASS`; schema validation is mandatory and takes precedence.
+
 ## Acceptance result
 
-Pending.
+Pending focused retry after the task-result ID schema correction.
