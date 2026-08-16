@@ -4,13 +4,19 @@
 
 Formalize the successful BM2 primary-storage preflight as a bounded, versioned source artifact without promoting physical failure-domain assurance.
 
+## Status
+
+Accepted on 2026-08-16 after the full repository gate, live BM2 collector gate, and schema validation passed.
+
 ## Why this slice exists
 
-VM Backup Assurance v0.2 currently knows that six VMs have strictly supported successful PVE backup tasks, but `BACKUP_FAILURE_DOMAIN` remains unknown for every VM.
+VM Backup Assurance v0.2 knows that six VMs have strictly supported successful PVE backup tasks, but `BACKUP_FAILURE_DOMAIN` remains unknown for every VM.
 
 Current recovery points are stored in PVE storage ID `local`.
 
 The 2026-08-16 manual preflight safely established that the selected primary VM disk devices also reference PVE storage ID `local` for all 12 accepted VMIDs.
+
+The versioned live collector reproduced the same relationship.
 
 That relationship is useful evidence, but it is weaker than proof that VM disks and backup archives share one physical failure domain.
 
@@ -32,13 +38,40 @@ The artifact contains:
 - bounded storage-ID relationship status;
 - explicit unknowns and caveats.
 
-## Current bounded target
+## Accepted live result
+
+```text
+package: 0.24.0
+repository tests: 273 passed
+schema: PASS
+source status: COMPLETE
+target_vms: 12
+config_complete: 12
+same_pve_storage_id_as_backup: 12
+different_pve_storage_id_from_backup: 0
+unknown: 0
+failed_to_observe: 0
+direct_or_unresolved_disks: 0
+referenced_storage_ids: 1
+```
+
+Current bounded source target:
 
 ```text
 source_id: pve-bm2
 node: delfan
 backup storage ID: local
 VMIDs: 100,101,102,103,104,105,106,107,108,109,110,9000
+```
+
+Every accepted VM resolved primary storage ID `local`.
+
+Accepted storage metadata for `local`:
+
+```text
+storage_type: dir
+shared_status: NOT_EXPLICITLY_RETURNED
+node_restrictions: none returned
 ```
 
 ## Safe query boundary
@@ -103,6 +136,8 @@ raw API payloads
 
 All safely resolved primary storage IDs equal the selected backup storage ID.
 
+This is the accepted live state for all 12 current selected VMs.
+
 This is not a physical failure-domain classification.
 
 ### DIFFERENT_PVE_STORAGE_ID_FROM_BACKUP
@@ -148,22 +183,16 @@ rpo_status
 rto_status
 ```
 
-In particular, `failure_domain_status` remains `UNKNOWN`.
+In particular:
+
+```text
+failure_domain_status: UNKNOWN
+```
+
+The current PVE failure-domain path therefore stops at accepted logical storage-ID evidence until stronger authoritative locality/failure-domain evidence exists.
 
 ## Runtime boundary
 
 The current PVE token remains discovery-only and is not runtime-approved.
 
-This collector is manual-only. No systemd wiring is added.
-
-## Acceptance gate
-
-The slice is accepted only after:
-
-1. the full repository test suite passes;
-2. schema validation passes;
-3. the live manual collector run against BM2 is `COMPLETE`;
-4. all 12 current selected VMIDs are represented without raw/sensitive projection;
-5. observed storage-ID relationships match the live source evidence;
-6. no infrastructure mutation occurs;
-7. `BACKUP_FAILURE_DOMAIN` is not promoted.
+This collector remains manual-only. No systemd wiring is added.
