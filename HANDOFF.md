@@ -11,35 +11,18 @@ Project Sources remain authoritative for durable goals, roadmap, trust principle
 5. Read only the ADR, milestone doc, and live/discovery report relevant to the active slice.
 6. Prefer repository and live evidence over chat reconstruction.
 
-## Active execution checkpoint
+## Execution checkpoint
 
 ```text
 repository: ben-edu/infrastructure-intelligence-assurance
-accepted main checkpoint after PR #45: 9653c4077040f102d4d7388608db9b346f826209
-active branch: feature/m5-postgresql-infrastructure-recovery-context
-package on active branch: 0.25.0
+accepted main checkpoint before PR #46: 9653c4077040f102d4d7388608db9b346f826209
+active/accepted slice branch: feature/m5-postgresql-infrastructure-recovery-context
+package: 0.25.0
 Milestone 5: active
 mutation_allowed: false
 ```
 
-The active slice is not accepted yet. Repository and live gates are pending.
-
-Active files:
-
-```text
-src/infra_assurance/postgresql_infrastructure_recovery_context.py
-schemas/postgresql-infrastructure-recovery-context.schema.json
-tests/test_postgresql_infrastructure_recovery_context.py
-tests/test_postgresql_infrastructure_recovery_context_wiring.py
-docs/milestone-5-postgresql-infrastructure-recovery-context.md
-docs/reports/2026-08-16-m5-postgresql-infrastructure-recovery-context-live-test-gate.md
-```
-
-Trust decision:
-
-```text
-docs/decisions/0026-distinguish-postgresql-infrastructure-recovery-from-database-backup.md
-```
+PR #46 passed its live acceptance gate on 2026-08-16 and is ready to merge.
 
 ## Stable Milestone 5 evidence
 
@@ -77,13 +60,11 @@ historical completeness: NOT_ESTABLISHED
 
 ### Accepted VM Backup Assurance v0.2
 
-Accepted PR #41 implementation merge:
+Implementation merge from PR #41:
 
 ```text
 d0c9d28711aecb19150988dbf53003a98aa91ff8
 ```
-
-State:
 
 ```text
 assets: 12
@@ -109,7 +90,7 @@ Relevant accepted timestamps:
 108 -> 2026-04-15T12:36:38Z
 ```
 
-Accepted source artifacts used by the VM derivation gate:
+Accepted source inputs:
 
 ```text
 /tmp/vm-backup-assurance.json
@@ -143,7 +124,7 @@ failed_to_observe: 0
 direct_or_unresolved_disks: 0
 ```
 
-All selected VMs resolved primary storage ID `local` and backup storage ID `local`. This is logical storage-ID relationship evidence only, not physical failure-domain evidence. `BACKUP_FAILURE_DOMAIN` remains `UNKNOWN`.
+All selected VMs resolved primary storage ID `local` and backup storage ID `local`. This is logical storage-ID evidence only and does not establish a physical failure domain. `BACKUP_FAILURE_DOMAIN` remains `UNKNOWN`.
 
 ## Accepted PostgreSQL source discovery
 
@@ -159,7 +140,13 @@ Discovery report:
 docs/reports/2026-08-16-m5-postgresql-backup-recovery-source-discovery.md
 ```
 
-Eight persistent Kubernetes PostgreSQL workloads were observed:
+Trust decision:
+
+```text
+docs/decisions/0026-distinguish-postgresql-infrastructure-recovery-from-database-backup.md
+```
+
+Eight persistent Kubernetes PostgreSQL workloads are in accepted scope:
 
 ```text
 drfarah-staging       StatefulSet/drfarah-staging-postgres
@@ -174,30 +161,20 @@ toilettage            StatefulSet/toilettage-postgres
 
 All eight have Bound `local-path` PVCs.
 
-PV node affinity establishes:
+PV node affinity and PVE mapping establish:
 
 ```text
-k3s-master-01: keycloak
-k3s-worker-01: fastapi-platform, fastapi-platform-dev, openproject, soria-prospecting, toilettage
-k3s-worker-02: drfarah-staging, soria-academie
+keycloak                                      -> k3s-master-01 -> VMID 106
+fastapi-platform                              -> k3s-worker-01 -> VMID 107
+fastapi-platform-dev                          -> k3s-worker-01 -> VMID 107
+openproject                                   -> k3s-worker-01 -> VMID 107
+soria-prospecting                             -> k3s-worker-01 -> VMID 107
+toilettage                                    -> k3s-worker-01 -> VMID 107
+drfarah-staging                               -> k3s-worker-02 -> VMID 108
+soria-academie                                -> k3s-worker-02 -> VMID 108
 ```
 
-Bounded read-only PVE mapping establishes:
-
-```text
-k3s-master-01 -> VMID 106
-k3s-worker-01 -> VMID 107
-k3s-worker-02 -> VMID 108
-```
-
-Kubernetes backup-mechanism discovery in the inspected scope found:
-
-```text
-matching PostgreSQL/backup CronJobs: 0
-matching PostgreSQL/backup Jobs: 0
-```
-
-This is bounded negative evidence only, not universal absence.
+Kubernetes backup-mechanism discovery in the inspected scope found zero matching PostgreSQL/backup CronJobs and zero matching PostgreSQL/backup Jobs. This is bounded negative evidence only, not universal absence.
 
 ### Local management-host PostgreSQL
 
@@ -212,81 +189,31 @@ configured pg_basebackup@ systemd instance: not observed
 
 The packaged weekly `pg_basebackup@` template is capability/declaration evidence only. It does not establish configured or successful backup execution.
 
-The management-host PostgreSQL instance remains outside the active derived implementation.
+No infrastructure-recovery relationship has yet been accepted for this local PostgreSQL instance.
 
-## Active slice — PostgreSQL infrastructure recovery context v0.1
+## Accepted PostgreSQL infrastructure recovery context v0.1
 
-Purpose:
+Implementation:
 
 ```text
-PostgreSQL workload
--> persistent PVC
--> explicit PV storage node
--> K3s node
--> PVE VMID
--> accepted VM LAST_SUCCESSFUL_BACKUP evidence
+src/infra_assurance/postgresql_infrastructure_recovery_context.py
+schemas/postgresql-infrastructure-recovery-context.schema.json
+scripts/live_gates/m5_postgresql_infrastructure_recovery_context.py
+docs/milestone-5-postgresql-infrastructure-recovery-context.md
+docs/reports/2026-08-16-m5-postgresql-infrastructure-recovery-context-live-test-gate.md
 ```
 
-The implementation is pure derivation. It introduces no new live collector and no runtime/systemd wiring.
-
-An infrastructure relationship may become `OBSERVED` only when:
+Accepted live gate:
 
 ```text
-PostgreSQL workload observation = OBSERVED
-persistence observation = OBSERVED
-node-to-VM mapping = OBSERVED
-relationship source scope = COMPLETE
-VM assurance source scope = COMPLETE
-PVE source identities match
-VM last-successful-backup = OBSERVED
-VM last-successful-backup evidence has accepted STRICT_SUCCESS_TASK_MATCH provenance
-```
-
-Malformed observed VM evidence fails closed.
-
-PostgreSQL-specific assurance is structurally fixed to:
-
-```text
-protection: UNKNOWN
-backup mechanism: UNKNOWN
-backup execution/result: UNKNOWN
-backup artifact location: UNKNOWN
-retention effectiveness: UNKNOWN
-restore verification: UNKNOWN
-integrity verification: UNKNOWN
-RPO: UNKNOWN
-RTO: RTO_UNKNOWN
-```
-
-And:
-
-```text
-unprotected_claims: 0
-backup_stale_claims: 0
-rpo_violation_claims: 0
-```
-
-Do not classify VMID 108 as stale or an RPO violation from timestamp age alone. No accepted RPO/freshness target exists.
-
-## Exact next action — live acceptance gate
-
-Run the full repository suite and the bounded live gate on `mgmt-automation`.
-
-The gate must:
-
-1. verify the active branch/package;
-2. run the full repository tests;
-3. observe only the eight accepted Kubernetes PostgreSQL relationships and the three K3s node-to-PVE VM mappings;
-4. never read Kubernetes Secret values, Pod env values, PV backing paths, CSI handles, VM config, database data, credentials, or raw backup contents;
-5. byte-verify the two accepted VM source artifacts using their recorded SHA256 values;
-6. derive VM Backup Assurance v0.2 from those accepted sources;
-7. derive PostgreSQL infrastructure recovery context v0.1;
-8. validate the output schema;
-9. print only bounded safe summary fields.
-
-Expected result if live state is unchanged:
-
-```text
+package: 0.25.0
+repository tests: 292 passed in 1.23s
+persistent PostgreSQL workload relationships: 8
+PVE mapped Kubernetes nodes: 3
+discovery_mapping_match: true
+accepted VM source hashes: PASS
+VM Backup Assurance v0.2 schema: PASS
+PostgreSQL context schema: PASS
 instances_total: 8
 infrastructure_recovery_observed: 8
 infrastructure_recovery_unknown: 0
@@ -302,10 +229,50 @@ postgresql_rto_unknown: 8
 unprotected_claims: 0
 backup_stale_claims: 0
 rpo_violation_claims: 0
-schema: PASS
+accepted_vm_timestamps_match: true
+acceptance_counters_match: true
+gate_rc: 0
 ```
 
-Do not force expected values if live evidence differs.
+Trust interpretation:
+
+```text
+PostgreSQL workload
+-> persistent PVC
+-> explicit PV storage node
+-> K3s node
+-> PVE VMID
+-> accepted STRICT_SUCCESS_TASK_MATCH VM last-successful-backup evidence
+```
+
+This is infrastructure recovery context only. It is not PostgreSQL-consistent backup evidence.
+
+PostgreSQL-specific protection, mechanism, execution/result, artifact location, retention effectiveness, restore verification, integrity verification, RPO, and RTO remain `UNKNOWN`/`RTO_UNKNOWN` until a separate authoritative database-aware source exists.
+
+Do not classify VMID 108 as stale or an RPO violation from timestamp age alone; no accepted target exists.
+
+## Exact next step — management-host PostgreSQL infrastructure relationship discovery
+
+Before broadening to MariaDB, close the smallest remaining PostgreSQL infrastructure-context gap: determine whether the running PostgreSQL 15 instance on `mgmt-automation` has a safely observable infrastructure recovery relationship.
+
+Discovery only. Do not implement another derived context until the relationship is proven.
+
+Required questions:
+
+```text
+Is mgmt-automation itself a PVE guest or another accepted infrastructure asset?
+If it is a PVE guest, what authoritative bounded source establishes its VMID and PVE source identity?
+Does the accepted VM Backup Assurance contain that VMID?
+If present, is LAST_SUCCESSFUL_BACKUP OBSERVED or UNKNOWN?
+What evidence age/timestamp is observed without inferring stale/RPO policy?
+If no authoritative relationship can be established, what remains UNKNOWN?
+```
+
+Safe projection may include only host identity, virtualization relationship identifiers, VMID, PVE node/source ID, runtime status, accepted VM backup status/timestamp, and bounded provenance.
+
+Do not read PostgreSQL data, connection strings, `.pgpass`, PostgreSQL Secret/environment values, raw PVE VM config, disks, networks, or credentials.
+
+If this relationship cannot be established safely, stop and retain the local PostgreSQL infrastructure recovery context as `UNKNOWN`; do not guess. The next Milestone 5 source family after that is MariaDB backup/recovery discovery.
 
 ## PVE credential/runtime boundary
 
@@ -316,6 +283,7 @@ PVE collection remains manual-only. There is no PBS today.
 ## Milestone 5 gaps still open
 
 ```text
+management-host PostgreSQL infrastructure relationship
 PostgreSQL database-aware backup evidence
 MariaDB
 PVC assurance beyond foundation
