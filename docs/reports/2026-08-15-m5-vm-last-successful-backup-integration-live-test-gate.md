@@ -2,52 +2,75 @@
 
 ## Status
 
-Retry required after a schema-contract defect was found in the first derived gate.
+Accepted after focused retry on 2026-08-16.
 
 ## Scope
 
-Validate package `0.23.0` and `vm_backup_assurance_version=0.2` using already accepted local artifacts only.
-
-Inputs:
+Validate package `0.23.0` and `vm_backup_assurance_version=0.2` using accepted local artifacts only:
 
 ```text
 /tmp/vm-backup-assurance.json
 /tmp/proxmox-ve-backup-task-results.json
 ```
 
-The gate must not rerun any Proxmox collector.
+No Proxmox collector was rerun.
 
-## Repository gate
-
-Required:
-
-- full pytest suite passes;
-- integration schema validates;
-- no RBAC change;
-- no systemd change;
-- no network/API/query/control client markers in the integration;
-- no Proxmox credential access;
-- prior VM assurance and PVE task-result CLIs remain available;
-- package version `0.23.0` is enforced only by the current-slice wiring test.
-
-## Derived live gate
-
-The gate must hash both input artifacts before and after integration and prove both are unchanged.
-
-Current accepted source baseline:
+## Accepted repository gate
 
 ```text
-VM assets: 12
-PVE task results: 22 successful
-strict recovery-point/task matches: 9
-unmatched retained recovery points in returned history: 3
+package: 0.23.0
+262 passed in 1.32s
+RBAC changes: none
+systemd changes: none
+query/control/credential markers: none
 ```
 
-Counts should be derived from the supplied artifacts rather than blindly hard-coded, except where the accepted baseline is used as a regression assertion for this current live artifact pair.
+## Accepted source contract
 
-## Expected current derived behavior
+The authoritative PR #38 task-result identifier shape is:
 
-Current strict matches belong to VMIDs:
+```text
+^pve-backup-task:[a-f0-9]{24}$
+```
+
+The first derived gate on 2026-08-16 was rejected because the new integration schema incorrectly expected a different ID shape. The generated evidence preserved the correct source ID; the defect was limited to the integration schema/test fixture.
+
+The branch was corrected so source schema, integration schema, regression tests, and fixtures all use the accepted identifier contract.
+
+Focused retry result:
+
+```text
+source pattern == integration pattern: true
+task ID contract alignment: PASS
+```
+
+## Input immutability
+
+Before and after derivation:
+
+```text
+VM source SHA256:
+14ccd7a082a6c901df6941e4c0540d24bd13ff96f29146a0e6ad689d4f824c1a
+
+PVE task source SHA256:
+18aaa4ad1a2dd260b4d0678e830f3c9267b2afaa1014b3563ec0e78a2b0135de
+```
+
+Both source artifacts remained byte-identical.
+
+## Output acceptance
+
+```text
+output schema: PASS
+vm_backup_assurance_version: 0.2
+mutation_allowed: false
+mode: STRICT_CORRELATION_ONLY
+source_status: COMPLETE
+source_freshness: UNKNOWN
+historical_completeness: NOT_ESTABLISHED
+```
+
+Observed VMIDs:
 
 ```text
 100
@@ -58,114 +81,71 @@ Current strict matches belong to VMIDs:
 109
 ```
 
-Expected VM-level result for the accepted artifact pair:
+Unknown VMIDs:
 
 ```text
-last_successful_backup OBSERVED: 6
-last_successful_backup UNKNOWN: 6
-strict success correlations consumed: 9
-unmatched recovery points retained as historical unknown: 3
+102
+103
+104
+105
+110
+9000
 ```
 
-For a supported VM, `last_successful_backup_at` must equal the latest completion time of a task referenced by an accepted strict correlation for that VM.
-
-The three old unmatched retained recovery points for VMIDs 106, 107 and 108 must not downgrade newer strictly supported latest-success evidence and must not become failure evidence.
-
-## Trust acceptance
-
-Validate:
+Current latest successful task completion times:
 
 ```text
-vm_backup_assurance_version: 0.2
-mutation_allowed: false
-last_successful_backup_integration.version: 0.1
-last_successful_backup_integration.mode: STRICT_CORRELATION_ONLY
-last_successful_backup_integration.source_status: COMPLETE
-last_successful_backup_integration.source_freshness: UNKNOWN
-last_successful_backup_integration.historical_completeness: NOT_ESTABLISHED
-summary.unprotected_claims: 0
-summary.kubernetes_pvc_assets_modified: 0
+100 -> 2026-05-08T06:15:18Z
+101 -> 2026-05-08T10:38:50Z
+106 -> 2026-08-14T16:39:53Z
+107 -> 2026-08-14T17:39:32Z
+108 -> 2026-04-15T12:36:38Z
+109 -> 2026-04-13T10:36:41Z
 ```
 
-For every VM with strict support:
+Summary:
 
 ```text
-last_successful_backup_status: OBSERVED
-LAST_SUCCESSFUL_BACKUP dimension: OBSERVED
-```
-
-For every VM without strict support:
-
-```text
-last_successful_backup_status: UNKNOWN
-LAST_SUCCESSFUL_BACKUP dimension: REQUIRED
-```
-
-## Unchanged dimensions
-
-Every asset must retain:
-
-```text
-protection_status: UNKNOWN
-integrity_verification_status: UNKNOWN
-restore_verification_status: UNKNOWN
-failure_domain_status: UNKNOWN
-scheduled_protection_status: UNKNOWN
-rpo_status: UNKNOWN
-rto_status: RTO_UNKNOWN
-```
-
-Recovery-point status/mechanism/retention context from VM assurance v0.1 must not be recomputed by this integration.
-
-## Safety gate
-
-Output must not contain credentials, URLs, raw UPIDs, raw task logs, user/token identity, raw errors, command lines, raw payloads, storage server/path/username, Terraform state, or connection strings.
-
-No infrastructure, backup, restore, task, schedule, ACL, credential, RBAC, systemd, Kubernetes PVC, or Proxmox mutation is allowed.
-
-## First derived gate result — 2026-08-16
-
-Repository and semantic checks largely succeeded:
-
-```text
-261 passed in 1.21s
-both input artifact hashes unchanged: true
-VM assets: 12
-strict correlations: 9
-last_successful_backup OBSERVED: 6
-last_successful_backup UNKNOWN: 6
-unmatched historical recovery points: 3
+assets_total: 12
+last_successful_backup_observed: 6
+last_successful_backup_unknown: 6
+strict_success_correlations_consumed: 9
+unmatched_recovery_points_in_returned_task_history: 3
 unprotected_claims: 0
-forbidden projected keys: none
-raw URL markers: false
+kubernetes_pvc_assets_modified: 0
 ```
 
-However, output schema validation failed before final acceptance.
+## Trust boundary
 
-The accepted PR #38 source contract uses task result identifiers shaped as:
+Only accepted `STRICT_SUCCESS_TASK_MATCH` correlations establish `LAST_SUCCESSFUL_BACKUP=OBSERVED`.
+
+The integration does not strengthen:
 
 ```text
-pve-backup-task:<24 lowercase hex characters>
+protection_status
+integrity_verification_status
+restore_verification_status
+failure_domain_status
+scheduled_protection_status
+rpo_status
+rto_status
 ```
 
-The new integration schema incorrectly expected:
+Historical task completeness remains unestablished. The three older unmatched recovery points remain history limitations, not failed-backup evidence.
+
+## Safety acceptance
 
 ```text
-pve-task-<24 lowercase hex characters>
+sensitive/raw projection: none
+raw URLs: none
+credential access: none
+network query: none
+runtime wiring: none
+infrastructure mutation: none
 ```
-
-The generated integration output correctly preserved the accepted source `task_result_id`, so the defect was in the integration schema/test fixture, not in live source evidence or correlation logic.
-
-The branch was corrected to reuse the authoritative PR #38 identifier contract:
-
-```text
-^pve-backup-task:[a-f0-9]{24}$
-```
-
-A dedicated regression test now asserts that the source and integration schemas use the same task-result ID pattern and that the stale fixture shape is rejected.
-
-The first run is therefore not accepted despite the later semantic script printing `PR #41 LIVE ACCEPTANCE: PASS`; schema validation is mandatory and takes precedence.
 
 ## Acceptance result
 
-Pending focused retry after the task-result ID schema correction.
+```text
+PR #41 FOCUSED RETRY: PASS
+```
