@@ -103,7 +103,7 @@
                       "source_type": {"const": "PROXMOX_VE_VZDUMP_TASK_RESULT"},
                       "source_id": {"type": "string", "minLength": 1},
                       "recovery_point_id": {"type": "string", "pattern": "^pve-rp-[a-f0-9]{24}$"},
-                      "task_result_id": {"type": "string", "pattern": "^pve-task-[a-f0-9]{24}$"},
+                      "task_result_id": {"type": "string", "pattern": "^pve-backup-task:[a-f0-9]{24}$"},
                       "basis": {
                         "type": "array",
                         "items": {"const": "STRICT_SUCCESS_TASK_MATCH"},
