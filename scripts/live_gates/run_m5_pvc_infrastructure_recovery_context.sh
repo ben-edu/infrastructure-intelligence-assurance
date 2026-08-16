@@ -3,6 +3,12 @@
 # Manual wrapper for the PVC infrastructure recovery context live gate.
 # Do not enable shell strict mode here: this is intended for an interactive SSH session.
 
+if [ "${EUID:-$(id -u)}" -eq 0 ]; then
+  echo "Do not run this wrapper as root."
+  echo "Run it as the normal operator user; it will request sudo only for two bounded evidence reads."
+  exit 2
+fi
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 KUBERNETES_SOURCE="/var/lib/infra-assurance/evidence/kubernetes.json"
 TOPOLOGY_SOURCE="/var/lib/infra-assurance/evidence/topology.json"
