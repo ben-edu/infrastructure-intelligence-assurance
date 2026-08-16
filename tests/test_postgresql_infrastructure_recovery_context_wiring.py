@@ -85,3 +85,44 @@ def test_management_host_is_explicitly_out_of_scope():
     assert '"management_host_postgresql_included": False' in source
     assert '"management_host_postgresql_included": {"const": false}' in schema
     assert 'if subject.get("system") != "kubernetes"' in source
+
+
+def test_live_gate_script_is_syntax_valid_and_uses_safe_pv_projection():
+    path = (
+        ROOT
+        / "scripts/live_gates/m5_postgresql_infrastructure_recovery_context.py"
+    )
+    text = path.read_text()
+
+    compile(text, str(path), "exec")
+
+    assert "go-template=" in text
+    assert "kubernetes.io/hostname" in text
+    assert "kubectl\", \"get\", \"pv\"" in text
+    assert "kubectl\", \"get\", \"secret\"" not in text.lower()
+    assert "pv backing paths" in text.lower()
+    assert "csi handles" in text.lower()
+
+
+def test_live_gate_does_not_enable_shell_strict_mode_or_mutating_commands():
+    text = (
+        ROOT
+        / "scripts/live_gates/m5_postgresql_infrastructure_recovery_context.py"
+    ).read_text().lower()
+
+    for marker in (
+        "set -e",
+        "set -euo",
+        "kubectl apply",
+        "kubectl delete",
+        "kubectl patch",
+        "kubectl edit",
+        "kubectl create",
+        "kubectl replace",
+        "systemctl start",
+        "systemctl enable",
+        "psql ",
+        "pg_dump",
+        "pg_basebackup",
+    ):
+        assert marker not in text
