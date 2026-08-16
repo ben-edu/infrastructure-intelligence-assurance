@@ -8,15 +8,16 @@ Project Sources remain authoritative for durable goals, roadmap, trust principle
 2. Read `HANDOFF.md` from `main`.
 3. Check open PRs in `ben-edu/infrastructure-intelligence-assurance`.
 4. If an active project PR has newer `HANDOFF.md`, prefer that branch version for execution state.
-5. Read only the ADR, milestone doc, and live-test report relevant to the active slice.
+5. Read only the ADR, milestone doc, and live/discovery report relevant to the active slice.
 6. Prefer repository/live evidence over chat reconstruction.
 
 ## Stable checkpoint
 
 - repository: `ben-edu/infrastructure-intelligence-assurance`
-- current `main` HEAD after PR #43 merge: `3fb60c23e8a885f9015f07d6c34270a425197189`
-- accepted PR #41 implementation merge: `d0c9d28711aecb19150988dbf53003a98aa91ff8`
+- main checkpoint before the PostgreSQL discovery documentation slice: `7b72241676d479948e5c1f6437a9f0bfffb76dcd`
+- accepted PR #41 VM last-successful-backup implementation merge: `d0c9d28711aecb19150988dbf53003a98aa91ff8`
 - accepted PR #43 PVE VM storage relationship merge: `3fb60c23e8a885f9015f07d6c34270a425197189`
+- PR #44 refreshed the handoff after PR #43
 - management host: `mgmt-automation`
 - checkout: `~/projects/infrastructure-intelligence-assurance`
 - Kubernetes cluster: `k3s-main`
@@ -78,6 +79,14 @@ Observed VMIDs for `LAST_SUCCESSFUL_BACKUP`:
 100,101,106,107,108,109
 ```
 
+Current accepted successful task completion times relevant to Kubernetes nodes:
+
+```text
+106 -> 2026-08-14T16:39:53Z
+107 -> 2026-08-14T17:39:32Z
+108 -> 2026-04-15T12:36:38Z
+```
+
 Unknown VMIDs:
 
 ```text
@@ -92,7 +101,7 @@ Unknown VMIDs:
 - milestone doc: `docs/milestone-5-pve-vm-storage-relationship.md`
 - live report: `docs/reports/2026-08-16-m5-pve-vm-storage-relationship-live-test-gate.md`
 
-Accepted gate on 2026-08-16:
+Accepted gate:
 
 ```text
 repository tests: 273 passed in 1.23s
@@ -110,71 +119,187 @@ direct_or_unresolved_disks: 0
 referenced_storage_ids: 1
 ```
 
-Accepted VMIDs:
+All 12 selected VMs resolve primary storage ID `local` and backup storage ID `local`. This is storage-ID relationship evidence only. It does not establish a physical failure domain. `BACKUP_FAILURE_DOMAIN` remains `UNKNOWN`.
+
+## PostgreSQL backup/recovery source discovery — 2026-08-16
+
+Discovery report:
 
 ```text
-100,101,102,103,104,105,106,107,108,109,110,9000
+docs/reports/2026-08-16-m5-postgresql-backup-recovery-source-discovery.md
 ```
 
-For all 12 selected VMs:
+Trust decision:
 
 ```text
-primary storage ID: local
-backup storage ID: local
-relationship: SAME_PVE_STORAGE_ID_AS_BACKUP
+docs/decisions/0026-distinguish-postgresql-infrastructure-recovery-from-database-backup.md
 ```
 
-Accepted storage metadata:
+### Kubernetes PostgreSQL scope
+
+Eight persistent PostgreSQL workload candidates are observed:
 
 ```text
-local storage_type: dir
-local shared_status: NOT_EXPLICITLY_RETURNED
-local node restrictions: none returned
+drfarah-staging
+fastapi-platform
+fastapi-platform-dev
+keycloak
+openproject
+soria-academie
+soria-prospecting
+toilettage
 ```
 
-Trust interpretation:
+All eight have Bound `local-path` PVCs.
 
-- same PVE storage ID is accepted source evidence;
-- it is not proof of the same physical disk/hardware/power failure domain;
-- `local` + `dir` is not interpreted as node-local without authoritative explicit evidence;
-- different storage IDs would not by themselves prove independent failure domains;
-- `BACKUP_FAILURE_DOMAIN` remains `UNKNOWN`;
-- no raw VM config, disk values, volids, paths, serials, cloud-init, network/MAC/IP data, credentials, snippets, or raw API payloads were persisted;
-- collector remained HTTP GET only and manual-only;
-- no infrastructure mutation occurred.
-
-## Exact next step — PostgreSQL backup/recovery source discovery
-
-Do not keep extending the PVE failure-domain path from the current evidence. It has reached a bounded evidence limit because storage locality/physical failure-domain metadata is not authoritative enough for promotion.
-
-The next smallest useful Milestone 5 slice is a read-only PostgreSQL backup/recovery source discovery.
-
-Discovery goal:
+PV node affinity establishes:
 
 ```text
-Identify current PostgreSQL instances in accepted infrastructure scope and determine, without mutation, what authoritative backup/recovery mechanisms and evidence sources exist for each instance.
+k3s-master-01: keycloak
+k3s-worker-01: fastapi-platform, fastapi-platform-dev, openproject, soria-prospecting, toilettage
+k3s-worker-02: drfarah-staging, soria-academie
 ```
 
-Start with discovery only. Do not implement a collector until the discovery proves a safe authoritative evidence path.
-
-Required questions:
+Bounded Kubernetes backup-mechanism discovery found:
 
 ```text
-Which PostgreSQL instances are currently in scope?
-What host/VM/Kubernetes workload owns each instance?
-What backup mechanism is actually configured or used?
-What authoritative source can prove backup execution/result?
-Where are backup artifacts stored?
-Is retention configuration observable?
-Is restore/integrity verification observable?
-What is unknown and what requires live verification?
+matching PostgreSQL/backup CronJobs: 0
+matching PostgreSQL/backup Jobs: 0
 ```
 
-Safe projection should prefer identifiers, versions, mechanism names, timestamps/statuses, and bounded provenance only.
+This is source-scoped negative evidence only, not universal absence.
 
-Never project database passwords, connection-string credentials, raw `.pgpass`, secret environment values, Kubernetes Secret values, private keys, complete sensitive connection strings, raw dump contents, or database data.
+### Kubernetes node to PVE VM mapping
 
-Initial interaction remains read-only. No backup, restore, WAL manipulation, retention change, PostgreSQL configuration change, service restart, or infrastructure mutation is allowed.
+Bounded read-only PVE observation established:
+
+```text
+k3s-master-01 -> VMID 106
+k3s-worker-01 -> VMID 107
+k3s-worker-02 -> VMID 108
+```
+
+The discovery-only PVE credential boundary remains unchanged:
+
+```text
+runtime_credential_approved: false
+```
+
+### Accepted VM recovery evidence join
+
+The previously accepted source artifacts were byte-verified before in-memory derivation:
+
+```text
+/tmp/vm-backup-assurance.json
+sha256: 14ccd7a082a6c901df6941e4c0540d24bd13ff96f29146a0e6ad689d4f824c1a
+
+/tmp/proxmox-ve-backup-task-results.json
+sha256: 18aaa4ad1a2dd260b4d0678e830f3c9267b2afaa1014b3563ec0e78a2b0135de
+```
+
+For VMIDs 106, 107, and 108, `LAST_SUCCESSFUL_BACKUP=OBSERVED` with the timestamps listed above.
+
+For all three:
+
+```text
+protection: UNKNOWN
+restore: UNKNOWN
+integrity: UNKNOWN
+failure-domain: UNKNOWN
+RPO: UNKNOWN
+RTO: RTO_UNKNOWN
+```
+
+The PostgreSQL relationship currently proven is:
+
+```text
+PostgreSQL workload
+-> Bound local-path PVC
+-> explicit Kubernetes PV storage node
+-> K3s VM
+-> PVE VMID
+-> accepted VM last-successful-backup evidence
+```
+
+This is infrastructure recovery context only. It is not PostgreSQL-consistent backup evidence.
+
+Do not classify VMID 108 as stale or an RPO violation from timestamp age alone; no accepted RPO/freshness target exists yet.
+
+### Management-host PostgreSQL
+
+`mgmt-automation` has an observed running PostgreSQL 15 cluster:
+
+```text
+postgresql@15-main.service: active/running
+```
+
+Observed backup-capable tooling:
+
+```text
+pg_dump 15.19
+pg_dumpall 15.19
+pg_basebackup 15.19
+pg_receivewal 15.19
+```
+
+Not observed in the inspected command scope:
+
+```text
+pgBackRest
+Barman
+barman-cloud-backup
+WAL-G
+```
+
+A packaged weekly `pg_basebackup@` systemd template exists, but no configured instance symlink or loaded/known service/timer instance was observed and the timer template is disabled. Tool/template presence does not establish configured or successful PostgreSQL backup execution.
+
+No PostgreSQL-specific cron file-name signal or local backup-script file-name signal was observed. `dpkg-db-backup.timer` is not PostgreSQL application-data backup evidence.
+
+Current local PostgreSQL interpretation:
+
+```text
+instance: OBSERVED
+backup-capable tooling: OBSERVED
+configured PostgreSQL backup mechanism: UNKNOWN
+scheduled execution: NOT_OBSERVED_IN_INSPECTED_LOCAL_SCOPE
+last successful PostgreSQL backup: UNKNOWN
+restore/integrity: UNKNOWN
+```
+
+`NOT_OBSERVED_IN_INSPECTED_LOCAL_SCOPE` is not `UNPROTECTED`.
+
+## Exact next step — bounded PostgreSQL infrastructure-recovery context
+
+Do not continue broad PostgreSQL backup discovery or implement a PostgreSQL backup-protection claim from the current evidence.
+
+The next smallest useful Milestone 5 slice is a read-only derived context for the eight Kubernetes PostgreSQL instances only.
+
+The implementation should join accepted/bounded evidence for:
+
+```text
+PostgreSQL workload identity
+persistent PVC identity
+explicit Kubernetes PV storage node
+K3s node -> PVE VMID mapping
+accepted VM LAST_SUCCESSFUL_BACKUP status/timestamp
+```
+
+It must preserve these PostgreSQL-specific dimensions as unknown until a database-aware authoritative source exists:
+
+```text
+backup mechanism
+backup execution/result
+artifact location
+retention effectiveness
+restore verification
+integrity verification
+RPO
+RTO
+```
+
+Do not include the local `mgmt-automation` PostgreSQL instance in the first derived implementation unless an authoritative infrastructure-recovery relationship is separately established for it.
+
+Start with a small versioned schema + pure derivation + tests. No new live collector is required unless an input relationship cannot be established from accepted evidence.
 
 ## PVE credential/runtime boundary
 
@@ -185,7 +310,7 @@ There is no PBS today. Future PBS compatibility remains mandatory through separa
 ## Milestone 5 gaps still open
 
 ```text
-PostgreSQL
+PostgreSQL database-aware backup evidence
 MariaDB
 PVC assurance beyond foundation
 PBS (future)
@@ -200,11 +325,13 @@ restore tests
 
 - infrastructure interaction remains read-only;
 - source artifacts and derived assurance remain separate;
+- infrastructure recovery evidence is not database-consistent backup evidence;
 - source-scoped negative evidence is not universal absence;
 - recovery-point presence is not task-result success;
 - task-result success is not restore verification;
 - observation credentials remain separate from control credentials;
 - stale/current/unknown semantics remain explicit;
+- no RPO violation is inferred without an accepted target;
 - network timeout is not absence unless observation scope is known complete;
-- no secrets, raw sensitive config/state, raw task logs, raw VM config, or database data enter evidence/AI context;
+- no secrets, raw sensitive config/state, raw task logs, raw VM config, database data, or raw dump contents enter evidence/AI context;
 - generated operational artifacts keep `mutation_allowed=false`.
