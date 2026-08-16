@@ -86,7 +86,7 @@ Unknown VMIDs:
 
 ## Completed bounded VM primary-storage preflight
 
-The manual read-only BM2 preflight requested by the previous handoff has now passed.
+The manual read-only BM2 preflight requested by the previous handoff has passed.
 
 Current safe result:
 
@@ -131,38 +131,51 @@ FAILED_TO_OBSERVE
 
 It does not modify VM Backup Assurance and does not promote `BACKUP_FAILURE_DOMAIN`.
 
-Focused fixture testing of the proposed logic passed before publication. The authoritative full-repository gate and live collector gate are still pending.
+Focused fixture testing of the proposed logic passed before publication.
 
-## Exact next step — PR #43 repository + live gate
+The first authoritative full-repository gate attempt was rejected with `272 passed, 1 failed` because `tests/test_vm_last_successful_backup_integration_wiring.py` hard-coded the previous package version `0.23.0`. The failure occurred before the live collector command, so no new PVE live observation was made. The regression test has been corrected to enforce package-version synchronization and preservation of the previous CLI without freezing future package bumps.
 
-On `mgmt-automation`, update the checkout and switch to the active branch, then run the full repository tests and the manual collector:
+Do not use `set -e` directly in the interactive SSH shell for this gate; the first rejected attempt closed the session when pytest returned non-zero.
+
+## Exact next step — PR #43 repository + live gate retry
+
+On `mgmt-automation`, update the active branch and rerun the full repository tests. Only continue to the live collector if pytest passes:
 
 ```bash
-set -euo pipefail
-
 cd ~/projects/infrastructure-intelligence-assurance
+
 git fetch origin
 git switch agent/m5-pve-vm-storage-relationship
 git pull --ff-only origin agent/m5-pve-vm-storage-relationship
 
 python3 -m pytest -q
+TEST_RC=$?
 
-ENV_FILE="/home/ben/projects/afpa-infra-rebuild/mcp/proxmox/proxmox.env"
-OUT="/tmp/pve-vm-storage-relationship-v0.1.json"
-SUMMARY="/tmp/pve-vm-storage-relationship-v0.1.md"
+if [ "$TEST_RC" -ne 0 ]; then
+  echo "Repository gate failed with rc=$TEST_RC; live collector NOT run."
+else
+  ENV_FILE="/home/ben/projects/afpa-infra-rebuild/mcp/proxmox/proxmox.env"
+  OUT="/tmp/pve-vm-storage-relationship-v0.1.json"
+  SUMMARY="/tmp/pve-vm-storage-relationship-v0.1.md"
 
-PYTHONPATH=src python3 -m infra_assurance.proxmox_ve_vm_storage_relationship \
-  --credential-env-file "$ENV_FILE" \
-  --source-id pve-bm2 \
-  --node delfan \
-  --backup-storage-id local \
-  --vmids 100,101,102,103,104,105,106,107,108,109,110,9000 \
-  --out "$OUT" \
-  --summary-out "$SUMMARY" \
-  --allow-discovery-credential \
-  --allow-insecure-tls-discovery
+  PYTHONPATH=src python3 -m infra_assurance.proxmox_ve_vm_storage_relationship \
+    --credential-env-file "$ENV_FILE" \
+    --source-id pve-bm2 \
+    --node delfan \
+    --backup-storage-id local \
+    --vmids 100,101,102,103,104,105,106,107,108,109,110,9000 \
+    --out "$OUT" \
+    --summary-out "$SUMMARY" \
+    --allow-discovery-credential \
+    --allow-insecure-tls-discovery
+  COLLECT_RC=$?
 
-cat "$SUMMARY"
+  if [ "$COLLECT_RC" -ne 0 ]; then
+    echo "Live collector failed with rc=$COLLECT_RC."
+  else
+    cat "$SUMMARY"
+  fi
+fi
 ```
 
 Expected only if live state remains equivalent to the accepted preflight:
