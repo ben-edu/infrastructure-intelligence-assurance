@@ -11,21 +11,19 @@ Project Sources remain authoritative for durable goals, roadmap, trust principle
 5. Read only the ADR, milestone doc, and live/discovery report relevant to the active slice.
 6. Prefer repository and live evidence over chat reconstruction.
 
-## Active execution checkpoint
+## Active checkpoint
 
 ```text
 repository: ben-edu/infrastructure-intelligence-assurance
-accepted main before PR #51: 5f28edc31f4ac5e9e34e697a502329c5df024bbd
-active branch: feature/m5-pvc-infrastructure-recovery-context
-package: 0.27.0
+accepted main after PR #51: e41d3efaabdeaec1dd5861e786b1f3946d426e00
+active branch: agent/m5-pve-backup-policy-retention-discovery
+package on accepted main: 0.27.0
 Milestone 5: active
 mutation_allowed: false
 management host: mgmt-automation
 Kubernetes cluster: k3s-main
 PVE source: pve-bm2 / delfan
 ```
-
-PR #51 passed its bounded live acceptance gate on 2026-08-16 and is ready to merge.
 
 PVE collection remains manual-only. Existing PVE credentials remain discovery-only and `runtime_credential_approved=false`.
 
@@ -44,9 +42,11 @@ restore/integrity/failure-domain/RPO/RTO: UNKNOWN
 unprotected_claims: 0
 ```
 
-Relevant accepted timestamps:
+Accepted last-success timestamps:
 
 ```text
+100 -> 2026-05-08T06:15:18Z
+101 -> 2026-05-08T10:38:50Z
 106 -> 2026-08-14T16:39:53Z
 107 -> 2026-08-14T17:39:32Z
 108 -> 2026-04-15T12:36:38Z
@@ -63,67 +63,22 @@ sha256: 14ccd7a082a6c901df6941e4c0540d24bd13ff96f29146a0e6ad689d4f824c1a
 sha256: 18aaa4ad1a2dd260b4d0678e830f3c9267b2afaa1014b3563ec0e78a2b0135de
 ```
 
-### Database infrastructure recovery contexts
-
-PostgreSQL Kubernetes context PR #46:
-
-```text
-74a3c270e411a3823bd692abeb66e9fb3b6b6c04
-instances_total: 8
-infrastructure_recovery_observed: 8
-postgresql_protection_unknown: 8
-```
-
-Management-host PostgreSQL relationship PR #47:
-
-```text
-cc0b8f36bc889a86cdd0181b90f48f8b21bc1da2
-mgmt-automation -> PVE VMID 109
-VM LAST_SUCCESSFUL_BACKUP=OBSERVED
-local PostgreSQL infrastructure recovery=OBSERVED
-```
-
-MariaDB Infrastructure Recovery Context v0.1 PR #49:
-
-```text
-b836ebbedea5027a7107e17db2d19ba6f38c37ad
-instances_total: 4
-persistence_observed: 3
-persistence_unknown: 1
-infrastructure_recovery_observed: 3
-infrastructure_recovery_unknown: 1
-mariadb_protection_unknown: 4
-unprotected_claims: 0
-```
-
-Database-aware PostgreSQL and MariaDB backup mechanism, execution/result, artifact location, retention, restore, integrity, RPO, and RTO remain unknown.
-
 ### PVC Infrastructure Recovery Context v0.1
 
-Discovery PR #50 merged at:
+PR #51 merged at:
 
 ```text
-5f28edc31f4ac5e9e34e697a502329c5df024bbd
+e41d3efaabdeaec1dd5861e786b1f3946d426e00
 ```
 
-PR #51 accepted live gate:
+Accepted live gate:
 
 ```text
 package: 0.27.0
-repository tests: 328 passed in 1.41s
-foundation schema: PASS
-foundation_assets: 37
-live_pvc_assets: 37
-storage_nodes_to_map: 3
-relationship_source_status: COMPLETE
-VM Backup Assurance v0.2 schema: PASS
-PVC context schema: PASS
+repository tests: 328 passed
 assets_total: 37
-direct_workload_reference_observed: 22
-direct_workload_reference_none_observed: 15
 infrastructure_recovery_observed: 37
 infrastructure_recovery_unknown: 0
-infrastructure_recovery_failed_to_observe: 0
 underlying_vm_last_successful_backup_observed: 37
 protection_unknown: 37
 backup_freshness_unknown: 37
@@ -136,42 +91,102 @@ rto_unknown: 37
 unprotected_claims: 0
 backup_stale_claims: 0
 rpo_violation_claims: 0
-accepted_vm_timestamps_match: true
-acceptance_counters_match: true
 gate_rc: 0
 ```
 
-The accepted manual wrapper used `sudo cat` only to read normalized `kubernetes.json` and `topology.json`; the actual live gate ran as the non-root shell user. No permission/ownership or infrastructure state was changed.
+This remains infrastructure recovery context only, not application/database-consistent protection.
 
-`infrastructure_recovery=OBSERVED` remains infrastructure context only. It does not establish application/database-consistent protection.
+### Database infrastructure recovery contexts
 
-## Exact next step — PVE backup policy and retention source discovery
-
-The next smallest read-only Milestone 5 gap is to identify authoritative PVE backup policy evidence before attempting retention/RPO claims.
-
-Discovery only. Do not change backup jobs, retention, storage, schedules, or credentials.
-
-Bounded questions:
+PostgreSQL Kubernetes context:
 
 ```text
-Which PVE backup jobs are currently declared?
-Which jobs are enabled?
-What guest scope is declared (all or explicit VMIDs)?
-What storage target is declared?
-What schedule/frequency is declared?
-What retention/prune policy is explicitly declared, if any?
-Can jobs be related to the accepted VMIDs 100..110/9000 without assuming execution success?
-Which policy fields are absent or unknown?
+instances_total: 8
+infrastructure_recovery_observed: 8
+postgresql_protection_unknown: 8
 ```
 
-Preferred authoritative source is the PVE cluster backup-job API (read-only), with a safe projection only. Do not print free-form notes, notification secrets, hook scripts, credentials, raw configuration, or complete connection strings.
+Management-host PostgreSQL:
 
-Declared schedule/retention evidence must remain distinct from observed successful backup-task evidence. A configured job does not prove execution success, retention effectiveness, restore viability, RPO compliance, or protection.
+```text
+mgmt-automation -> PVE VMID 109
+VM LAST_SUCCESSFUL_BACKUP=OBSERVED
+local PostgreSQL infrastructure recovery=OBSERVED
+```
+
+MariaDB context:
+
+```text
+instances_total: 4
+persistence_observed: 3
+persistence_unknown: 1
+infrastructure_recovery_observed: 3
+infrastructure_recovery_unknown: 1
+mariadb_protection_unknown: 4
+```
+
+PostgreSQL and MariaDB database-aware backup mechanism, execution/result, artifact location, retention, restore, integrity, RPO, and RTO remain unknown.
+
+## Accepted PVE current backup-policy discovery
+
+Report:
+
+```text
+docs/reports/2026-08-16-m5-pve-backup-policy-retention-discovery.md
+```
+
+Accepted read-only live discovery:
+
+```text
+selected_vmids_expected: 12
+selected_vmids_observed: 12
+backup_job_source_status: COMPLETE
+declared_jobs: 0
+selected_vmids_with_declared_job_scope: 0
+selected_vmids_without_declared_job_scope_observed: 12
+retention_prune_backups: 0
+retention_legacy_maxfiles: 0
+discovery_rc: 0
+```
+
+Current authoritative PVE `/cluster/backup` state returned no backup jobs.
+
+This is current declared state only. It does not invalidate historical successful VZDUMP evidence and does not prove that backups were manual, unscheduled, deleted-policy executions, or externally orchestrated.
+
+The accepted distinction is:
+
+```text
+current declared PVE backup jobs: NONE_OBSERVED
+historical successful VZDUMP execution evidence: OBSERVED for 6/12 VMs
+execution provenance relative to scheduler/policy: UNKNOWN
+```
+
+No current job-level retention/prune declaration was observed. Retention effectiveness remains unknown.
+
+## Exact next step — historical VZDUMP execution provenance discovery
+
+Perform one bounded read-only discovery over the already accepted successful VZDUMP task records.
+
+Goal: determine whether authoritative PVE task metadata explicitly exposes execution provenance. Do not infer provenance from timestamp patterns, current job absence, or user identity alone.
+
+Allowed classifications:
+
+```text
+SCHEDULED_PROVENANCE_OBSERVED
+MANUAL_PROVENANCE_OBSERVED
+EXTERNAL_ORCHESTRATION_PROVENANCE_OBSERVED
+PROVENANCE_NOT_EXPLICITLY_RETURNED
+FAILED_TO_OBSERVE
+```
+
+If task status/detail metadata contains no explicit scheduler/job/provenance field, classify `PROVENANCE_NOT_EXPLICITLY_RETURNED` and close the path. Do not read or print raw task logs, raw UPIDs, commands, hook scripts, notification targets, credentials, or backup contents.
+
+The accepted successful task records remain execution evidence regardless of whether provenance is knowable.
 
 ## Milestone 5 gaps still open
 
 ```text
-PVE declared backup schedule/retention evidence
+historical VZDUMP execution provenance
 PostgreSQL database-aware backup evidence
 MariaDB database-aware backup evidence
 PBS (future)
@@ -195,6 +210,7 @@ Milestone 8: Reliability and Hardening
 - infrastructure interaction remains read-only;
 - source artifacts and derived assurance remain separate;
 - declared backup policy is not observed backup success;
+- current job absence does not determine historical execution provenance;
 - infrastructure recovery evidence is not application/database-consistent backup evidence;
 - source-scoped negative evidence is not universal absence;
 - recovery-point presence is not task-result success;
