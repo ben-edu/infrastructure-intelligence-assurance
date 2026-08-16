@@ -2,13 +2,13 @@
 
 ## Status
 
-Pending live source-artifact acceptance.
+Accepted.
 
-The bounded manual preflight has passed. The versioned collector introduced by this slice has not yet been accepted against BM2.
+The bounded manual preflight and the versioned live source-artifact collector have both passed against BM2.
 
-## First repository-gate attempt
+## Rejected first repository-gate attempt
 
-The first full repository gate on `mgmt-automation` reached the test suite before any live collector execution and was rejected:
+The first full repository gate on `mgmt-automation` was rejected before any live collector execution:
 
 ```text
 272 passed
@@ -17,149 +17,133 @@ The first full repository gate on `mgmt-automation` reached the test suite befor
 
 The only failure was a stale regression assertion in `tests/test_vm_last_successful_backup_integration_wiring.py` that hard-coded package version `0.23.0` even though this slice intentionally advances the package to `0.24.0`.
 
-That assertion represented the wrong invariant. The previous integration CLI must remain exposed and package metadata versions must remain synchronized, but a later compatible slice must be allowed to advance the package version. The test was corrected to compare the `pyproject.toml` project version with `infra_assurance.__version__` while continuing to require the previous integration CLI.
+The correct invariant is package-version synchronization plus preservation of the previous integration CLI, not freezing the package version. The test was corrected accordingly.
 
-Because the interactive shell had `set -euo pipefail`, the pytest failure terminated that SSH shell before the live collector command was reached. Therefore this rejected attempt produced no new PVE live observation and no source artifact acceptance.
+Because the interactive shell had `set -euo pipefail`, that pytest failure terminated the SSH shell before live collection. No new PVE observation was made in that rejected attempt.
 
-Future operator commands in this gate must not enable `set -e` directly in an interactive SSH shell.
+## Accepted repository gate
 
-## Preflight result already established
-
-Operator-run manual preflight on `mgmt-automation` used the existing discovery-only BM2 credential and issued HTTP GET requests only.
-
-Accepted input scope:
+The corrected branch was pulled on `mgmt-automation` at:
 
 ```text
-VM Backup Assurance version: 0.2
-VM assets: 12
-VMIDs: 100,101,102,103,104,105,106,107,108,109,110,9000
-backup storage ID: local
-node: delfan
+43e8604 Refresh PR43 handoff after rejected repository gate
 ```
 
-Safe storage projection:
+Full repository result:
 
 ```text
-storage ID: local
-type: dir
-shared: NOT_EXPLICITLY_RETURNED
-node restrictions: none returned
-images: true
-backup: true
-disabled: false
+273 passed in 1.23s
+```
+
+Package version:
+
+```text
+0.24.0
+```
+
+## Accepted live collector
+
+The manual source-tree collector was run against:
+
+```text
+source_id: pve-bm2
+node: delfan
+backup storage ID: local
+VMIDs: 100,101,102,103,104,105,106,107,108,109,110,9000
+```
+
+The existing discovery-only credential boundary was preserved.
+
+Accepted source metadata:
+
+```text
+pve_vm_storage_relationship_version: 0.1
+source status: COMPLETE
+mutation_allowed: false
+runtime credential approved: false
+```
+
+Accepted summary:
+
+```text
+target_vms: 12
+config_complete: 12
+same_pve_storage_id_as_backup: 12
+different_pve_storage_id_from_backup: 0
+unknown: 0
+failed_to_observe: 0
+direct_or_unresolved_disks: 0
+referenced_storage_ids: 1
 ```
 
 Every selected VM produced:
 
 ```text
-observation: COMPLETE
-managed primary storage IDs: [local]
-direct/unresolved disk count: 0
-relationship candidate: SAME_PVE_STORAGE_ID_AS_BACKUP
+relationship_status: SAME_PVE_STORAGE_ID_AS_BACKUP
+primary_storage_ids: [local]
+backup_storage_id: local
+unresolved_disks: 0
 ```
 
-Preflight summary:
+Accepted storage metadata projection:
 
 ```text
-SAME_PVE_STORAGE_ID_AS_BACKUP = 12
-SAME_NODE_NON_SHARED_STORAGE_CANDIDATE = 0
-UNKNOWN = 0
-FAILED_TO_OBSERVE = 0
+storage_id: local
+metadata_status: OBSERVED
+storage_type: dir
+shared_status: NOT_EXPLICITLY_RETURNED
+node_restrictions: none returned
 ```
 
-The preflight intentionally did not promote `BACKUP_FAILURE_DOMAIN`.
+## Schema gate
 
-No raw VM config, disk value, volume ID, path, serial, cloud-init value, network value, MAC/IP value, credential, or snippet was printed or persisted.
-
-No VM, storage, backup, snapshot, schedule, ACL, credential, or other infrastructure mutation occurred.
-
-## Repository gate required
-
-Run from the feature branch:
-
-```bash
-python3 -m pytest -q
-```
-
-Expected requirements:
+The generated live artifact validated against:
 
 ```text
-all tests pass
-new schema validates generated artifact
-manual-only wiring remains unchanged
-no control methods are introduced
-package version: 0.24.0
+schemas/proxmox-ve-vm-storage-relationship.schema.json
 ```
 
-## Live collector gate required
-
-On `mgmt-automation`, run without setting `-e` in the interactive shell:
-
-```bash
-cd ~/projects/infrastructure-intelligence-assurance
-
-ENV_FILE="/home/ben/projects/afpa-infra-rebuild/mcp/proxmox/proxmox.env"
-OUT="/tmp/pve-vm-storage-relationship-v0.1.json"
-SUMMARY="/tmp/pve-vm-storage-relationship-v0.1.md"
-
-PYTHONPATH=src python3 -m infra_assurance.proxmox_ve_vm_storage_relationship \
-  --credential-env-file "$ENV_FILE" \
-  --source-id pve-bm2 \
-  --node delfan \
-  --backup-storage-id local \
-  --vmids 100,101,102,103,104,105,106,107,108,109,110,9000 \
-  --out "$OUT" \
-  --summary-out "$SUMMARY" \
-  --allow-discovery-credential \
-  --allow-insecure-tls-discovery
-
-cat "$SUMMARY"
-```
-
-If package `0.24.0` is installed rather than source-tree execution, the equivalent CLI is `iia-proxmox-ve-vm-storage-relationship`.
-
-## Acceptance checks
-
-The live artifact should be inspected only through its bounded fields.
-
-Required checks:
+Result:
 
 ```text
-pve_vm_storage_relationship_version = 0.1
-mutation_allowed = false
-source.type = proxmox_ve_api
-source.source_id = pve-bm2
-source.node = delfan
-source.credential_runtime_approved = false
-target_vms = 12
-direct_or_unresolved_disks = 0
+schema: PASS
+version: 0.1
+mutation_allowed: false
+source status: COMPLETE
+target_vms: 12
+same: 12
+different: 0
+unknown: 0
+failed_to_observe: 0
+direct_or_unresolved_disks: 0
 ```
 
-For the current preflight-equivalent state, the expected relationship count is:
+## Safety acceptance
+
+The collector remained HTTP GET only and manual-only.
+
+No VM, storage, backup, snapshot, schedule, ACL, token, Kubernetes, systemd, RBAC, or other infrastructure mutation occurred.
+
+The persisted artifact contains no raw VM config, raw disk strings, volume IDs, paths, serials, cloud-init values, network configuration, MAC/IP values, snippets, URLs, credentials, token material, or raw API payloads.
+
+## Trust interpretation
+
+This gate accepts one bounded statement:
 
 ```text
-SAME_PVE_STORAGE_ID_AS_BACKUP = 12
-DIFFERENT_PVE_STORAGE_ID_FROM_BACKUP = 0
-UNKNOWN = 0
-FAILED_TO_OBSERVE = 0
+For the accepted live snapshot, all 12 selected VMs reference the same PVE storage ID (`local`) for their safely resolved primary disks as the selected backup storage ID.
 ```
 
-The expected storage metadata for `local` is currently:
+It does not prove that primary disks and backup archives occupy the same physical disk, controller, host-local hardware, power domain, or other physical failure domain.
+
+It does not prove failure-domain separation.
+
+The source did not explicitly return shared status for `local`, and the platform must not infer node-locality from `storage_id=local` or `storage_type=dir`.
+
+Therefore:
 
 ```text
-storage_type = dir
-shared_status = NOT_EXPLICITLY_RETURNED
-node_restrictions_status = NOT_EXPLICITLY_RETURNED
+BACKUP_FAILURE_DOMAIN remains UNKNOWN
 ```
 
-If live evidence differs, the live result wins and the difference must be investigated rather than forced to match this preflight.
-
-## Trust acceptance
-
-Even if all 12 relationships are `SAME_PVE_STORAGE_ID_AS_BACKUP`, acceptance means only that the bounded PVE storage-ID join is authoritative for this source snapshot.
-
-It does not establish the same physical disk or hardware failure domain.
-
-It does not establish failure-domain separation.
-
-`BACKUP_FAILURE_DOMAIN` must remain unchanged until a separate accepted derived rule has sufficient evidence.
+A future promotion requires a separate accepted evidence contract with stronger authoritative failure-domain evidence.
