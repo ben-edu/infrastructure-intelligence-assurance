@@ -11,17 +11,32 @@ Project Sources remain authoritative for durable goals, roadmap, trust principle
 5. Read only the ADR, milestone doc, and live/discovery report relevant to the active slice.
 6. Prefer repository and live evidence over chat reconstruction.
 
-## Stable checkpoint
+## Active execution checkpoint
 
 ```text
 repository: ben-edu/infrastructure-intelligence-assurance
-main after accepted PR #47: cc0b8f36bc889a86cdd0181b90f48f8b21bc1da2
-package: 0.25.0
+accepted main checkpoint after PR #48: 460f72320071291c3eeecd95a89c99cc5e1fe656
+active branch: feature/m5-mariadb-infrastructure-recovery-context
+package on active branch: 0.26.0
 Milestone 5: active
 mutation_allowed: false
 management host: mgmt-automation
 Kubernetes cluster: k3s-main
 PVE source: pve-bm2 / delfan
+```
+
+The MariaDB infrastructure recovery context slice is implemented but not accepted until the full repository suite and manual live gate pass.
+
+Active files:
+
+```text
+src/infra_assurance/mariadb_infrastructure_recovery_context.py
+schemas/mariadb-infrastructure-recovery-context.schema.json
+tests/test_mariadb_infrastructure_recovery_context.py
+tests/test_mariadb_infrastructure_recovery_context_wiring.py
+scripts/live_gates/m5_mariadb_infrastructure_recovery_context.py
+docs/milestone-5-mariadb-infrastructure-recovery-context.md
+docs/reports/2026-08-16-m5-mariadb-infrastructure-recovery-context-live-test-gate.md
 ```
 
 PVE collection remains manual-only. Existing PVE credentials remain discovery-only and `runtime_credential_approved=false`.
@@ -49,7 +64,7 @@ restore/integrity/failure-domain/RPO/RTO: UNKNOWN
 unprotected_claims: 0
 ```
 
-Relevant accepted VM timestamps:
+Relevant accepted timestamps:
 
 ```text
 106 -> 2026-08-14T16:39:53Z
@@ -58,7 +73,7 @@ Relevant accepted VM timestamps:
 109 -> 2026-04-13T10:36:41Z
 ```
 
-Accepted input artifacts:
+Accepted source inputs:
 
 ```text
 /tmp/vm-backup-assurance.json
@@ -76,12 +91,6 @@ This is logical storage-ID evidence only. Physical failure-domain independence r
 
 ## Accepted PostgreSQL context
 
-ADR:
-
-```text
-docs/decisions/0026-distinguish-postgresql-infrastructure-recovery-from-database-backup.md
-```
-
 PR #46 merged at:
 
 ```text
@@ -95,38 +104,26 @@ instances_total: 8
 infrastructure_recovery_observed: 8
 underlying_vm_last_successful_backup_observed: 8
 postgresql_protection_unknown: 8
-postgresql_backup_mechanism_unknown: 8
-postgresql_backup_execution_unknown: 8
-postgresql_restore_verification_unknown: 8
-postgresql_integrity_verification_unknown: 8
-postgresql_rpo_unknown: 8
-postgresql_rto_unknown: 8
 unprotected_claims: 0
 backup_stale_claims: 0
 rpo_violation_claims: 0
 ```
 
-The management-host PostgreSQL instance on `mgmt-automation` is also related by in-memory DMI/SMBIOS UUID correlation to:
-
-```text
-PVE guest: mgmt-automation-01
-VMID: 109
-PVE node: delfan
-VM LAST_SUCCESSFUL_BACKUP: OBSERVED
-latest: 2026-04-13T10:36:41Z
-strict_success_task_evidence: true
-local_postgresql_infrastructure_recovery_status: OBSERVED
-```
-
-PR #47 merged at:
+The management-host PostgreSQL instance is related to PVE VMID 109 with accepted strict VM last-successful-backup evidence. PR #47 merged at:
 
 ```text
 cc0b8f36bc889a86cdd0181b90f48f8b21bc1da2
 ```
 
-PostgreSQL database-aware protection, mechanism, execution/result, artifact location, retention, restore, integrity, RPO, and RTO remain unknown.
+PostgreSQL database-aware backup mechanism, execution/result, artifact location, retention, restore, integrity, RPO, and RTO remain unknown.
 
-## Accepted MariaDB/MySQL-compatible source discovery
+## Accepted MariaDB/MySQL-compatible discovery
+
+PR #48 merged at:
+
+```text
+460f72320071291c3eeecd95a89c99cc5e1fe656
+```
 
 Report:
 
@@ -134,77 +131,105 @@ Report:
 docs/reports/2026-08-16-m5-mariadb-backup-recovery-source-discovery.md
 ```
 
-Observed Kubernetes candidates:
+Accepted discovery state:
 
 ```text
 bookstack/Deployment/mariadb
-  image: mariadb:10.11
-  PVC: mariadb-data / Bound / local-path
+  persistence: OBSERVED
   storage node: k3s-worker-02
+  VMID: 108
 
 misp/Deployment/mariadb
-  image: mariadb:10.5
-  PVC: mariadb-pvc / Bound / local-path
+  persistence: OBSERVED
   storage node: k3s-master-01
+  VMID: 106
 
 misp/Deployment/mariadb-v2
-  image: mariadb:10.5
-  PVC: NONE_OBSERVED
-  persistence status: UNKNOWN in inspected safe scope
+  persistence: UNKNOWN
+  infrastructure recovery: UNKNOWN
 
 moodle/StatefulSet/moodle-mariadb
-  image: docker.io/bitnamilegacy/mariadb:12.0.2-debian-12-r0
-  PVC: data-moodle-mariadb-0 / Bound / local-path
+  persistence: OBSERVED
   storage node: k3s-worker-02
+  VMID: 108
 ```
 
-Summary:
+Bounded backup signals:
 
 ```text
-candidate workloads: 4
-persistence observed: 3
-persistence unknown: 1
-matching backup/MariaDB CronJobs: 0
-matching backup/MariaDB Jobs: 0
+matching MariaDB/backup CronJobs: 0
+matching MariaDB/backup Jobs: 0
 ```
 
-The zero CronJob/Job matches are bounded negative evidence only and are not `UNPROTECTED` claims.
+The zero matches are bounded negative evidence only and are not `UNPROTECTED` claims.
 
-Accepted infrastructure mappings relevant to persistent MariaDB candidates:
+Accepted VM recovery evidence relevant to persistent MariaDB candidates:
 
 ```text
-k3s-master-01 -> VMID 106 -> VM LAST_SUCCESSFUL_BACKUP=OBSERVED -> 2026-08-14T16:39:53Z
-k3s-worker-02 -> VMID 108 -> VM LAST_SUCCESSFUL_BACKUP=OBSERVED -> 2026-04-15T12:36:38Z
+VMID 106 -> LAST_SUCCESSFUL_BACKUP=OBSERVED -> 2026-08-14T16:39:53Z
+VMID 108 -> LAST_SUCCESSFUL_BACKUP=OBSERVED -> 2026-04-15T12:36:38Z
 ```
 
-Therefore bounded infrastructure-level recovery context is available for:
+MariaDB database-aware protection, backup mechanism, execution/result, artifact location, retention, restore verification, integrity verification, RPO, and RTO remain unknown.
+
+## Active slice — MariaDB infrastructure recovery context v0.1
+
+The implementation is pure derivation. It adds no runtime/systemd wiring and no database connection.
+
+Promotion rule:
 
 ```text
-misp/Deployment/mariadb -> VMID 106
-bookstack/Deployment/mariadb -> VMID 108
-moodle/StatefulSet/moodle-mariadb -> VMID 108
+MariaDB-compatible workload OBSERVED
++ persistent PVC OBSERVED
++ PV storage node OBSERVED
++ Kubernetes node -> PVE VMID OBSERVED
++ accepted VM LAST_SUCCESSFUL_BACKUP OBSERVED
++ STRICT_SUCCESS_TASK_MATCH evidence
+= infrastructure_recovery OBSERVED
 ```
 
-No infrastructure-recovery promotion is accepted for `misp/Deployment/mariadb-v2` because no persistent PVC relationship was observed.
+Missing persistence remains `UNKNOWN`, not `UNPROTECTED`.
 
-Management-host discovery found no local MariaDB/MySQL server or backup tooling in the inspected scope.
+The strict schema fixes MariaDB-specific assurance to:
 
-MariaDB-consistent backup, backup mechanism, execution/result, artifact location, retention, restore verification, integrity verification, RPO, and RTO remain unknown.
+```text
+protection: UNKNOWN
+backup mechanism: UNKNOWN
+backup execution/result: UNKNOWN
+backup artifact location: UNKNOWN
+retention effectiveness: UNKNOWN
+restore verification: UNKNOWN
+integrity verification: UNKNOWN
+RPO: UNKNOWN
+RTO: RTO_UNKNOWN
+```
 
-## Exact next step — MariaDB infrastructure recovery context v0.1
+And:
 
-Implement a pure derived, read-only context for all four observed Kubernetes MariaDB-compatible candidates.
+```text
+unprotected_claims: 0
+backup_stale_claims: 0
+rpo_violation_claims: 0
+```
 
-Do not add a new live database collector or runtime/systemd wiring.
+## Exact next action — live acceptance gate
 
-Expected conservative semantics if live state is unchanged:
+Run the full repository suite and the manual bounded gate on `mgmt-automation`:
+
+```text
+scripts/live_gates/m5_mariadb_infrastructure_recovery_context.py
+```
+
+Expected counters if live state remains unchanged:
 
 ```text
 instances_total: 4
 persistence_observed: 3
 persistence_unknown: 1
+persistence_failed_to_observe: 0
 infrastructure_recovery_observed: 3
 infrastructure_recovery_unknown: 1
+infrastructure_recovery_failed_to_observe: 0
 underlying_vm_last_successful_backup_observed: 3
 mariadb_protection_unknown: 4
 mariadb_backup_mechanism_unknown: 4
@@ -216,11 +241,10 @@ mariadb_rto_unknown: 4
 unprotected_claims: 0
 backup_stale_claims: 0
 rpo_violation_claims: 0
+schema: PASS
 ```
 
-`misp/mariadb-v2` must remain `UNKNOWN`, not `UNPROTECTED`, unless a separate authoritative source proves absence of required protection.
-
-A VM backup timestamp must not be interpreted as MariaDB-consistent backup, stale backup, or RPO violation without a MariaDB-specific authoritative mechanism and accepted policy target.
+Do not force these values if live evidence differs. Fail closed and review the observed change.
 
 ## Milestone 5 gaps still open
 
