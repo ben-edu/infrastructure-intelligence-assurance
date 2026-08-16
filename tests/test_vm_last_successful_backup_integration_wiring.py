@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -27,11 +28,16 @@ def test_integration_is_derived_only_and_runtime_unwired():
     assert "PROXMOX_BASE_URL" not in unit
 
 
-def test_package_exposes_current_integration_cli_and_version():
+def test_package_keeps_integration_cli_and_version_in_sync():
     pyproject = (ROOT / "pyproject.toml").read_text()
     init = (ROOT / "src/infra_assurance/__init__.py").read_text()
-    assert 'version = "0.23.0"' in pyproject
-    assert '__version__ = "0.23.0"' in init
+
+    project_match = re.search(r'^version = "([^"]+)"$', pyproject, re.MULTILINE)
+    init_match = re.search(r'^__version__ = "([^"]+)"$', init, re.MULTILINE)
+
+    assert project_match is not None
+    assert init_match is not None
+    assert project_match.group(1) == init_match.group(1)
     assert 'iia-vm-last-successful-backup = "infra_assurance.vm_last_successful_backup_integration:main"' in pyproject
 
 

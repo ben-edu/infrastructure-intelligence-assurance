@@ -1,0 +1,162 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/schemas/proxmox-ve-vm-storage-relationship.schema.json",
+  "title": "Proxmox VE VM Storage Relationship Evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "pve_vm_storage_relationship_version",
+    "generated_at",
+    "mutation_allowed",
+    "source",
+    "scope",
+    "pve_identity",
+    "observations",
+    "storage_references",
+    "vm_storage_relationships",
+    "summary",
+    "unknowns",
+    "errors",
+    "caveats"
+  ],
+  "properties": {
+    "pve_vm_storage_relationship_version": {"const": "0.1"},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "mutation_allowed": {"const": false},
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "source_id", "node", "operation", "status", "collector", "collector_version", "credential_runtime_approved", "credential_file_mode_secure", "tls_verification", "discovery_override_used"],
+      "properties": {
+        "type": {"const": "proxmox_ve_api"},
+        "source_id": {"type": "string", "minLength": 1, "maxLength": 200},
+        "node": {"type": "string", "minLength": 1, "maxLength": 200},
+        "operation": {"const": "BOUNDED_HTTP_GET_VM_STORAGE_RELATIONSHIP"},
+        "status": {"enum": ["COMPLETE", "PARTIAL", "FAILED_TO_OBSERVE"]},
+        "collector": {"const": "infra_assurance.proxmox_ve_vm_storage_relationship"},
+        "collector_version": {"const": "0.1"},
+        "credential_runtime_approved": {"const": false},
+        "credential_file_mode_secure": {"type": "boolean"},
+        "tls_verification": {"type": "boolean"},
+        "discovery_override_used": {"type": "boolean"}
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target_vmids", "backup_storage_id", "disk_device_scope"],
+      "properties": {
+        "target_vmids": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "integer", "minimum": 1}},
+        "backup_storage_id": {"type": "string", "minLength": 1, "maxLength": 200},
+        "disk_device_scope": {"const": "GUEST_DATA_DISK_DEVICES_ONLY"}
+      }
+    },
+    "pve_identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {"type": ["string", "number", "boolean"]},
+        "release": {"type": ["string", "number", "boolean"]},
+        "repoid": {"type": ["string", "number", "boolean"]}
+      }
+    },
+    "observations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["operation", "status", "http_status", "error_class"],
+        "properties": {
+          "operation": {"type": "string", "minLength": 1},
+          "status": {"enum": ["COMPLETE", "FAILED_TO_OBSERVE"]},
+          "http_status": {"type": ["integer", "null"]},
+          "error_class": {"type": ["string", "null"]}
+        }
+      }
+    },
+    "storage_references": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["storage_id", "metadata_status", "storage_type", "shared_status", "node_restrictions_status", "node_restrictions", "images_content_enabled", "backup_content_enabled", "disabled"],
+        "properties": {
+          "storage_id": {"type": "string", "minLength": 1, "maxLength": 200},
+          "metadata_status": {"enum": ["OBSERVED", "NOT_OBSERVED_IN_COMPLETE_STORAGE_CONFIG_SCOPE", "FAILED_TO_OBSERVE"]},
+          "storage_type": {"type": ["string", "null"]},
+          "shared_status": {"enum": ["SHARED", "NOT_SHARED", "NOT_EXPLICITLY_RETURNED", "UNKNOWN"]},
+          "node_restrictions_status": {"enum": ["OBSERVED", "NOT_EXPLICITLY_RETURNED", "UNKNOWN"]},
+          "node_restrictions": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 200}},
+          "images_content_enabled": {"type": ["boolean", "null"]},
+          "backup_content_enabled": {"type": ["boolean", "null"]},
+          "disabled": {"type": ["boolean", "null"]}
+        }
+      }
+    },
+    "vm_storage_relationships": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["vmid", "node", "guest_type", "config_observation_status", "primary_disk_devices_observed", "managed_primary_disk_count", "direct_or_unresolved_disk_count", "primary_storage_ids", "backup_storage_id", "relationship_status", "reason", "basis"],
+        "properties": {
+          "vmid": {"type": "integer", "minimum": 1},
+          "node": {"type": "string", "minLength": 1, "maxLength": 200},
+          "guest_type": {"enum": ["QEMU", "LXC", "UNKNOWN"]},
+          "config_observation_status": {"enum": ["COMPLETE", "FAILED_TO_OBSERVE", "NOT_ATTEMPTED"]},
+          "primary_disk_devices_observed": {"type": "integer", "minimum": 0},
+          "managed_primary_disk_count": {"type": "integer", "minimum": 0},
+          "direct_or_unresolved_disk_count": {"type": "integer", "minimum": 0},
+          "primary_storage_ids": {"type": "array", "uniqueItems": true, "items": {"type": "string", "minLength": 1, "maxLength": 200}},
+          "backup_storage_id": {"type": "string", "minLength": 1, "maxLength": 200},
+          "relationship_status": {"enum": ["SAME_PVE_STORAGE_ID_AS_BACKUP", "DIFFERENT_PVE_STORAGE_ID_FROM_BACKUP", "UNKNOWN", "FAILED_TO_OBSERVE"]},
+          "reason": {"enum": ["ALL_RESOLVED_PRIMARY_STORAGE_IDS_MATCH_BACKUP_STORAGE_ID", "ALL_RESOLVED_PRIMARY_STORAGE_IDS_DIFFER_FROM_BACKUP_STORAGE_ID", "UNRESOLVED_OR_NO_MANAGED_PRIMARY_STORAGE", "MIXED_PRIMARY_STORAGE_IDS", "VM_NOT_OBSERVED_IN_CURRENT_GUEST_INVENTORY", "VM_OBSERVED_ON_DIFFERENT_NODE", "VM_CONFIG_FAILED_TO_OBSERVE", "UNSUPPORTED_GUEST_TYPE"]},
+          "basis": {"type": "array", "items": {"enum": ["PVE_GUEST_CONFIG_DISK_DEVICE_PROJECTION", "SAME_PVE_STORAGE_IDENTIFIER", "DIFFERENT_PVE_STORAGE_IDENTIFIER"]}}
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["target_vms", "config_complete", "same_pve_storage_id_as_backup", "different_pve_storage_id_from_backup", "unknown", "failed_to_observe", "direct_or_unresolved_disks", "referenced_storage_ids"],
+      "properties": {
+        "target_vms": {"type": "integer", "minimum": 0},
+        "config_complete": {"type": "integer", "minimum": 0},
+        "same_pve_storage_id_as_backup": {"type": "integer", "minimum": 0},
+        "different_pve_storage_id_from_backup": {"type": "integer", "minimum": 0},
+        "unknown": {"type": "integer", "minimum": 0},
+        "failed_to_observe": {"type": "integer", "minimum": 0},
+        "direct_or_unresolved_disks": {"type": "integer", "minimum": 0},
+        "referenced_storage_ids": {"type": "integer", "minimum": 0}
+      }
+    },
+    "unknowns": {"type": "array", "items": {"$ref": "#/$defs/message"}},
+    "errors": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "operation", "http_status", "error_class"],
+        "properties": {
+          "code": {"const": "PVE_GET_FAILED"},
+          "operation": {"type": "string"},
+          "http_status": {"type": ["integer", "null"]},
+          "error_class": {"type": ["string", "null"]}
+        }
+      }
+    },
+    "caveats": {"type": "array", "items": {"type": "string"}}
+  },
+  "$defs": {
+    "message": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "subject", "statement"],
+      "properties": {
+        "code": {"type": "string", "minLength": 1},
+        "subject": {"type": ["string", "null"]},
+        "statement": {"type": "string", "minLength": 1}
+      }
+    }
+  }
+}

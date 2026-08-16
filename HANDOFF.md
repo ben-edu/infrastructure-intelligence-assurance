@@ -14,13 +14,8 @@ Project Sources remain authoritative for durable goals, roadmap, trust principle
 ## Stable checkpoint
 
 - repository: `ben-edu/infrastructure-intelligence-assurance`
-- current main HEAD after PR #41 merge: `d0c9d28711aecb19150988dbf53003a98aa91ff8`
-- accepted PR #30 foundation merge: `0e6f96a9f1b4adba34c43803a21a70116423b65c`
-- accepted PR #32 discovery merge: `b0f139a531536531cff2a76bf2243c0cc7ca1770`
-- accepted PR #33 PVE recovery-point adapter merge: `58dca4289a3c302ef9098564da59b7d312aae71e`
-- accepted PR #35 VM assurance merge: `59924eb93cbed0ecfef6c2dc6ffbd98af031c547`
-- accepted PR #38 PVE task-result merge: `f33506ba59281dac31485616c439126d7b41c30d`
-- accepted PR #41 VM last-successful-backup merge: `d0c9d28711aecb19150988dbf53003a98aa91ff8`
+- `main` before PR #43: `cf6fabc20e962e8b37a48c1962a9865aa66fe394`
+- accepted PR #41 implementation merge: `d0c9d28711aecb19150988dbf53003a98aa91ff8`
 - management host: `mgmt-automation`
 - checkout: `~/projects/infrastructure-intelligence-assurance`
 - Kubernetes cluster: `k3s-main`
@@ -39,7 +34,7 @@ protection UNKNOWN: 37
 unprotected_claims: 0
 ```
 
-Accepted BM2 PVE recovery-point source from PR #33:
+Accepted BM2 PVE recovery-point source:
 
 ```text
 proxmox_ve_backup_evidence_version: 0.1
@@ -52,7 +47,7 @@ PBS backend: false
 runtime credential approved: false
 ```
 
-Accepted PVE task-result evidence from PR #38:
+Accepted PVE task-result evidence:
 
 ```text
 pve_backup_task_results_version: 0.1
@@ -63,7 +58,7 @@ unmatched retained recovery points: 3
 historical completeness: NOT_ESTABLISHED
 ```
 
-Accepted VM Backup Assurance v0.2 from PR #41:
+Accepted VM Backup Assurance v0.2:
 
 ```text
 package: 0.23.0
@@ -71,12 +66,9 @@ assets: 12
 mode: STRICT_CORRELATION_ONLY
 last_successful_backup OBSERVED: 6
 last_successful_backup UNKNOWN: 6
-strict success correlations consumed: 9
-unmatched historical recovery points: 3
 protection UNKNOWN: 12
 restore/integrity/failure-domain/RPO/RTO: UNKNOWN
 unprotected_claims: 0
-kubernetes_pvc_assets_modified: 0
 ```
 
 Observed VMIDs for `LAST_SUCCESSFUL_BACKUP`:
@@ -91,63 +83,111 @@ Unknown VMIDs:
 102,103,104,105,110,9000
 ```
 
-Accepted PR #41 focused retry:
+## Accepted PR #43 gate — PVE VM storage relationship source
+
+- PR: `#43 Milestone 5 add bounded PVE VM storage relationship evidence`
+- branch: `agent/m5-pve-vm-storage-relationship`
+- package: `0.24.0`
+- source artifact: `pve_vm_storage_relationship_version=0.1`
+- ADR: `docs/decisions/0025-observe-bounded-pve-vm-storage-relationships.md`
+- milestone doc: `docs/milestone-5-pve-vm-storage-relationship.md`
+- live report: `docs/reports/2026-08-16-m5-pve-vm-storage-relationship-live-test-gate.md`
+
+Accepted gate on 2026-08-16:
 
 ```text
-262 passed in 1.32s
-task ID contract alignment: PASS
-input artifacts unchanged: true
-output schema: PASS
-sensitive/raw projection: none
+repository tests: 273 passed in 1.23s
+schema: PASS
+source status: COMPLETE
+mutation_allowed: false
+runtime credential approved: false
+target_vms: 12
+config_complete: 12
+same_pve_storage_id_as_backup: 12
+different_pve_storage_id_from_backup: 0
+unknown: 0
+failed_to_observe: 0
+direct_or_unresolved_disks: 0
+referenced_storage_ids: 1
 ```
 
-The accepted task-result ID contract is `^pve-backup-task:[a-f0-9]{24}$`. The first PR #41 gate was rejected because its integration schema used a stale synthetic ID shape; the schema/fixtures/regression tests were corrected before acceptance.
-
-Task success does not establish protection quality, restore verification, integrity, RPO, or RTO. Missing historical task evidence is not backup failure.
-
-## PVE credential/runtime boundary
-
-The existing BM2 token remains discovery-only: broad/admin-like, env file mode `0644`, TLS verification false. Runtime PVE collection is blocked until a separate least-privilege observer identity and trusted TLS path are accepted.
-
-There is no PBS today. Future PBS compatibility remains mandatory through separate source adapters and common assurance dimensions.
-
-## Exact next step — bounded VM primary-storage failure-domain preflight
-
-The next smallest useful M5 gap is `BACKUP_FAILURE_DOMAIN`.
-
-Current backup recovery points are on `pve-bm2 / delfan / local`. This does not prove whether backup copies share the same failure domain as VM primary disks.
-
-Run one manual read-only BM2 preflight using the existing discovery-only credential. Do not persist or print raw VM config.
-
-Safe projection only:
-
-```text
-vmid
-node
-primary storage IDs referenced by actual VM disk devices
-storage shared/node-local status only when authoritative PVE metadata proves it
-```
-
-Current accepted VMIDs:
+Accepted VMIDs:
 
 ```text
 100,101,102,103,104,105,106,107,108,109,110,9000
 ```
 
-Never project raw disk strings, volids, paths, serials, cloud-init, networks, MAC/IP values, credentials, snippets, or raw VM config.
+For all 12 selected VMs:
 
-Trust rules:
+```text
+primary storage ID: local
+backup storage ID: local
+relationship: SAME_PVE_STORAGE_ID_AS_BACKUP
+```
 
-1. same node alone is insufficient to classify failure-domain separation;
-2. storage names/types are not enough unless authoritative metadata proves shared vs node-local scope;
-3. same-node node-local primary and backup storage may become a bounded failure-domain candidate only after a separate source artifact is accepted;
-4. incomplete/permission-limited evidence is UNKNOWN or FAILED_TO_OBSERVE, never absence or separation;
-5. no VM/storage/backup/snapshot/schedule/ACL/token/infrastructure mutation;
-6. broad discovery credentials must not enter runtime artifacts.
+Accepted storage metadata:
 
-Only implement a new source artifact if this preflight proves a safe authoritative join.
+```text
+local storage_type: dir
+local shared_status: NOT_EXPLICITLY_RETURNED
+local node restrictions: none returned
+```
 
-## Milestone 5 roadmap gaps still open
+The first repository-gate attempt was rejected with `272 passed, 1 failed` due only to a stale test that froze package version `0.23.0`. It occurred before live collection. The test was corrected to enforce version synchronization rather than a frozen package version, and the accepted retry passed all 273 tests.
+
+Trust interpretation:
+
+- same PVE storage ID is accepted source evidence;
+- it is not proof of the same physical disk/hardware/power failure domain;
+- `local` + `dir` is not interpreted as node-local without authoritative explicit evidence;
+- different storage IDs would not by themselves prove independent failure domains;
+- `BACKUP_FAILURE_DOMAIN` remains `UNKNOWN`;
+- no raw VM config, disk values, volids, paths, serials, cloud-init, network/MAC/IP data, credentials, snippets, or raw API payloads were persisted;
+- collector remained HTTP GET only and manual-only;
+- no infrastructure mutation occurred.
+
+If PR #43 is still open, its acceptance gates are satisfied and it may be merged. Do not add stronger failure-domain claims during merge.
+
+## Exact next step after PR #43
+
+Do not keep extending the PVE failure-domain path from the current evidence. It has reached a bounded evidence limit because storage locality/physical failure-domain metadata is not authoritative enough for promotion.
+
+The next smallest useful Milestone 5 slice is a read-only PostgreSQL backup/recovery source discovery.
+
+Discovery goal:
+
+```text
+Identify current PostgreSQL instances in accepted infrastructure scope and determine, without mutation, what authoritative backup/recovery mechanisms and evidence sources exist for each instance.
+```
+
+Start with discovery only. Do not implement a collector until the discovery proves a safe authoritative evidence path.
+
+Required questions:
+
+```text
+Which PostgreSQL instances are currently in scope?
+What host/VM/Kubernetes workload owns each instance?
+What backup mechanism is actually configured or used?
+What authoritative source can prove backup execution/result?
+Where are backup artifacts stored?
+Is retention configuration observable?
+Is restore/integrity verification observable?
+What is unknown and what requires live verification?
+```
+
+Safe projection should prefer identifiers, versions, mechanism names, timestamps/statuses, and bounded provenance only.
+
+Never project database passwords, connection-string credentials, raw `.pgpass`, secret environment values, Kubernetes Secret values, private keys, complete sensitive connection strings, raw dump contents, or database data.
+
+Initial interaction remains read-only. No backup, restore, WAL manipulation, retention change, PostgreSQL configuration change, service restart, or infrastructure mutation is allowed.
+
+## PVE credential/runtime boundary
+
+The existing BM2 token remains discovery-only: broad/admin-like, env file mode `0644`, TLS verification false. Runtime PVE collection remains blocked until a separate least-privilege observer identity and trusted TLS path are accepted.
+
+There is no PBS today. Future PBS compatibility remains mandatory through separate source adapters and common assurance dimensions.
+
+## Milestone 5 gaps still open
 
 ```text
 PostgreSQL
@@ -155,7 +195,7 @@ MariaDB
 PVC assurance beyond foundation
 PBS (future)
 external backup targets
-failure-domain evidence
+failure-domain assurance beyond storage-ID relationship
 retention effectiveness
 RPO/RTO
 restore tests
@@ -171,5 +211,5 @@ restore tests
 - observation credentials remain separate from control credentials;
 - stale/current/unknown semantics remain explicit;
 - network timeout is not absence unless observation scope is known complete;
-- no secrets, raw sensitive config/state, raw task logs, or raw VM config enter evidence/AI context;
+- no secrets, raw sensitive config/state, raw task logs, raw VM config, or database data enter evidence/AI context;
 - generated operational artifacts keep `mutation_allowed=false`.
