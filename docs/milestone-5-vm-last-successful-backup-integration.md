@@ -1,5 +1,9 @@
 # Milestone 5 — VM Last Successful Backup Integration
 
+## Status
+
+Accepted on 2026-08-16.
+
 ## Goal
 
 Use accepted local task-result evidence to strengthen only the `LAST_SUCCESSFUL_BACKUP` assurance dimension for virtual machines with strict authoritative task support.
@@ -11,7 +15,7 @@ vm_backup_assurance_version: 0.1
 pve_backup_task_results_version: 0.1
 ```
 
-Both inputs must have `mutation_allowed=false`.
+Both inputs have `mutation_allowed=false`.
 
 ## Output
 
@@ -43,6 +47,12 @@ task-result identity exists
 task type = VZDUMP
 task result = SUCCESS
 task VMID = target VMID
+```
+
+The accepted task-result identifier contract is:
+
+```text
+^pve-backup-task:[a-f0-9]{24}$
 ```
 
 ## Strengthened dimension
@@ -87,20 +97,41 @@ Task-result source v0.1 has no TTL/expiry contract. The integration records task
 
 The common assurance dimension is source-neutral. A future PBS task/result adapter can satisfy the same `LAST_SUCCESSFUL_BACKUP` dimension using separate source provenance without redesigning VM assurance.
 
-## Acceptance
+## Accepted live baseline
 
-Repository/manual-derived acceptance must prove:
+The first derived gate was rejected because the integration schema used a stale synthetic task-result ID pattern. Source evidence and semantic derivation were not the defect.
 
-- package `0.23.0`;
-- full tests pass;
-- both source artifacts remain unchanged during derivation;
-- no RBAC/systemd/network/credential/control markers are introduced;
-- output validates against `vm-last-successful-backup-integration.schema.json`;
-- current VM set is unchanged;
-- only VMs with valid strict successful-task support become `last_successful_backup_status=OBSERVED`;
-- latest success time comes from matched task completion time;
-- `LAST_SUCCESSFUL_BACKUP` dimension becomes `OBSERVED` only for supported VMs;
-- unmatched historical evidence is not promoted to failure;
-- protection/restore/integrity/failure-domain/scheduled-protection/RPO/RTO remain unchanged;
-- PVC assurance remains untouched;
-- no unsafe source/task/credential fields enter the output.
+The schema, fixtures, and regression tests were aligned to the accepted PR #38 ID contract and the focused retry passed:
+
+```text
+package: 0.23.0
+262 passed in 1.32s
+task ID contract alignment: PASS
+both source artifacts unchanged: true
+output schema: PASS
+last_successful_backup OBSERVED: 6
+last_successful_backup UNKNOWN: 6
+strict success correlations consumed: 9
+unmatched historical recovery points: 3
+unprotected_claims: 0
+kubernetes_pvc_assets_modified: 0
+sensitive/raw projection: none
+```
+
+Observed VMIDs:
+
+```text
+100, 101, 106, 107, 108, 109
+```
+
+Unknown VMIDs:
+
+```text
+102, 103, 104, 105, 110, 9000
+```
+
+## Next evidence gap
+
+The next smallest useful VM assurance gap is `BACKUP_FAILURE_DOMAIN`.
+
+A bounded manual preflight should identify only safe VM primary-storage IDs and authoritative shared/node-local storage metadata. Same-node backup storage alone is insufficient to classify failure-domain separation.
