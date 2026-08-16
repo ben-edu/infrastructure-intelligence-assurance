@@ -211,6 +211,28 @@ def test_vm_backup_unknown_keeps_infrastructure_recovery_unknown():
     assert result["summary"]["infrastructure_recovery_unknown"] == 1
 
 
+def test_observed_vm_backup_without_strict_evidence_is_rejected():
+    vm = _vm_assurance()
+    vm["assets"][0]["assurance"]["last_successful_backup_evidence"] = None
+    with pytest.raises(ValueError, match="requires strict evidence"):
+        build_postgresql_infrastructure_recovery_context(
+            _relationship(),
+            vm,
+        )
+
+
+def test_observed_vm_backup_without_strict_success_basis_is_rejected():
+    vm = _vm_assurance()
+    vm["assets"][0]["assurance"]["last_successful_backup_evidence"][
+        "basis"
+    ] = ["RECOVERY_POINT_PRESENT"]
+    with pytest.raises(ValueError, match="STRICT_SUCCESS_TASK_MATCH"):
+        build_postgresql_infrastructure_recovery_context(
+            _relationship(),
+            vm,
+        )
+
+
 def test_failed_mapping_is_explicit_failed_to_observe():
     result = build_postgresql_infrastructure_recovery_context(
         _relationship(mapping_status="FAILED_TO_OBSERVE"),
