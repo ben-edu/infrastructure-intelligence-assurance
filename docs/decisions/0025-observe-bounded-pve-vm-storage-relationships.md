@@ -2,9 +2,9 @@
 
 ## Status
 
-Proposed.
+Accepted.
 
-The manual primary-storage preflight on BM2 passed on 2026-08-16. Repository and live source-artifact acceptance remain pending for this slice.
+Accepted by the full repository gate and live BM2 source-artifact gate on 2026-08-16.
 
 ## Context
 
@@ -18,11 +18,13 @@ node: delfan
 backup storage ID: local
 ```
 
-A bounded manual preflight then inspected only safe primary-storage identity for the 12 accepted VMIDs. It found that every VM's resolved primary disk storage ID was also `local`, with no direct/unresolved disk devices in that preflight.
+A bounded manual preflight inspected only safe primary-storage identity for the 12 accepted VMIDs. It found that every VM's resolved primary disk storage ID was also `local`, with no direct/unresolved disk devices.
 
-The same preflight also showed that PVE storage configuration did not explicitly return shared status for `local`.
+The versioned source collector implemented by this ADR was then validated live against BM2 and reproduced the same bounded result.
 
-Therefore the evidence supports a bounded statement about PVE storage identifiers, but not a statement about physical disks, controllers, host-locality, power domains, or independent recovery failure domains.
+PVE storage configuration did not explicitly return shared status for `local`.
+
+Therefore the evidence supports a statement about PVE storage identifiers, but not a statement about physical disks, controllers, host-locality, power domains, or independent recovery failure domains.
 
 ## Decision
 
@@ -46,6 +48,37 @@ It performs read-only HTTP GET observations for:
 ```
 
 Only the required guest configuration endpoint is queried for each selected VM.
+
+## Accepted live result
+
+The accepted live gate produced:
+
+```text
+package: 0.24.0
+repository tests: 273 passed
+source status: COMPLETE
+schema validation: PASS
+target_vms: 12
+config_complete: 12
+same_pve_storage_id_as_backup: 12
+different_pve_storage_id_from_backup: 0
+unknown: 0
+failed_to_observe: 0
+direct_or_unresolved_disks: 0
+referenced_storage_ids: 1
+backup storage ID: local
+primary storage ID for all selected VMs: local
+local storage type: dir
+local shared status: NOT_EXPLICITLY_RETURNED
+mutation_allowed: false
+credential_runtime_approved: false
+```
+
+The accepted VMIDs are:
+
+```text
+100,101,102,103,104,105,106,107,108,109,110,9000
+```
 
 ## Safe projection
 
@@ -156,6 +189,6 @@ Rejected because identifier equality is weaker than failure-domain evidence.
 
 ## Consequences
 
-The platform gains a versioned, testable source artifact for the storage-ID relationship established by the preflight without overstating recovery assurance.
+The platform now has an accepted, versioned, testable source artifact for the observed PVE storage-ID relationship without overstating recovery assurance.
 
-A later derived integration may consume this artifact only after live acceptance and only if the evidence contract for failure-domain promotion is separately justified.
+The current PVE failure-domain question remains partially evidenced but not resolved. A future assurance promotion requires a separate evidence contract with stronger authoritative locality/failure-domain evidence.
