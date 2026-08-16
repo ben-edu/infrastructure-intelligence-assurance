@@ -151,7 +151,7 @@ ENV_FILE="/home/ben/projects/afpa-infra-rebuild/mcp/proxmox/proxmox.env"
 OUT="/tmp/pve-vm-storage-relationship-v0.1.json"
 SUMMARY="/tmp/pve-vm-storage-relationship-v0.1.md"
 
-python3 -m infra_assurance.proxmox_ve_vm_storage_relationship \
+PYTHONPATH=src python3 -m infra_assurance.proxmox_ve_vm_storage_relationship \
   --credential-env-file "$ENV_FILE" \
   --source-id pve-bm2 \
   --node delfan \
