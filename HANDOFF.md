@@ -11,19 +11,21 @@ Project Sources remain authoritative for durable goals, roadmap, trust principle
 5. Read only the ADR, milestone doc, and live/discovery report relevant to the active slice.
 6. Prefer repository and live evidence over chat reconstruction.
 
-## Active checkpoint
+## Active execution checkpoint
 
 ```text
 repository: ben-edu/infrastructure-intelligence-assurance
-accepted main after PR #49: b836ebbedea5027a7107e17db2d19ba6f38c37ad
-active branch: agent/m5-pvc-infrastructure-recovery-discovery
-package on accepted main: 0.26.0
+accepted main after PR #50: 5f28edc31f4ac5e9e34e697a502329c5df024bbd
+active branch: feature/m5-pvc-infrastructure-recovery-context
+package on active branch: 0.27.0
 Milestone 5: active
 mutation_allowed: false
 management host: mgmt-automation
 Kubernetes cluster: k3s-main
 PVE source: pve-bm2 / delfan
 ```
+
+The PVC Infrastructure Recovery Context v0.1 implementation is present but not accepted until the full repository suite and manual live gate pass.
 
 PVE collection remains manual-only. Existing PVE credentials remain discovery-only and `runtime_credential_approved=false`.
 
@@ -69,78 +71,55 @@ sha256: 14ccd7a082a6c901df6941e4c0540d24bd13ff96f29146a0e6ad689d4f824c1a
 sha256: 18aaa4ad1a2dd260b4d0678e830f3c9267b2afaa1014b3563ec0e78a2b0135de
 ```
 
-### PVE storage relationship
+### Accepted database infrastructure contexts
 
-All 12 selected VMs resolved primary storage ID `local` and selected backup storage ID `local`.
-
-This is logical storage-ID evidence only. Physical failure-domain independence remains `UNKNOWN`.
-
-### PostgreSQL infrastructure recovery context
-
-PR #46 merged at:
+PostgreSQL Kubernetes context PR #46:
 
 ```text
 74a3c270e411a3823bd692abeb66e9fb3b6b6c04
-```
-
-Eight Kubernetes PostgreSQL workloads have accepted infrastructure recovery context:
-
-```text
 instances_total: 8
 infrastructure_recovery_observed: 8
-underlying_vm_last_successful_backup_observed: 8
 postgresql_protection_unknown: 8
-unprotected_claims: 0
-backup_stale_claims: 0
-rpo_violation_claims: 0
 ```
 
-Management-host PostgreSQL is related to PVE VMID 109 with accepted strict VM last-successful-backup evidence. PR #47 merged at:
+Management-host PostgreSQL relationship PR #47:
 
 ```text
 cc0b8f36bc889a86cdd0181b90f48f8b21bc1da2
+mgmt-automation -> PVE VMID 109
+VM LAST_SUCCESSFUL_BACKUP=OBSERVED
+local PostgreSQL infrastructure recovery=OBSERVED
 ```
 
-PostgreSQL database-aware mechanism, execution/result, artifact location, retention, restore, integrity, RPO, and RTO remain unknown.
-
-### MariaDB infrastructure recovery context
-
-Source discovery PR #48 merged at:
+MariaDB source discovery PR #48:
 
 ```text
 460f72320071291c3eeecd95a89c99cc5e1fe656
 ```
 
-MariaDB Infrastructure Recovery Context v0.1 PR #49 merged at:
+MariaDB Infrastructure Recovery Context v0.1 PR #49:
 
 ```text
 b836ebbedea5027a7107e17db2d19ba6f38c37ad
-```
-
-Accepted live gate:
-
-```text
-package: 0.26.0
-repository tests: 305 passed in 1.16s
-schema: PASS
+repository tests: 305 passed
 instances_total: 4
 persistence_observed: 3
 persistence_unknown: 1
 infrastructure_recovery_observed: 3
 infrastructure_recovery_unknown: 1
-underlying_vm_last_successful_backup_observed: 3
 mariadb_protection_unknown: 4
 unprotected_claims: 0
-backup_stale_claims: 0
-rpo_violation_claims: 0
-gate_rc: 0
 ```
 
-`misp/Deployment/mariadb-v2` remains `UNKNOWN`, not `UNPROTECTED`.
-
-MariaDB database-aware mechanism, execution/result, artifact location, retention, restore, integrity, RPO, and RTO remain unknown.
+Database-aware PostgreSQL and MariaDB backup mechanism, execution/result, artifact location, retention, restore, integrity, RPO, and RTO remain unknown.
 
 ## Accepted PVC infrastructure recovery coverage discovery
+
+PR #50 merged at:
+
+```text
+5f28edc31f4ac5e9e34e697a502329c5df024bbd
+```
 
 Report:
 
@@ -148,7 +127,7 @@ Report:
 docs/reports/2026-08-16-m5-pvc-infrastructure-recovery-coverage-discovery.md
 ```
 
-Accepted live discovery on 2026-08-16:
+Accepted live discovery:
 
 ```text
 accepted_foundation_pvc_assets: 37
@@ -158,68 +137,108 @@ pvc_bound: 37
 current_workload_reference_observed: 22
 current_workload_reference_none_observed: 15
 explicit_storage_node_observed: 37
-explicit_storage_node_unknown: 0
-storage_node_failed_to_observe: 0
 pve_vm_mapping_observed: 37
-pve_vm_mapping_unknown: 0
 underlying_vm_last_successful_backup_observed: 37
-underlying_vm_last_successful_backup_unknown: 0
 infrastructure_recovery_observed: 37
 infrastructure_recovery_unknown: 0
-infrastructure_recovery_failed_to_observe: 0
 protection_promotions: 0
 unprotected_claims: 0
 backup_stale_claims: 0
 rpo_violation_claims: 0
-discovery_rc: 0
 ```
-
-All 37 PVCs were `Bound` and exposed an explicit Kubernetes storage node in the bounded safe observation. All 37 nodes mapped to accepted PVE VMIDs with accepted strict VM last-successful-backup evidence.
 
 The 15 `NONE_OBSERVED` workload-reference results are bounded negative evidence only and are not orphan classifications.
 
-`infrastructure_recovery=OBSERVED` for a PVC means only:
+## Active slice — PVC Infrastructure Recovery Context v0.1
+
+Implementation:
 
 ```text
-PVC Bound
-+ explicit PV storage node observed
-+ Kubernetes node -> PVE VMID observed
-+ accepted strict VM LAST_SUCCESSFUL_BACKUP=OBSERVED
+src/infra_assurance/pvc_infrastructure_recovery_context.py
+schemas/pvc-infrastructure-recovery-context.schema.json
+tests/test_pvc_infrastructure_recovery_context.py
+tests/test_pvc_infrastructure_recovery_context_wiring.py
+scripts/live_gates/m5_pvc_infrastructure_recovery_context.py
+docs/milestone-5-pvc-infrastructure-recovery-context.md
+docs/reports/2026-08-16-m5-pvc-infrastructure-recovery-context-live-test-gate.md
 ```
 
-It does not establish application/database-consistent backup, protection, retention, restore verification, integrity, failure-domain independence, RPO, or RTO.
+Inputs remain separate:
 
-## Exact next step — PVC Infrastructure Recovery Context v0.1
+```text
+PVC Backup Assurance Foundation v0.1
+PVC infrastructure relationship evidence v0.1
+VM Backup Assurance v0.2
+```
 
-Implement a pure-derived, read-only context artifact for the existing 37-PVC foundation.
+Promotion rule:
 
-Do not add a new live collector and do not add runtime/systemd wiring.
+```text
+PVC foundation asset observed
++ Bound PVC / explicit storage node observed
++ Kubernetes node -> PVE VMID observed
++ accepted VM LAST_SUCCESSFUL_BACKUP=OBSERVED
++ STRICT_SUCCESS_TASK_MATCH
+= infrastructure_recovery OBSERVED
+```
 
-The derivation should join bounded PVC relationship evidence to accepted VM Backup Assurance v0.2 and fail closed on missing/mismatched evidence.
+A direct workload reference is context only and is not required for the storage-node/VM recovery chain.
 
-Expected semantics if live state remains unchanged:
+The strict schema keeps all application-level assurance unknown:
+
+```text
+protection: UNKNOWN
+backup freshness: UNKNOWN
+backup mechanism: UNKNOWN
+retention effectiveness: UNKNOWN
+failure domain: UNKNOWN
+integrity verification: UNKNOWN
+restore verification: UNKNOWN
+RPO: UNKNOWN
+RTO: RTO_UNKNOWN
+unprotected_claims: 0
+backup_stale_claims: 0
+rpo_violation_claims: 0
+```
+
+## Exact next action — live acceptance gate
+
+Run:
+
+```text
+scripts/live_gates/m5_pvc_infrastructure_recovery_context.py
+```
+
+Expected counters if live state remains unchanged:
 
 ```text
 assets_total: 37
+direct_workload_reference_observed: 22
+direct_workload_reference_none_observed: 15
 infrastructure_recovery_observed: 37
 infrastructure_recovery_unknown: 0
+infrastructure_recovery_failed_to_observe: 0
 underlying_vm_last_successful_backup_observed: 37
 protection_unknown: 37
-restore_verification_unknown: 37
+backup_freshness_unknown: 37
+retention_effectiveness_unknown: 37
+failure_domain_unknown: 37
 integrity_verification_unknown: 37
+restore_verification_unknown: 37
 rpo_unknown: 37
 rto_unknown: 37
 unprotected_claims: 0
 backup_stale_claims: 0
 rpo_violation_claims: 0
+schema: PASS
 ```
 
-No workload-reference relationship is required to prove the infrastructure storage-node/VM chain. A missing direct workload reference must remain bounded context, not an orphan or protection classification.
+Do not force expected values if live evidence differs; fail closed and review the change.
 
 ## Milestone 5 gaps still open
 
 ```text
-PVC infrastructure recovery derived context
+PVC Infrastructure Recovery Context acceptance
 PostgreSQL database-aware backup evidence
 MariaDB database-aware backup evidence
 PBS (future)
