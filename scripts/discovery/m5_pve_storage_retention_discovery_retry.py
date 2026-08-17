@@ -20,15 +20,15 @@ def load_base_module():
 def accepted_recovery_point_storage_ids_from_vm_assurance(
     source: dict[str, Any],
 ) -> set[str]:
-    """Extract accepted recovery-point storage targets from VM Assurance v0.2.
+    """Extract accepted recovery-point storage targets from VM Backup Assurance v0.1.
 
-    VM Assurance preserves source recovery-point ownership on each asset and preserves
+    The accepted artifact preserves source recovery-point ownership on each asset and
     authoritative PVE storage mechanism evidence under assurance.backup_mechanisms.
     A storage is accepted here only when the asset has at least one source recovery-point
     ID and the mechanism is explicitly the PVE storage archive mechanism derived from an
     observed recovery point.
     """
-    if source.get("vm_backup_assurance_version") != "0.2":
+    if source.get("vm_backup_assurance_version") != "0.1":
         return set()
     if source.get("mutation_allowed") is not False:
         return set()
@@ -74,7 +74,7 @@ def main() -> int:
     module.accepted_recovery_point_storage_ids = (
         accepted_recovery_point_storage_ids_from_vm_assurance
     )
-    print("retry_basis: VM_ASSURANCE_V0.2_PRESERVED_RECOVERY_POINT_STORAGE_MECHANISM")
+    print("retry_basis: VM_BACKUP_ASSURANCE_V0.1_PRESERVED_RECOVERY_POINT_STORAGE_MECHANISM")
     return module.main()
 
 
