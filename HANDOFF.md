@@ -15,8 +15,8 @@ Project Sources remain authoritative for durable goals, roadmap, trust principle
 
 ```text
 repository: ben-edu/infrastructure-intelligence-assurance
-accepted main after PR #53: 7456e20116ec47d501112a1d643109683fd6cefe
-active branch: agent/m5-pve-storage-retention-discovery
+accepted main after PR #54: 2bf0dc829f819eec728bd2b45ee9912d34e24cfe
+active branch: agent/m5-postgresql-database-backup-source-discovery
 package on accepted main: 0.27.0
 Milestone 5: active
 mutation_allowed: false
@@ -65,13 +65,7 @@ sha256: 18aaa4ad1a2dd260b4d0678e830f3c9267b2afaa1014b3563ec0e78a2b0135de
 
 ### PVC Infrastructure Recovery Context v0.1
 
-PR #51 merged at:
-
-```text
-e41d3efaabdeaec1dd5861e786b1f3946d426e00
-```
-
-Accepted live gate:
+PR #51 merged at `e41d3efaabdeaec1dd5861e786b1f3946d426e00`.
 
 ```text
 package: 0.27.0
@@ -111,137 +105,132 @@ MariaDB infrastructure_recovery_unknown: 1
 MariaDB protection_unknown: 4
 ```
 
-PostgreSQL and MariaDB database-aware backup mechanism, execution/result, artifact location, retention, restore, integrity, RPO, and RTO remain unknown.
+## Accepted PVE policy / provenance / retention discoveries
 
-## Accepted PVE current backup-policy discovery
+Current PVE `/cluster/backup` source is complete and returned zero declared backup jobs for the selected 12 VMIDs. Historical successful VZDUMP evidence remains valid.
 
-PR #52 merged at:
-
-```text
-cb70c2a13e81dd4d4fcd360317709a98334d62de
-```
-
-Accepted result:
+Historical provenance discovery over the nine accepted strict successful tasks returned:
 
 ```text
-selected_vmids_observed: 12/12
-backup_job_source_status: COMPLETE
-declared_jobs: 0
-selected_vmids_with_declared_job_scope: 0
-selected_vmids_without_declared_job_scope_observed: 12
-job-level retention/prune declarations observed: 0
-discovery_rc: 0
-```
-
-Current `/cluster/backup` state returned no backup jobs. This does not invalidate historical successful VZDUMP evidence and does not establish `UNPROTECTED`, retention ineffectiveness, or RPO violation.
-
-## Accepted PVE historical VZDUMP provenance discovery
-
-PR #53 merged at:
-
-```text
-7456e20116ec47d501112a1d643109683fd6cefe
-```
-
-Accepted result:
-
-```text
-strict_success_tasks_total: 9
-task_list_matches: 9
-task_detail_complete: 9
-scheduled_provenance_observed: 0
-manual_provenance_observed: 0
-external_orchestration_provenance_observed: 0
-provenance_not_explicitly_returned: 9
+PROVENANCE_NOT_EXPLICITLY_RETURNED: 9/9
+scheduled/manual/external provenance observed: 0
 failed_to_observe: 0
-discovery_rc: 0
 ```
 
-Accepted distinction:
+Storage-level retention discovery accepted:
 
 ```text
-historical successful VZDUMP execution: OBSERVED
-current declared backup jobs: NONE_OBSERVED
-historical execution provenance: PROVENANCE_NOT_EXPLICITLY_RETURNED
-```
-
-## Accepted PVE storage-level retention declaration discovery
-
-Report:
-
-```text
-docs/reports/2026-08-17-m5-pve-storage-retention-declaration-discovery.md
-```
-
-The accepted VM assurance artifact shape probe established:
-
-```text
-vm_backup_assurance_version: 0.1
-assets_total: 12
-assets_with_source_recovery_point_ids: 6
-source_recovery_point_id_count: 12
-assets_with_backup_mechanisms: 6
-backup_mechanism_storage_id_present: 6
-backup_mechanism_types: PROXMOX_VE_STORAGE_ARCHIVE=6
-backup_mechanism_basis_shapes: RECOVERY_POINT_OBSERVED_IN_SOURCE_SCOPE=6
-```
-
-Accepted live retry result:
-
-```text
-regression tests: 2 passed in 0.03s
-accepted source hash_match: true
-accepted_recovery_point_storage_ids: 1
-accepted_recovery_point_storage_id_list: local
-storage_config_source_status: COMPLETE
-storage=local type=dir backup_content=True disabled=False accepted_recovery_point_target=True
-retention_declaration=PRUNE_BACKUPS_DECLARED
-retention_value=keep-all=1
-accepted_targets_with_prune_backups_declared: 1
-retention_effectiveness_claims: 0
-unprotected_claims: 0
-rpo_violation_claims: 0
-discovery_rc: 0
-```
-
-Accepted semantics:
-
-```text
-storage-level retention declaration: OBSERVED
-retention policy: prune-backups=keep-all=1
+accepted recovery-point storage target: local
+storage type: dir
+backup content enabled: true
+disabled: false
+retention declaration: prune-backups=keep-all=1
 retention effectiveness: UNKNOWN
 restore verification: UNKNOWN
 RPO/RTO: UNKNOWN
 ```
 
-The discovery correction history is part of the report: two earlier attempts failed closed because they used the wrong derived-artifact shape/version assumptions. No infrastructure state was changed.
+PR #54 merged at:
 
-## Exact next step — PostgreSQL database-aware backup source discovery
+```text
+2bf0dc829f819eec728bd2b45ee9912d34e24cfe
+```
 
-The PVE retention-declaration lane is now sufficiently characterized for the current read-only phase. The next smallest useful Milestone 5 slice is bounded PostgreSQL database-aware backup source discovery.
+## Accepted PostgreSQL database-aware backup source discovery
 
-Do not create backups, run dumps, connect to databases, read database rows, expose Kubernetes Secret values, or change workload configuration.
+Report:
+
+```text
+docs/reports/2026-08-17-m5-postgresql-database-backup-source-discovery.md
+```
+
+Accepted bounded live result:
+
+```text
+safety regression tests: 2 passed
+expected_kubernetes_postgresql_workloads: 8
+kubernetes_workloads_observed: 8
+kubernetes_workloads_failed_to_observe: 0
+kubernetes_workloads_with_declared_backup_signal: 0
+kubernetes_workloads_database_backup_mechanism_unknown: 8
+matching_kubernetes_cronjobs_jobs: 0
+management_host_configured_backup_signal: 0
+backup_execution_success_claims: 0
+backup_artifact_validity_claims: 0
+retention_effectiveness_claims: 0
+restore_verification_claims: 0
+unprotected_claims: 0
+rpo_violation_claims: 0
+discovery_rc: 0
+```
+
+For all eight accepted Kubernetes PostgreSQL workloads, safe metadata showed no backup sidecar/init/configmap signal. The complete bounded CronJob/Job source returned zero PostgreSQL backup matches.
+
+Management-host PostgreSQL backup-capable tooling is observed:
+
+```text
+pg_basebackup: PRESENT
+pg_dump: PRESENT
+pg_dumpall: PRESENT
+```
+
+Specialized tooling was not observed in the inspected executable scope:
+
+```text
+pgBackRest: NOT_PRESENT
+Barman: NOT_PRESENT
+barman-cloud-backup: NOT_PRESENT
+WAL-G / walg: NOT_PRESENT
+```
+
+Systemd source is complete and package/template units exist:
+
+```text
+pg_basebackup@.service
+pg_basebackup@.timer
+pg_dump@.service
+pg_dump@.timer
+```
+
+But no instantiated matching unit, active matching timer, or matching cron filename was observed.
+
+Accepted semantics:
+
+```text
+Kubernetes PostgreSQL database-aware backup mechanism: UNKNOWN for 8/8
+management-host backup-capable tooling: OBSERVED
+management-host configured PostgreSQL backup mechanism: UNKNOWN
+successful database-aware backup execution: UNKNOWN
+artifact validity: UNKNOWN
+retention effectiveness: UNKNOWN
+restore verification: UNKNOWN
+RPO/RTO: UNKNOWN
+```
+
+Bounded signal absence is not `UNPROTECTED`.
+
+## Exact next step — MariaDB database-aware backup source discovery
+
+The PostgreSQL source-discovery lane has no stronger safe signal to pursue without crossing into database access, dump/WAL inspection, or configuration mutation. Close it at `DATABASE_BACKUP_MECHANISM_UNKNOWN` for the current read-only phase.
+
+Next smallest Milestone 5 slice: perform equivalent bounded MariaDB/MySQL-compatible database-aware backup source discovery over the four already accepted MariaDB candidates.
+
+Do not connect to MariaDB/MySQL, read database rows, create dumps, inspect backup contents, print Secret/env values, or mutate workloads/system state.
 
 Bounded questions:
 
 ```text
-For each of the 8 accepted Kubernetes PostgreSQL workload subjects, do current workload specs expose an explicit backup sidecar/init container or backup-oriented mounted ConfigMap/PVC by safe metadata only?
-Do current Kubernetes CronJobs/Jobs expose PostgreSQL-aware backup tooling or naming signals beyond the previously observed zero bounded matches?
-For management-host PostgreSQL, is there a configured pgBackRest/Barman/WAL-G/pg_basebackup systemd unit/timer/cron/script reference in bounded local metadata?
-Can any discovered mechanism be classified as DECLARED/OBSERVED without connecting to PostgreSQL or reading secrets?
-Which subjects remain DATABASE_BACKUP_MECHANISM_UNKNOWN?
+For each of the 4 accepted MariaDB candidates, do current safe workload metadata expose backup sidecar/init containers or backup-oriented ConfigMap/PVC signals?
+Do current Kubernetes CronJobs/Jobs expose MariaDB/MySQL-aware backup tooling or naming signals?
+Is any configured database-aware mechanism observable without commands/args/env/Secret contents?
+Which candidates remain DATABASE_BACKUP_MECHANISM_UNKNOWN?
 ```
 
-Safe projections may include namespace, workload kind/name, container name/image, non-secret volume type/name, ConfigMap name, PVC name, systemd unit/timer names, executable/tool names, and bounded schedule metadata.
-
-Do not print env values, Secret names when their presence would disclose sensitive purpose unnecessarily, Secret keys/values, commands/args containing connection material, full connection strings, database names/users/passwords, raw ConfigMap contents, DB rows, dumps, WAL contents, or filesystem backup contents.
-
-A backup-capable binary or backup-looking name is not successful backup evidence. A declared mechanism does not establish execution result, artifact validity, retention effectiveness, restore verification, RPO, RTO, or protection.
+Safe tooling/name signals may include `mariadb-dump`, `mysqldump`, `mariabackup`, `xtrabackup`, `mydumper`, and backup-oriented container/image names. Tool/name presence is mechanism metadata only, not execution success.
 
 ## Milestone 5 gaps still open
 
 ```text
-PostgreSQL database-aware backup evidence
 MariaDB database-aware backup evidence
 PBS (future)
 external backup targets
@@ -250,6 +239,8 @@ retention effectiveness
 RPO/RTO
 restore tests
 ```
+
+PostgreSQL database-aware mechanism remains unknown but its current bounded source-discovery path is closed for the read-only phase.
 
 ## Later roadmap
 
@@ -269,10 +260,11 @@ Milestone 8: Reliability and Hardening
 - task success does not establish provenance when provenance fields are absent;
 - infrastructure recovery evidence is not application/database-consistent backup evidence;
 - source-scoped negative evidence is not universal absence;
+- tool presence is capability, not configured backup execution;
 - recovery-point presence is not task-result success;
 - task-result success is not restore verification;
 - observation credentials remain separate from control credentials;
 - stale/current/unknown semantics remain explicit;
 - no RPO violation is inferred without an accepted target;
-- no secrets, raw sensitive config/state, raw task logs, raw VM config, database data, or raw dump contents enter evidence/AI context;
+- no secrets, raw sensitive config/state, raw task logs, raw VM config, database data, dump data, or WAL contents enter evidence/AI context;
 - generated operational artifacts keep `mutation_allowed=false`.
