@@ -19,7 +19,7 @@ def load_module():
 def test_extracts_storage_only_from_preserved_recovery_point_mechanism():
     module = load_module()
     artifact = {
-        "vm_backup_assurance_version": "0.2",
+        "vm_backup_assurance_version": "0.1",
         "mutation_allowed": False,
         "assets": [
             {
@@ -59,12 +59,12 @@ def test_extracts_storage_only_from_preserved_recovery_point_mechanism():
 def test_fails_closed_for_wrong_version_or_mutation_allowed():
     module = load_module()
     artifact = {
-        "vm_backup_assurance_version": "0.1",
+        "vm_backup_assurance_version": "0.2",
         "mutation_allowed": False,
         "assets": [],
     }
     assert module.accepted_recovery_point_storage_ids_from_vm_assurance(artifact) == set()
 
-    artifact["vm_backup_assurance_version"] = "0.2"
+    artifact["vm_backup_assurance_version"] = "0.1"
     artifact["mutation_allowed"] = True
     assert module.accepted_recovery_point_storage_ids_from_vm_assurance(artifact) == set()
