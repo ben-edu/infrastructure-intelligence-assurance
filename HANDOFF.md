@@ -15,10 +15,11 @@ Project Sources remain authoritative for durable goals, roadmap, trust principle
 
 ```text
 repository: ben-edu/infrastructure-intelligence-assurance
-accepted main after PR #59: add76eba38441dd6bf23732d1297f1b494e742c1
-active branch: agent/m5-failure-domain-access-path-discovery
+accepted main after PR #60: 50d30d7d59f88bc5909092d410eb4b446b8b4e72
+active branch: docs/m5-read-only-discovery-closure
 package on accepted main: 0.27.0
-Milestone 5: ACTIVE — NOT COMPLETE
+Milestone 5 overall: ACTIVE — NOT COMPLETE
+Milestone 5 read-only source discovery: COMPLETE FOR CURRENT AUTHORITATIVE SOURCES
 mutation_allowed: false
 management host: mgmt-automation
 Kubernetes cluster: k3s-main
@@ -27,101 +28,42 @@ PVE source: pve-bm2 / delfan
 
 PVE collection remains manual-only. Existing PVE credentials remain discovery-only and `runtime_credential_approved=false`.
 
-## Stable Milestone 5 checkpoint
-
-Current accepted evidence includes:
-
-```text
-VM assets: 12
-VM last_successful_backup OBSERVED: 6
-VM last_successful_backup UNKNOWN: 6
-strict successful VZDUMP correlations: 9
-current declared PVE backup jobs: 0
-accepted PVE recovery-point storage: local
-storage retention declaration: prune-backups=keep-all=1
-retention effectiveness: UNKNOWN
-
-PVC assets: 37
-PVC infrastructure_recovery_observed: 37
-PVC protection_unknown: 37
-PVC restore/RPO/RTO: UNKNOWN
-
-PostgreSQL Kubernetes instances: 8
-PostgreSQL infrastructure_recovery_observed: 8
-PostgreSQL database-aware backup mechanism: UNKNOWN 8/8
-management-host PostgreSQL configured backup mechanism: UNKNOWN
-
-MariaDB candidates: 4
-MariaDB infrastructure_recovery_observed: 3
-MariaDB infrastructure_recovery_unknown: 1
-MariaDB database-aware backup mechanism: UNKNOWN 4/4
-```
-
-No accepted `UNPROTECTED`, stale-backup, or RPO-violation claims have been promoted from bounded signal absence.
-
-## Accepted RPO/RTO declaration discovery
-
-```text
-RPO target: UNKNOWN
-RTO target: UNKNOWN
-RPO result: UNKNOWN
-RTO result: UNKNOWN
-```
-
-No explicit target was observed in the bounded safe declared-state repository.
-
-## Accepted external-backup-target discovery
-
-PR #59 merged at:
-
-```text
-add76eba38441dd6bf23732d1297f1b494e742c1
-```
-
-Accepted state:
-
-```text
-backup-capable PVE targets: 1
-safe target: local / dir
-PBS-like enabled targets: 0
-network-storage-like enabled targets: 0
-external backup target: NONE_OBSERVED_IN_BOUNDED_PVE_STORAGE_SCOPE
-physical failure-domain independence: UNKNOWN
-```
-
-## Accepted failure-domain access-path discovery
+## Milestone 5 read-only closure checkpoint
 
 Report:
 
 ```text
-docs/reports/2026-08-23-m5-failure-domain-access-path-discovery.md
+docs/reports/2026-08-23-m5-read-only-discovery-closure.md
 ```
 
-Focused tests:
+Decision:
 
 ```text
-4 passed in 0.06s
+Milestone 5 overall: NOT COMPLETE
+Milestone 5 read-only source discovery: COMPLETE FOR CURRENT AUTHORITATIVE SOURCES
+remaining unknowns: EXPLICITLY PRESERVED
+mutation-required work: DEFERRED
 ```
 
-Accepted live result:
+Do not create additional probes merely to force unsupported unknowns into stronger states.
+
+## Stable Milestone 5 evidence
+
+### VM / PVE
 
 ```text
-/tmp/vm-backup-assurance.json: hash_match=True
-accepted_assets_with_recovery_point_mechanism: 6
-live_vm_config_observed: 6
-live_vm_config_failed_to_observe: 0
-same_pve_node_observed: 6
-storage_id_overlap_observed: 6
-not_separated_at_pve_node_and_storage_id: 6
-logical_access_path_separation_unknown: 0
-physical_failure_domain_independence_claims: 0
-restore_verification_claims: 0
-unprotected_claims: 0
-rpo_violation_claims: 0
-discovery_rc: 0
+VM assets: 12
+last_successful_backup OBSERVED: 6
+last_successful_backup UNKNOWN: 6
+strict successful VZDUMP correlations: 9
+current declared PVE backup jobs: 0
+historical execution provenance: PROVENANCE_NOT_EXPLICITLY_RETURNED 9/9
+accepted recovery-point storage: local
+storage retention declaration: prune-backups=keep-all=1
+external backup target: NONE_OBSERVED_IN_BOUNDED_PVE_STORAGE_SCOPE
 ```
 
-Accepted relationship for VMIDs `100,101,106,107,108,109`:
+For VMIDs `100,101,106,107,108,109`:
 
 ```text
 same PVE node: OBSERVED
@@ -132,58 +74,124 @@ logical access-path separation: NOT_SEPARATED_AT_PVE_NODE_AND_STORAGE_ID
 physical failure-domain independence: UNKNOWN
 ```
 
-Logical coupling is not proof that VM and backup data occupy the same physical disk or RAID group.
-
-## Milestone 5 remaining gaps
+### PVC
 
 ```text
-physical failure-domain independence beyond logical PVE node/storage coupling
+PVC assets: 37
+infrastructure_recovery_observed: 37
+protection_unknown: 37
+retention_effectiveness_unknown: 37
+restore_verification_unknown: 37
+rpo_unknown: 37
+rto_unknown: 37
+```
+
+### PostgreSQL
+
+```text
+Kubernetes instances: 8
+infrastructure_recovery_observed: 8
+database-aware backup mechanism: UNKNOWN 8/8
+management-host infrastructure recovery: OBSERVED
+management-host backup-capable tooling: OBSERVED
+management-host configured backup mechanism: UNKNOWN
+```
+
+### MariaDB
+
+```text
+accepted candidates: 4
+infrastructure_recovery_observed: 3
+infrastructure_recovery_unknown: 1
+database-aware backup mechanism: UNKNOWN 4/4
+```
+
+### Recovery objectives
+
+```text
+safe Git-tracked declared-state files scanned: 175
+explicit RPO target candidates: 0
+explicit RTO target candidates: 0
+RPO target/result: UNKNOWN
+RTO target/result: UNKNOWN
+```
+
+No accepted `UNPROTECTED`, backup-stale, or RPO-violation claim has been promoted from bounded signal absence.
+
+## Milestone 5 deferred gaps
+
+```text
+physical failure-domain independence beyond logical PVE coupling
 retention effectiveness
 accepted RPO/RTO targets and evaluation
-restore/integrity verification and recovery exercises
+restore verification
+integrity verification
+application/database-consistent backup evidence where no authoritative mechanism was found
 ```
 
-The current read-only evidence lanes have now been exercised for VM/PVC/database recovery context, PVE policy/provenance/retention declaration, RPO/RTO declaration search, external-target discovery, and logical failure-domain relationship.
+These gaps require new authoritative policy/topology/history evidence or controlled mutation. Restore and integrity exercises require explicit authorization and a separately reviewed mutation plan.
 
-Further promotion of the remaining items requires at least one of:
+## Transition to Milestone 6
+
+The Project Source roadmap defines Milestone 6 as IaC Governance:
 
 ```text
-new authoritative policy/declaration evidence
-stronger physical storage topology evidence
-complete historical retention evidence with policy-effective period
-controlled restore/integrity exercises
-```
+Terraform:
+- stacks/workspaces
+- managed-resource coverage
+- plan/apply metadata
+- drift
+- destructive-change detection
 
-Restore/integrity exercises require future controlled mutation and explicit authorization. Do not create, restore, delete, move, prune, or alter backups under the current boundary.
+Ansible:
+- inventories
+- roles/playbooks
+- managed-host coverage
+- execution outcomes
+- configuration drift where measurable
+```
 
 ## Exact next step
 
-Create a documentation-only **Milestone 5 read-only discovery closure checkpoint**.
+Start the smallest read-only Milestone 6 slice: **Terraform declared-state inventory** for the known infrastructure repository.
 
-The checkpoint must state:
+Bounded source:
 
 ```text
-Milestone 5 overall: NOT COMPLETE
-Milestone 5 read-only source discovery: COMPLETE FOR CURRENT AUTHORITATIVE SOURCES
-remaining unknowns: explicit and preserved
-mutation-required work: deferred
+/home/ben/projects/afpa-infra-rebuild
+Git-tracked safe Terraform source only
 ```
 
-Do not manufacture additional probes merely to reduce `UNKNOWN`. After the checkpoint, the next useful project slice may move to Milestone 6 IaC Governance while Milestone 5 controlled-recovery work remains explicitly deferred.
+First questions:
+
+```text
+Which Terraform roots/stacks are declared?
+Which backend/workspace declarations are observable without state access?
+Which provider/resource types are declared?
+What managed-resource coverage can be stated from configuration only?
+Which coverage questions require Terraform state or live provider verification?
+```
+
+Exclude:
+
+```text
+terraform.tfstate / state backups
+real tfvars
+.env
+secrets/credentials/private keys
+provider tokens/passwords
+raw sensitive connection strings
+terraform apply/destroy/import/state mutation
+```
+
+Do not call configuration-declared resources `OBSERVED` infrastructure. Keep declared state separate from live/provider/state evidence.
 
 ## Trust invariants
 
 - infrastructure interaction remains read-only;
 - source artifacts and derived assurance remain separate;
-- declared backup policy is not observed backup success;
-- storage retention declaration is not retention effectiveness;
-- infrastructure recovery evidence is not application/database-consistent backup evidence;
-- source-scoped negative evidence is not universal absence;
-- recovery-point presence is not task-result success;
-- task-result success is not restore verification;
-- stale/current/unknown semantics remain explicit;
-- no RPO violation is inferred without an accepted target;
-- logical node/storage coupling is not the same as physical media topology;
+- declared state is not observed state;
 - unknowns are not forced closed without authoritative evidence;
-- no secrets, raw sensitive config/state, raw task logs, raw VM config, database data, dump data, WAL contents, backup contents, or complete connection strings enter evidence/AI context;
+- no Terraform state or real tfvars enter evidence/AI context;
+- no secrets, raw sensitive config/state, raw task logs, raw VM config, database data, dump data, WAL contents, backup contents, or complete sensitive connection strings enter evidence/AI context;
 - generated operational artifacts keep `mutation_allowed=false`.
