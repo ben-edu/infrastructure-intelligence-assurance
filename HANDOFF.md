@@ -15,8 +15,8 @@ Project Sources remain authoritative for durable goals, roadmap, trust principle
 
 ```text
 repository: ben-edu/infrastructure-intelligence-assurance
-accepted main after PR #57: 2c46603b822d40dca22094eb64862268fa65a262
-active branch: agent/m5-recovery-objective-declaration-discovery
+accepted main after PR #58: dd94f4cb2871b29aea2b7f6dceb4278ce58962db
+active branch: agent/m5-external-backup-target-discovery
 package on accepted main: 0.27.0
 Milestone 5: ACTIVE — NOT COMPLETE
 mutation_allowed: false
@@ -67,21 +67,22 @@ No accepted `UNPROTECTED`, stale-backup, or RPO-violation claims have been promo
 
 ## Accepted recovery-objective declaration discovery
 
+PR #58 merged at:
+
+```text
+dd94f4cb2871b29aea2b7f6dceb4278ce58962db
+```
+
 Report:
 
 ```text
 docs/reports/2026-08-23-m5-recovery-objective-declaration-discovery.md
 ```
 
-Focused tests:
-
-```text
-3 passed in 0.06s
-```
-
 Accepted bounded live result:
 
 ```text
+focused tests: 3 passed
 source_mode: GIT_TRACKED_TEXT_ONLY
 source_status: COMPLETE
 tracked_safe_text_files_scanned: 175
@@ -120,36 +121,64 @@ restore tests / verified recovery exercises
 
 Restore tests and recovery exercises remain intentionally deferred while infrastructure interaction is read-only.
 
+## Active slice — external backup target discovery
+
+Implementation:
+
+```text
+scripts/discovery/m5_external_backup_target_discovery.py
+tests/test_external_backup_target_discovery.py
+```
+
+Authoritative bounded source:
+
+```text
+PVE GET /storage
+```
+
+Safe projection only:
+
+```text
+storage ID
+storage type
+backup-content capability
+disabled state
+derived target-type classification
+```
+
+Never project or print:
+
+```text
+server/endpoint
+path/mountpoint
+portal
+PBS datastore connection details
+username/password/token
+fingerprint
+credentials
+raw storage objects
+backup contents
+```
+
+Type classification semantics:
+
+```text
+pbs -> PBS_LIKE_TARGET
+nfs/cifs/cephfs/glusterfs/rbd -> NETWORK_STORAGE_LIKE_TARGET
+dir -> PATH_BASED_LOCATION_UNKNOWN
+other types -> OTHER_STORAGE_TYPE_UNKNOWN
+```
+
+A PBS/network-like type is only an external-target signal; it does not establish physical failure-domain independence. A `dir` target cannot be classified local or external from storage type alone.
+
 ## Exact next step
 
-Start bounded **external-backup-target discovery**.
+On `mgmt-automation`:
 
-Goal: determine whether authoritative safe metadata exposes any backup target beyond the currently accepted PVE `local` storage scope, including PBS or other external target types.
-
-Do not print or persist endpoint addresses, server names when unnecessarily sensitive, paths, datastore connection details, credentials, tokens, fingerprints, usernames, passwords, connection strings, raw storage objects, or backup contents.
-
-Safe projected fields may include only:
-
-```text
-source status
-storage/target identifier when non-sensitive and already part of accepted operational inventory
-storage/target type
-disabled/enabled state
-backup-content capability
-external-vs-local classification
-PBS-like target presence count
-```
-
-Absence in a bounded source is `NONE_OBSERVED_IN_BOUNDED_SCOPE`, not universal absence.
-
-If no external target is observed, preserve:
-
-```text
-external backup target: UNKNOWN / NONE_OBSERVED_IN_BOUNDED_SCOPE
-failure-domain independence: UNKNOWN
-```
-
-Do not infer physical failure-domain independence from a storage type or target name alone.
+1. run `tests/test_external_backup_target_discovery.py`;
+2. run `scripts/discovery/m5_external_backup_target_discovery.py` with `PYTHONPATH=src`;
+3. accept only safe projected counts/type classifications;
+4. if no PBS/network-like backup target is observed, record `NONE_OBSERVED_IN_BOUNDED_PVE_STORAGE_SCOPE` and keep failure-domain independence `UNKNOWN`.
 
 ## Trust invariants
 
