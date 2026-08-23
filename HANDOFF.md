@@ -15,8 +15,8 @@ Project Sources remain authoritative for durable goals, roadmap, trust principle
 
 ```text
 repository: ben-edu/infrastructure-intelligence-assurance
-accepted main after PR #58: dd94f4cb2871b29aea2b7f6dceb4278ce58962db
-active branch: agent/m5-external-backup-target-discovery
+accepted main after PR #59: add76eba38441dd6bf23732d1297f1b494e742c1
+active branch: agent/m5-failure-domain-access-path-discovery
 package on accepted main: 0.27.0
 Milestone 5: ACTIVE — NOT COMPLETE
 mutation_allowed: false
@@ -28,12 +28,6 @@ PVE source: pve-bm2 / delfan
 PVE collection remains manual-only. Existing PVE credentials remain discovery-only and `runtime_credential_approved=false`.
 
 ## Stable Milestone 5 checkpoint
-
-Read-only checkpoint report:
-
-```text
-docs/reports/2026-08-17-m5-read-only-checkpoint-gap-register.md
-```
 
 Current accepted evidence includes:
 
@@ -65,15 +59,7 @@ MariaDB database-aware backup mechanism: UNKNOWN 4/4
 
 No accepted `UNPROTECTED`, stale-backup, or RPO-violation claims have been promoted from bounded signal absence.
 
-## Accepted recovery-objective declaration discovery
-
-PR #58 merged at:
-
-```text
-dd94f4cb2871b29aea2b7f6dceb4278ce58962db
-```
-
-Accepted state:
+## Accepted RPO/RTO declaration discovery
 
 ```text
 RPO target: UNKNOWN
@@ -82,94 +68,108 @@ RPO result: UNKNOWN
 RTO result: UNKNOWN
 ```
 
-No explicit RPO/RTO declaration signal was observed in 175 safe Git-tracked text files from the bounded declared-state repository. This is bounded negative evidence only.
+No explicit target was observed in the bounded safe declared-state repository.
 
 ## Accepted external-backup-target discovery
+
+PR #59 merged at:
+
+```text
+add76eba38441dd6bf23732d1297f1b494e742c1
+```
+
+Accepted state:
+
+```text
+backup-capable PVE targets: 1
+safe target: local / dir
+PBS-like enabled targets: 0
+network-storage-like enabled targets: 0
+external backup target: NONE_OBSERVED_IN_BOUNDED_PVE_STORAGE_SCOPE
+physical failure-domain independence: UNKNOWN
+```
+
+## Accepted failure-domain access-path discovery
 
 Report:
 
 ```text
-docs/reports/2026-08-23-m5-external-backup-target-discovery.md
+docs/reports/2026-08-23-m5-failure-domain-access-path-discovery.md
 ```
 
 Focused tests:
 
 ```text
-2 passed in 0.13s
+4 passed in 0.06s
 ```
 
-Accepted bounded live result:
+Accepted live result:
 
 ```text
-operation: GET /storage
-http_status: 200
-runtime_credential_approved: False
-storage_config_source_status: COMPLETE
-storage_config_rows_projected: 1
-backup_capable_targets_total: 1
-enabled_backup_capable_targets: 1
-pbs_like_enabled_targets: 0
-network_storage_like_enabled_targets: 0
-path_based_location_unknown_enabled_targets: 1
-other_storage_type_unknown_enabled_targets: 0
-external_target_presence_claims: 0
-failure_domain_independence_claims: 0
+/tmp/vm-backup-assurance.json: hash_match=True
+accepted_assets_with_recovery_point_mechanism: 6
+live_vm_config_observed: 6
+live_vm_config_failed_to_observe: 0
+same_pve_node_observed: 6
+storage_id_overlap_observed: 6
+not_separated_at_pve_node_and_storage_id: 6
+logical_access_path_separation_unknown: 0
+physical_failure_domain_independence_claims: 0
 restore_verification_claims: 0
 unprotected_claims: 0
-external_backup_target_status: NONE_OBSERVED_IN_BOUNDED_PVE_STORAGE_SCOPE
+rpo_violation_claims: 0
 discovery_rc: 0
 ```
 
-Safe target projection:
+Accepted relationship for VMIDs `100,101,106,107,108,109`:
 
 ```text
-storage=local
-type=dir
-backup_content=True
-disabled=False
-target_classification=PATH_BASED_LOCATION_UNKNOWN
-```
-
-Accepted interpretation:
-
-```text
-PBS-like target: NONE_OBSERVED_IN_BOUNDED_PVE_STORAGE_SCOPE
-network-storage-like target: NONE_OBSERVED_IN_BOUNDED_PVE_STORAGE_SCOPE
-external backup target: NONE_OBSERVED_IN_BOUNDED_PVE_STORAGE_SCOPE
+same PVE node: OBSERVED
+VM storage ID: local
+accepted backup storage ID: local
+storage-ID overlap: OBSERVED
+logical access-path separation: NOT_SEPARATED_AT_PVE_NODE_AND_STORAGE_ID
 physical failure-domain independence: UNKNOWN
 ```
 
-A `dir` storage type cannot establish physical locality or independence. No server, endpoint, path, mountpoint, portal, datastore details, credentials, raw storage object, or backup content was printed.
+Logical coupling is not proof that VM and backup data occupy the same physical disk or RAID group.
 
-## Open Milestone 5 roadmap gaps
+## Milestone 5 remaining gaps
 
 ```text
-failure-domain assurance beyond same-PVE-storage relationship
+physical failure-domain independence beyond logical PVE node/storage coupling
 retention effectiveness
 accepted RPO/RTO targets and evaluation
-restore tests / verified recovery exercises
+restore/integrity verification and recovery exercises
 ```
 
-PBS/external target discovery is closed for the current bounded PVE source scope at `NONE_OBSERVED_IN_BOUNDED_PVE_STORAGE_SCOPE`, not global absence.
+The current read-only evidence lanes have now been exercised for VM/PVC/database recovery context, PVE policy/provenance/retention declaration, RPO/RTO declaration search, external-target discovery, and logical failure-domain relationship.
 
-Restore tests and recovery exercises remain intentionally deferred while infrastructure interaction is read-only.
+Further promotion of the remaining items requires at least one of:
+
+```text
+new authoritative policy/declaration evidence
+stronger physical storage topology evidence
+complete historical retention evidence with policy-effective period
+controlled restore/integrity exercises
+```
+
+Restore/integrity exercises require future controlled mutation and explicit authorization. Do not create, restore, delete, move, prune, or alter backups under the current boundary.
 
 ## Exact next step
 
-Create a bounded **failure-domain access-path relationship** from accepted evidence.
+Create a documentation-only **Milestone 5 read-only discovery closure checkpoint**.
 
-Goal: determine whether the protected VM location and accepted recovery-point storage are logically coupled at the PVE node and storage-ID layers, without inferring physical media topology.
-
-Allowed conclusions include:
+The checkpoint must state:
 
 ```text
-same PVE node: OBSERVED / UNKNOWN
-same PVE storage ID: OBSERVED / UNKNOWN
-logical access-path separation: NOT_SEPARATED / UNKNOWN
-physical failure-domain independence: UNKNOWN
+Milestone 5 overall: NOT COMPLETE
+Milestone 5 read-only source discovery: COMPLETE FOR CURRENT AUTHORITATIVE SOURCES
+remaining unknowns: explicit and preserved
+mutation-required work: deferred
 ```
 
-Do not classify physical disks, RAID groups, hosts, datastores, mounts, or facilities as independent unless authoritative safe evidence explicitly establishes that relationship.
+Do not manufacture additional probes merely to reduce `UNKNOWN`. After the checkpoint, the next useful project slice may move to Milestone 6 IaC Governance while Milestone 5 controlled-recovery work remains explicitly deferred.
 
 ## Trust invariants
 
@@ -183,7 +183,7 @@ Do not classify physical disks, RAID groups, hosts, datastores, mounts, or facil
 - task-result success is not restore verification;
 - stale/current/unknown semantics remain explicit;
 - no RPO violation is inferred without an accepted target;
-- external target type/name does not establish physical failure-domain independence;
 - logical node/storage coupling is not the same as physical media topology;
+- unknowns are not forced closed without authoritative evidence;
 - no secrets, raw sensitive config/state, raw task logs, raw VM config, database data, dump data, WAL contents, backup contents, or complete connection strings enter evidence/AI context;
 - generated operational artifacts keep `mutation_allowed=false`.
