@@ -65,6 +65,49 @@ MariaDB database-aware backup mechanism: UNKNOWN 4/4
 
 No accepted `UNPROTECTED`, stale-backup, or RPO-violation claims have been promoted from bounded signal absence.
 
+## Accepted recovery-objective declaration discovery
+
+Report:
+
+```text
+docs/reports/2026-08-23-m5-recovery-objective-declaration-discovery.md
+```
+
+Focused tests:
+
+```text
+3 passed in 0.06s
+```
+
+Accepted bounded live result:
+
+```text
+source_mode: GIT_TRACKED_TEXT_ONLY
+source_status: COMPLETE
+tracked_safe_text_files_scanned: 175
+read_or_decode_skips: 0
+objective_signals: NONE_OBSERVED
+rpo_declaration_signals: 0
+rpo_explicit_target_candidates: 0
+rto_declaration_signals: 0
+rto_explicit_target_candidates: 0
+rpo_compliance_claims: 0
+rto_compliance_claims: 0
+rpo_violation_claims: 0
+discovery_rc: 0
+```
+
+Accepted state:
+
+```text
+RPO target: UNKNOWN
+RTO target: UNKNOWN
+RPO result: UNKNOWN
+RTO result: UNKNOWN
+```
+
+This is bounded negative evidence only. It does not prove that no RPO/RTO objective exists elsewhere. No backup age, recovery-point age, task result, or restore duration may be evaluated against an assumed target.
+
 ## Open Milestone 5 roadmap gaps
 
 ```text
@@ -77,47 +120,36 @@ restore tests / verified recovery exercises
 
 Restore tests and recovery exercises remain intentionally deferred while infrastructure interaction is read-only.
 
-## Active slice — recovery-objective declaration discovery
-
-Goal: find safe declared-state evidence for explicit RPO/RTO targets before evaluating any backup age or recovery result.
-
-Implementation on the active branch:
-
-```text
-scripts/discovery/m5_recovery_objective_declaration_discovery.py
-tests/test_recovery_objective_declaration_discovery.py
-```
-
-Bounded source:
-
-```text
-/home/ben/projects/afpa-infra-rebuild
-Git-tracked safe text files only
-```
-
-Excluded from scanning/output:
-
-```text
-.env
-Secret/credential/password/private-key paths
-cert/key material
-Terraform state
-real .tfvars
-raw matching lines
-```
-
-An `EXPLICIT_TARGET_CANDIDATE` is only a file-level declaration signal. It is not accepted as an authoritative asset/service RPO/RTO until source authority and scope are validated.
-
 ## Exact next step
 
-On `mgmt-automation`:
+Start bounded **external-backup-target discovery**.
 
-1. run the focused safety/unit tests;
-2. run the bounded recovery-objective declaration discovery;
-3. inspect only the safe projected findings;
-4. if no candidate exists, preserve RPO/RTO targets and results as `UNKNOWN` and move to external-backup-target discovery.
+Goal: determine whether authoritative safe metadata exposes any backup target beyond the currently accepted PVE `local` storage scope, including PBS or other external target types.
 
-Do not evaluate existing backup timestamps against an assumed target.
+Do not print or persist endpoint addresses, server names when unnecessarily sensitive, paths, datastore connection details, credentials, tokens, fingerprints, usernames, passwords, connection strings, raw storage objects, or backup contents.
+
+Safe projected fields may include only:
+
+```text
+source status
+storage/target identifier when non-sensitive and already part of accepted operational inventory
+storage/target type
+disabled/enabled state
+backup-content capability
+external-vs-local classification
+PBS-like target presence count
+```
+
+Absence in a bounded source is `NONE_OBSERVED_IN_BOUNDED_SCOPE`, not universal absence.
+
+If no external target is observed, preserve:
+
+```text
+external backup target: UNKNOWN / NONE_OBSERVED_IN_BOUNDED_SCOPE
+failure-domain independence: UNKNOWN
+```
+
+Do not infer physical failure-domain independence from a storage type or target name alone.
 
 ## Trust invariants
 
@@ -131,5 +163,6 @@ Do not evaluate existing backup timestamps against an assumed target.
 - task-result success is not restore verification;
 - stale/current/unknown semantics remain explicit;
 - no RPO violation is inferred without an accepted target;
-- no secrets, raw sensitive config/state, raw task logs, raw VM config, database data, dump data, or WAL contents enter evidence/AI context;
+- external target type/name does not establish physical failure-domain independence;
+- no secrets, raw sensitive config/state, raw task logs, raw VM config, database data, dump data, WAL contents, backup contents, or complete connection strings enter evidence/AI context;
 - generated operational artifacts keep `mutation_allowed=false`.
