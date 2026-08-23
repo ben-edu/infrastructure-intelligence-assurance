@@ -78,12 +78,6 @@ PR #59 merged at:
 add76eba38441dd6bf23732d1297f1b494e742c1
 ```
 
-Report:
-
-```text
-docs/reports/2026-08-23-m5-external-backup-target-discovery.md
-```
-
 Accepted state:
 
 ```text
@@ -95,70 +89,87 @@ external backup target: NONE_OBSERVED_IN_BOUNDED_PVE_STORAGE_SCOPE
 physical failure-domain independence: UNKNOWN
 ```
 
-A `dir` target cannot establish physical locality or physical independence.
+## Accepted failure-domain access-path discovery
 
-## Open Milestone 5 roadmap gaps
+Report:
 
 ```text
-failure-domain assurance beyond same-PVE-storage relationship
-retention effectiveness
-accepted RPO/RTO targets and evaluation
-restore tests / verified recovery exercises
+docs/reports/2026-08-23-m5-failure-domain-access-path-discovery.md
 ```
 
-Restore tests and recovery exercises remain intentionally deferred while infrastructure interaction is read-only.
-
-## Active slice — failure-domain access-path discovery
-
-Implementation:
+Focused tests:
 
 ```text
-scripts/discovery/m5_failure_domain_access_path_discovery.py
-tests/test_failure_domain_access_path_discovery.py
+4 passed in 0.06s
 ```
 
-The discovery uses the hash-verified accepted VM assurance artifact and GET/read-only PVE VM configuration metadata.
-
-For assets with accepted recovery-point mechanism evidence, it safely derives:
+Accepted live result:
 
 ```text
-subject PVE node
-backup mechanism PVE node
-current VM disk storage IDs
-accepted backup mechanism storage IDs
-storage-ID overlap
-logical access-path separation
+/tmp/vm-backup-assurance.json: hash_match=True
+accepted_assets_with_recovery_point_mechanism: 6
+live_vm_config_observed: 6
+live_vm_config_failed_to_observe: 0
+same_pve_node_observed: 6
+storage_id_overlap_observed: 6
+not_separated_at_pve_node_and_storage_id: 6
+logical_access_path_separation_unknown: 0
+physical_failure_domain_independence_claims: 0
+restore_verification_claims: 0
+unprotected_claims: 0
+rpo_violation_claims: 0
+discovery_rc: 0
 ```
 
-Allowed logical classifications:
+Accepted relationship for VMIDs `100,101,106,107,108,109`:
 
 ```text
-NOT_SEPARATED_AT_PVE_NODE_AND_STORAGE_ID
-NOT_SEPARATED_AT_PVE_NODE_LAYER
-SEPARATED_AT_OBSERVED_NODE_AND_STORAGE_ID_LAYER
-UNKNOWN
-```
-
-These are logical PVE relationship statements only.
-
-Always preserve:
-
-```text
+same PVE node: OBSERVED
+VM storage ID: local
+accepted backup storage ID: local
+storage-ID overlap: OBSERVED
+logical access-path separation: NOT_SEPARATED_AT_PVE_NODE_AND_STORAGE_ID
 physical failure-domain independence: UNKNOWN
 ```
 
-unless future authoritative evidence establishes physical disk/RAID/mount/host/facility topology.
+Logical coupling is not proof that VM and backup data occupy the same physical disk or RAID group.
 
-Raw VM config values, disk volume names, paths, device identifiers, serials, mountpoints, endpoints, credentials, and backup contents must not be printed or persisted.
+## Milestone 5 remaining gaps
+
+```text
+physical failure-domain independence beyond logical PVE node/storage coupling
+retention effectiveness
+accepted RPO/RTO targets and evaluation
+restore/integrity verification and recovery exercises
+```
+
+The current read-only evidence lanes have now been exercised for VM/PVC/database recovery context, PVE policy/provenance/retention declaration, RPO/RTO declaration search, external-target discovery, and logical failure-domain relationship.
+
+Further promotion of the remaining items requires at least one of:
+
+```text
+new authoritative policy/declaration evidence
+stronger physical storage topology evidence
+complete historical retention evidence with policy-effective period
+controlled restore/integrity exercises
+```
+
+Restore/integrity exercises require future controlled mutation and explicit authorization. Do not create, restore, delete, move, prune, or alter backups under the current boundary.
 
 ## Exact next step
 
-On `mgmt-automation`:
+Create a documentation-only **Milestone 5 read-only discovery closure checkpoint**.
 
-1. run `tests/test_failure_domain_access_path_discovery.py`;
-2. run `scripts/discovery/m5_failure_domain_access_path_discovery.py` with `PYTHONPATH=src`;
-3. accept only safe node/storage-ID relationship projections;
-4. do not promote physical failure-domain independence from logical coupling or separation.
+The checkpoint must state:
+
+```text
+Milestone 5 overall: NOT COMPLETE
+Milestone 5 read-only source discovery: COMPLETE FOR CURRENT AUTHORITATIVE SOURCES
+remaining unknowns: explicit and preserved
+mutation-required work: deferred
+```
+
+Do not manufacture additional probes merely to reduce `UNKNOWN`. After the checkpoint, the next useful project slice may move to Milestone 6 IaC Governance while Milestone 5 controlled-recovery work remains explicitly deferred.
 
 ## Trust invariants
 
@@ -173,5 +184,6 @@ On `mgmt-automation`:
 - stale/current/unknown semantics remain explicit;
 - no RPO violation is inferred without an accepted target;
 - logical node/storage coupling is not the same as physical media topology;
+- unknowns are not forced closed without authoritative evidence;
 - no secrets, raw sensitive config/state, raw task logs, raw VM config, database data, dump data, WAL contents, backup contents, or complete connection strings enter evidence/AI context;
 - generated operational artifacts keep `mutation_allowed=false`.
