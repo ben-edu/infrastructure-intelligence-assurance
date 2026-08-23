@@ -4,7 +4,6 @@ import re
 import subprocess
 from collections import Counter, defaultdict
 from pathlib import Path, PurePosixPath
-from typing import Iterable
 
 SOURCE_REPO = Path("/home/ben/projects/afpa-infra-rebuild")
 MAX_FILE_BYTES = 2 * 1024 * 1024
@@ -134,25 +133,26 @@ def _strip_hcl_comments(text: str) -> str:
     return "".join(out)
 
 
-def _safe_tokens(values: Iterable[str]) -> list[str]:
-    return sorted({value for value in values if _SAFE_TOKEN.fullmatch(value)})
+def _matched_safe_types(pattern: re.Pattern[str], text: str) -> list[str]:
+    values = [match.group(1) for match in pattern.finditer(text)]
+    return sorted(value for value in values if _SAFE_TOKEN.fullmatch(value))
 
 
 def _parse_structure(text: str) -> dict[str, object]:
     sanitized = _strip_hcl_comments(text)
-    resources = _safe_tokens(match.group(1) for match in _RESOURCE_RE.finditer(sanitized))
-    data_sources = _safe_tokens(match.group(1) for match in _DATA_RE.finditer(sanitized))
-    providers = _safe_tokens(match.group(1) for match in _PROVIDER_RE.finditer(sanitized))
-    backends = _safe_tokens(match.group(1) for match in _BACKEND_RE.finditer(sanitized))
+    resources = _matched_safe_types(_RESOURCE_RE, sanitized)
+    data_sources = _matched_safe_types(_DATA_RE, sanitized)
+    providers = _matched_safe_types(_PROVIDER_RE, sanitized)
+    backends = _matched_safe_types(_BACKEND_RE, sanitized)
     return {
         "resource_types": resources,
-        "resource_blocks": len(list(_RESOURCE_RE.finditer(sanitized))),
+        "resource_blocks": len(resources),
         "data_source_types": data_sources,
-        "data_blocks": len(list(_DATA_RE.finditer(sanitized))),
+        "data_blocks": len(data_sources),
         "provider_types": providers,
-        "provider_blocks": len(list(_PROVIDER_RE.finditer(sanitized))),
+        "provider_blocks": len(providers),
         "backend_types": backends,
-        "backend_blocks": len(list(_BACKEND_RE.finditer(sanitized))),
+        "backend_blocks": len(backends),
         "module_blocks": len(list(_MODULE_RE.finditer(sanitized))),
         "variable_blocks": len(list(_VARIABLE_RE.finditer(sanitized))),
         "output_blocks": len(list(_OUTPUT_RE.finditer(sanitized))),
