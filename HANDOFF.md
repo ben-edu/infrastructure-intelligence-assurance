@@ -73,31 +73,6 @@ PR #58 merged at:
 dd94f4cb2871b29aea2b7f6dceb4278ce58962db
 ```
 
-Report:
-
-```text
-docs/reports/2026-08-23-m5-recovery-objective-declaration-discovery.md
-```
-
-Accepted bounded live result:
-
-```text
-focused tests: 3 passed
-source_mode: GIT_TRACKED_TEXT_ONLY
-source_status: COMPLETE
-tracked_safe_text_files_scanned: 175
-read_or_decode_skips: 0
-objective_signals: NONE_OBSERVED
-rpo_declaration_signals: 0
-rpo_explicit_target_candidates: 0
-rto_declaration_signals: 0
-rto_explicit_target_candidates: 0
-rpo_compliance_claims: 0
-rto_compliance_claims: 0
-rpo_violation_claims: 0
-discovery_rc: 0
-```
-
 Accepted state:
 
 ```text
@@ -107,78 +82,94 @@ RPO result: UNKNOWN
 RTO result: UNKNOWN
 ```
 
-This is bounded negative evidence only. It does not prove that no RPO/RTO objective exists elsewhere. No backup age, recovery-point age, task result, or restore duration may be evaluated against an assumed target.
+No explicit RPO/RTO declaration signal was observed in 175 safe Git-tracked text files from the bounded declared-state repository. This is bounded negative evidence only.
+
+## Accepted external-backup-target discovery
+
+Report:
+
+```text
+docs/reports/2026-08-23-m5-external-backup-target-discovery.md
+```
+
+Focused tests:
+
+```text
+2 passed in 0.13s
+```
+
+Accepted bounded live result:
+
+```text
+operation: GET /storage
+http_status: 200
+runtime_credential_approved: False
+storage_config_source_status: COMPLETE
+storage_config_rows_projected: 1
+backup_capable_targets_total: 1
+enabled_backup_capable_targets: 1
+pbs_like_enabled_targets: 0
+network_storage_like_enabled_targets: 0
+path_based_location_unknown_enabled_targets: 1
+other_storage_type_unknown_enabled_targets: 0
+external_target_presence_claims: 0
+failure_domain_independence_claims: 0
+restore_verification_claims: 0
+unprotected_claims: 0
+external_backup_target_status: NONE_OBSERVED_IN_BOUNDED_PVE_STORAGE_SCOPE
+discovery_rc: 0
+```
+
+Safe target projection:
+
+```text
+storage=local
+type=dir
+backup_content=True
+disabled=False
+target_classification=PATH_BASED_LOCATION_UNKNOWN
+```
+
+Accepted interpretation:
+
+```text
+PBS-like target: NONE_OBSERVED_IN_BOUNDED_PVE_STORAGE_SCOPE
+network-storage-like target: NONE_OBSERVED_IN_BOUNDED_PVE_STORAGE_SCOPE
+external backup target: NONE_OBSERVED_IN_BOUNDED_PVE_STORAGE_SCOPE
+physical failure-domain independence: UNKNOWN
+```
+
+A `dir` storage type cannot establish physical locality or independence. No server, endpoint, path, mountpoint, portal, datastore details, credentials, raw storage object, or backup content was printed.
 
 ## Open Milestone 5 roadmap gaps
 
 ```text
-PBS / external backup targets beyond current observed PVE local storage scope
 failure-domain assurance beyond same-PVE-storage relationship
 retention effectiveness
 accepted RPO/RTO targets and evaluation
 restore tests / verified recovery exercises
 ```
 
+PBS/external target discovery is closed for the current bounded PVE source scope at `NONE_OBSERVED_IN_BOUNDED_PVE_STORAGE_SCOPE`, not global absence.
+
 Restore tests and recovery exercises remain intentionally deferred while infrastructure interaction is read-only.
-
-## Active slice — external backup target discovery
-
-Implementation:
-
-```text
-scripts/discovery/m5_external_backup_target_discovery.py
-tests/test_external_backup_target_discovery.py
-```
-
-Authoritative bounded source:
-
-```text
-PVE GET /storage
-```
-
-Safe projection only:
-
-```text
-storage ID
-storage type
-backup-content capability
-disabled state
-derived target-type classification
-```
-
-Never project or print:
-
-```text
-server/endpoint
-path/mountpoint
-portal
-PBS datastore connection details
-username/password/token
-fingerprint
-credentials
-raw storage objects
-backup contents
-```
-
-Type classification semantics:
-
-```text
-pbs -> PBS_LIKE_TARGET
-nfs/cifs/cephfs/glusterfs/rbd -> NETWORK_STORAGE_LIKE_TARGET
-dir -> PATH_BASED_LOCATION_UNKNOWN
-other types -> OTHER_STORAGE_TYPE_UNKNOWN
-```
-
-A PBS/network-like type is only an external-target signal; it does not establish physical failure-domain independence. A `dir` target cannot be classified local or external from storage type alone.
 
 ## Exact next step
 
-On `mgmt-automation`:
+Create a bounded **failure-domain access-path relationship** from accepted evidence.
 
-1. run `tests/test_external_backup_target_discovery.py`;
-2. run `scripts/discovery/m5_external_backup_target_discovery.py` with `PYTHONPATH=src`;
-3. accept only safe projected counts/type classifications;
-4. if no PBS/network-like backup target is observed, record `NONE_OBSERVED_IN_BOUNDED_PVE_STORAGE_SCOPE` and keep failure-domain independence `UNKNOWN`.
+Goal: determine whether the protected VM location and accepted recovery-point storage are logically coupled at the PVE node and storage-ID layers, without inferring physical media topology.
+
+Allowed conclusions include:
+
+```text
+same PVE node: OBSERVED / UNKNOWN
+same PVE storage ID: OBSERVED / UNKNOWN
+logical access-path separation: NOT_SEPARATED / UNKNOWN
+physical failure-domain independence: UNKNOWN
+```
+
+Do not classify physical disks, RAID groups, hosts, datastores, mounts, or facilities as independent unless authoritative safe evidence explicitly establishes that relationship.
 
 ## Trust invariants
 
@@ -193,5 +184,6 @@ On `mgmt-automation`:
 - stale/current/unknown semantics remain explicit;
 - no RPO violation is inferred without an accepted target;
 - external target type/name does not establish physical failure-domain independence;
+- logical node/storage coupling is not the same as physical media topology;
 - no secrets, raw sensitive config/state, raw task logs, raw VM config, database data, dump data, WAL contents, backup contents, or complete connection strings enter evidence/AI context;
 - generated operational artifacts keep `mutation_allowed=false`.
