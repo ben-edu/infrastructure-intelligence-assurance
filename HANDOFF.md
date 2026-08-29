@@ -151,34 +151,54 @@ A Jenkins configuration candidate is not evidence that Jenkins orchestrates Ansi
 
 ## Active Milestone 6 — Jenkins read-only Ansible outcome capability probe
 
-Implementation prepared on this branch:
+Implementation:
 
 ```text
 scripts/discovery/m6_jenkins_ansible_outcome_capability_probe.py
 tests/test_jenkins_ansible_outcome_capability_probe.py
 ```
 
-Goal:
+Report recorded on this branch:
 
 ```text
-Determine whether the bounded Jenkins read-only integration source appears capable of enumerating safe job/build metadata, without invoking Jenkins and without reading sensitive integration data.
+docs/reports/2026-08-29-m6-jenkins-ansible-outcome-capability.md
 ```
 
-The probe reads only non-sensitive source-code files under the bounded Jenkins integration roots and classifies identifier-level signals. It excludes `.env` and secret/credential/password/token/private-key-like filenames before content reads.
-
-Safe capability vocabulary:
+Focused/live validation:
 
 ```text
-JOB_AND_BUILD_METADATA_CAPABILITY_SIGNAL_OBSERVED
-PARTIAL_METADATA_CAPABILITY_SIGNAL_OBSERVED
-NONE_OBSERVED_IN_BOUNDED_INTEGRATION_SOURCE
-NO_INTEGRATION_SOURCE_OBSERVED
-SOURCE_INCOMPLETE
+focused tests: 4 passed in 0.05s
+discovery_rc: 0
+source_status: COMPLETE
+roots_observed: 1
+files_seen: 4
+source_files_scanned: 1
+sensitive_files_excluded: 1
+unsupported_files_excluded: 2
+read_failures: 0
+oversize_skips: 0
 ```
 
-Console/config capability signals, if present, are counted only to keep them explicitly outside the permitted evidence path. Their contents are not accessed through Jenkins.
+Accepted capability evidence:
 
-Preserve regardless of source-code capability result:
+```text
+job_metadata_signal_files: 1
+build_metadata_signal_files: 1
+console_capability_signal_files: 1
+config_body_capability_signal_files: 0
+safe_metadata_capability_status: JOB_AND_BUILD_METADATA_CAPABILITY_SIGNAL_OBSERVED
+```
+
+Interpretation boundary:
+
+```text
+Identifier-level source-code signals indicate apparent integration capability only.
+They do not prove Jenkins runtime availability, Ansible orchestration, relevant job existence, or any build execution.
+The observed console capability is explicitly outside the permitted evidence path; no console content was accessed.
+No job configuration body was accessed.
+```
+
+Preserve:
 
 ```text
 execution_outcome_status: UNKNOWN
@@ -190,45 +210,47 @@ idempotence_claims: 0
 drift_claims: 0
 ```
 
+## Merge gate — PENDING
+
+Because this slice adds reusable discovery implementation and tests, the repository-wide suite must pass before PR/merge.
+
 ## Exact next step
 
-On `mgmt-automation`:
+On `mgmt-automation` run only:
 
 ```bash
 cd ~/projects/infrastructure-intelligence-assurance
-
-git fetch origin
-
-git switch --track origin/agent/m6-jenkins-ansible-outcome-capability
-
-python3 -m pytest -q \
-  tests/test_jenkins_ansible_outcome_capability_probe.py
-
-PYTHONPATH=src python3 \
-  scripts/discovery/m6_jenkins_ansible_outcome_capability_probe.py
-
-echo "discovery_rc=$?"
+python3 -m pytest -q
 ```
 
-Acceptance rules:
+Do not wrap it in strict interactive shell mode.
 
-- focused tests must pass;
-- source status must not be `INCOMPLETE`;
-- `.env` and sensitive-named files must be excluded before reads;
-- no raw source lines, URL/endpoint values, command arguments, environment values, credentials, console logs, job config bodies, build parameters, inventory arguments, or host targets may be projected;
-- no Jenkins API, Ansible CLI, or SSH invocation is allowed;
-- capability signals must not be promoted to execution outcome/success/idempotence/drift evidence.
+If the full suite passes:
+
+1. record the exact pass count in this handoff/report/PR;
+2. inspect changed-file scope and ensure no temporary/debug/placeholder files exist;
+3. create/inspect a non-draft PR and squash-merge when clean;
+4. carry the new accepted `main` SHA into the next branch handoff;
+5. start a bounded **Jenkins API metadata-only probe**.
+
+Future Jenkins runtime probe goal:
+
+```text
+Establish whether the accepted read-only Jenkins integration can safely enumerate runtime job/build metadata without reading console logs, job configuration bodies, environment values, credentials, build parameters, raw commands, inventory arguments, or host targets.
+```
+
+Permitted future projection should stay coarse and metadata-only. Runtime capability is still not Ansible outcome evidence until a safe relationship between a Jenkins job/build and Ansible execution is established.
 
 ## Trust invariants
 
 - infrastructure interaction remains read-only;
 - integration source-code capability is not observed Jenkins runtime capability;
-- Jenkins runtime capability is not execution-outcome evidence;
+- Jenkins runtime capability is not automatically Ansible execution-outcome evidence;
 - declared state is not observed state;
 - bounded absence is not universal absence;
 - `FAILED_TO_OBSERVE`/`INCOMPLETE` is not negative evidence;
 - Terraform state/real tfvars and Ansible Vault/credential material do not enter evidence/AI context;
-- no raw commands, arguments, environment values, credentials, host targets, or sensitive connection strings enter evidence/AI context;
+- no raw commands, arguments, environment values, credentials, host targets, console logs, job configuration bodies, build parameters, or sensitive connection strings enter evidence/AI context;
 - no drift, execution success, idempotence, compliance, or destructive-change result is inferred without authoritative evidence;
 - unknowns are not forced closed;
 - generated operational artifacts keep `mutation_allowed=false`.
