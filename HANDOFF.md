@@ -133,7 +133,7 @@ execution outcome/success/idempotence/drift: UNKNOWN
 
 Bounded declaration absence does not prove Ansible is never executed elsewhere.
 
-## Active Milestone 6 — Ansible execution-outcome source discovery
+## Merge-ready Milestone 6 — Ansible execution-outcome source discovery
 
 Implementation:
 
@@ -142,16 +142,17 @@ scripts/discovery/m6_ansible_execution_outcome_source_discovery.py
 tests/test_ansible_execution_outcome_source_discovery.py
 ```
 
-Acceptance report recorded on this branch:
+Report:
 
 ```text
 docs/reports/2026-08-29-m6-ansible-execution-outcome-source-discovery.md
 ```
 
-Focused/live validation:
+Validation:
 
 ```text
 focused tests: 4 passed in 0.06s
+full repository suite: 372 passed in 1.66s
 discovery_rc: 0
 ```
 
@@ -184,7 +185,7 @@ Interpretation boundary:
 
 ```text
 A Jenkins configuration candidate does not prove Jenkins orchestrates Ansible.
-No job/build outcome has been observed.
+No Jenkins job/build outcome has been observed.
 No console log, job configuration body, command, argument, environment value, credential, host target, or Vault material was read.
 Management-host scheduler NONE_OBSERVED results are bounded name-level absence only.
 ```
@@ -201,34 +202,31 @@ idempotence_claims: 0
 drift_claims: 0
 ```
 
-## Merge gate — PENDING
+## Merge gate
 
-Because this slice adds reusable discovery implementation and tests, run the repository-wide suite before PR/merge.
+```text
+focused tests: PASS
+live source discovery: PASS
+full repository suite: PASS — 372 passed in 1.66s
+```
+
+This slice is merge-ready after PR scope/mergeability inspection.
 
 ## Exact next step
 
-On `mgmt-automation` run only:
-
-```bash
-cd ~/projects/infrastructure-intelligence-assurance
-python3 -m pytest -q
-```
-
-Do not wrap it in strict interactive shell mode.
-
-If the full suite passes:
-
-1. record the exact pass count in this handoff/report/PR;
-2. inspect changed-file scope and ensure no temporary/debug/placeholder files exist;
-3. create/inspect a non-draft PR and squash-merge when clean;
-4. carry the new accepted `main` SHA into the next branch handoff;
-5. start **Jenkins read-only Ansible outcome capability probe**.
+1. Inspect changed-file scope for `agent/m6-ansible-execution-outcome-source-discovery`.
+2. Ensure no temporary/debug/placeholder files exist.
+3. Create/inspect a non-draft PR and squash-merge when clean.
+4. Carry the new accepted `main` SHA into the next branch handoff.
+5. Start **Jenkins read-only Ansible outcome capability probe**.
 
 Future Jenkins probe goal:
 
 ```text
 Determine whether the observed Jenkins integration can safely enumerate job/build metadata without reading console logs, job configuration bodies, environment values, credentials, command arguments, inventory arguments, or host targets.
 ```
+
+Allowed future evidence should be metadata-only, such as safe capability status and aggregate job/build metadata availability. Do not project sensitive job configuration, command strings, console logs, environment variables, credentials, or build parameters.
 
 If safe metadata cannot be obtained, keep Ansible execution outcome `UNKNOWN` rather than widening to unsafe or weak sources.
 
