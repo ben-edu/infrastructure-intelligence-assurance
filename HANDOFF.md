@@ -8,8 +8,8 @@ For context-window-independent continuation, read `docs/PROJECT_CONTINUITY.md`, 
 
 ```text
 repository: ben-edu/infrastructure-intelligence-assurance
-accepted main after PR #75: 3fddcee38aa033d2ce97d2848e6c6e72aee18707
-active branch: agent/m6-terraform-declared-state-coverage
+accepted main after PR #76: 88c4458b59a9e24d92cd6d7671be15d6525d7120
+active branch: agent/m6-terraform-readonly-plan-evidence
 package on accepted main: 0.27.0
 Milestone 5 overall: NOT COMPLETE
 Milestone 5 read-only source discovery: COMPLETE FOR CURRENT AUTHORITATIVE SOURCES
@@ -21,7 +21,7 @@ bounded infrastructure repository: /home/ben/projects/afpa-infra-rebuild
 
 ## Accepted Milestone 6 — Terraform evidence
 
-Reports:
+Accepted reports:
 
 ```text
 docs/reports/2026-08-29-m6-terraform-declared-state-inventory.md
@@ -32,140 +32,200 @@ docs/reports/2026-08-29-m6-terraform-local-state-safe-structure.md
 docs/reports/2026-08-29-m6-terraform-declared-to-local-state-structural-coverage.md
 ```
 
-Accepted bounded Terraform evidence:
+Accepted bounded Terraform state:
 
 ```text
 root candidates: terraform/environments/bm1, terraform/environments/bm2
-module directory: terraform/modules/proxmox_vm
 provider type: proxmox
 declared resource type: proxmox_vm_qemu
-local state artifacts observed: 2/2 roots
 local states parsed complete: 2/2 roots
 local-state managed resource blocks: 2
 local-state managed instances: 6
-local-state managed resource type counts: proxmox_vm_qemu=2
 declared-to-local-state structural relationship: DECLARED_TO_LOCAL_STATE_STRUCTURAL_MATCH
 matched declared/state resource-type blocks: 2/2
 latest accepted full suite: 399 passed in 2.11s
 ```
 
-Per-root accepted relationship:
-
-```text
-bm1: declared proxmox_vm_qemu blocks=1, state managed proxmox_vm_qemu blocks=1, comparison=DECLARED_TO_LOCAL_STATE_STRUCTURAL_MATCH
-bm2: declared proxmox_vm_qemu blocks=1, state managed proxmox_vm_qemu blocks=1, comparison=DECLARED_TO_LOCAL_STATE_STRUCTURAL_MATCH
-```
-
-Preserve:
+Preserve from prior slices:
 
 ```text
 Terraform state-backed coverage: UNKNOWN
 Terraform live resource coverage: UNKNOWN
-Terraform plan result: UNKNOWN
 Terraform apply result: UNKNOWN
-Terraform drift: UNKNOWN
-Terraform destructive-change status: UNKNOWN
 ```
 
-Interpretation boundary:
-
-```text
-structural match = limited declared-to-local-state structural relationship only
-structural match != state freshness or authoritative state
-structural match != live resource existence/coverage
-structural match != plan/apply result
-structural match != drift
-structural match != destructive-change evidence
-structural mismatch, if later observed, != drift without authoritative live verification
-```
-
-Managed state instance counts are intentionally not compared with declared resource-block counts.
+The declared-to-local-state structural match is not state freshness, live coverage, drift, or authoritative-state evidence.
 
 ## Accepted Milestone 6 — Ansible/Jenkins path
 
-Jenkins-to-Ansible relationship path is closed within the current evidence boundary:
-
 ```text
 relationship_source_status: NONE_OBSERVED_IN_BOUNDED_SOURCE
-Ansible execution outcome/success/idempotence/drift: UNKNOWN
+Ansible execution outcome: UNKNOWN
+Ansible execution success: UNKNOWN
+Ansible idempotence: UNKNOWN
+Ansible configuration drift: UNKNOWN
 ```
 
 Do not add more Jenkins-to-Ansible relationship probes without materially stronger safe evidence.
 
-Rejected observations that must not be reused:
+Rejected/failed observations that must not be reused as negative evidence:
 
 ```text
 Jenkins API first connection attempt: NOT_ATTEMPTED / FAILED_TO_OBSERVE
 Ansible-to-Jenkins first relationship scan: SOURCE_INCOMPLETE due one skipped candidate
+GitHub connector lookup of ben-edu/afpa-infra-rebuild during M6 gap reassessment returned 404; local /home/ben/projects/afpa-infra-rebuild remains the accepted bounded source and the connector result is not source-absence evidence
 ```
 
-## Active Milestone 6 slice — merge ready
+## Milestone 6 gap reassessment after PR #76
+
+Roadmap gaps still materially open:
+
+Terraform:
+
+```text
+plan metadata
+drift
+destructive-change detection
+apply metadata
+live-resource coverage
+```
+
+Ansible:
+
+```text
+live managed-host coverage
+execution outcomes
+configuration drift where measurable
+```
+
+The next slice is selected because it can add materially stronger read-only evidence for three Terraform gaps without apply or infrastructure mutation.
+
+## Active slice — Terraform read-only plan evidence
 
 Implementation:
 
 ```text
-scripts/discovery/m6_terraform_declared_state_structural_coverage.py
-tests/test_terraform_declared_state_structural_coverage.py
+scripts/discovery/m6_terraform_readonly_plan_evidence.py
+tests/test_terraform_readonly_plan_evidence.py
 ```
 
-Report:
+Bounded roots:
 
 ```text
-docs/reports/2026-08-29-m6-terraform-declared-to-local-state-structural-coverage.md
+/home/ben/projects/afpa-infra-rebuild/terraform/environments/bm1
+/home/ben/projects/afpa-infra-rebuild/terraform/environments/bm2
 ```
 
-Validation:
+Two plan modes are executed per root:
 
 ```text
-focused tests: 4 passed in 0.06s
-live discovery: discovery_rc=0
-full repository suite: 399 passed in 2.11s
+configuration_vs_state: terraform plan with refresh=false
+refresh_only: terraform plan with refresh-only provider observation
 ```
 
-Trust boundary:
+Common safety flags/behavior:
 
 ```text
-mutation_allowed: False
-terraform_cli_invoked: False
-provider_api_invoked: False
-raw_hcl_projected: False
-raw_state_projected: False
-resource_names_or_addresses_projected: False
-instance_identity_projected: False
-state_values_projected: False
-tfvars_inspected: False
+-input=false
+-lock=false
+-detailed-exitcode
+-json
+no -out
+no apply/import/state mutation command
+stdout/stderr captured process-locally only
 ```
 
-Only aggregate declared resource-type block counts and aggregate local-state managed resource-type block counts entered evidence. Raw HCL/state, resource or instance identity, state values, provider configuration, real tfvars, endpoints, credentials, and sensitive connection strings did not enter evidence output.
+Permitted projection:
+
+```text
+per-root plan observation status
+Terraform exit code 0/2 when complete
+aggregate allowlisted action-category counts
+configuration plan complete/incomplete status
+bounded state-tracked refresh drift signal status
+destructive-change status from recognized configuration-plan actions only
+```
+
+Explicitly prohibited projection:
+
+```text
+raw Terraform plan JSON or diagnostics
+resource names or addresses
+instance identities
+state/tfvars values
+provider configuration values
+endpoints or credentials
+sensitive connection strings
+```
+
+Interpretation rules:
+
+```text
+configuration_vs_state plan != live drift check
+refresh-only change signal = bounded state-tracked provider difference signal, not universal live-resource drift
+refresh-only no-change result = bounded alignment for state-tracked resources only
+configuration plan delete/replace action = destructive proposal evidence within bounded roots
+rc=2 with unclassified actions => destructive_change_status remains UNKNOWN
+plan result != apply result
+plan/refresh evidence != full live-resource coverage
+```
+
+Preserve regardless of result:
+
+```text
+apply_result_status: UNKNOWN
+live_resource_coverage_status: UNKNOWN
+state_backed_coverage_status: UNKNOWN
+```
+
+If either mode fails for any root, observation is incomplete and no bounded absence/no-drift conclusion may be made for the failed scope.
 
 ## Exact next step
 
-1. Inspect changed-file scope and ensure no temporary/debug/placeholder files exist.
-2. Create/inspect a non-draft PR and squash-merge when clean.
-3. Carry the new accepted `main` SHA forward.
-4. Reassess Milestone 6 against `03_DELIVERY_ROADMAP.md` and accepted evidence before creating another implementation branch.
-5. Prefer a next slice only if it adds materially stronger independent read-only governance evidence.
-6. Do not add probes merely to force state/live/plan/apply/drift/destructive or Ansible execution unknowns closed.
+On `mgmt-automation`:
 
-Potential remaining M6 gaps to evaluate, not automatically implement:
+```bash
+cd ~/projects/infrastructure-intelligence-assurance
 
-```text
-Terraform: authoritative live/provider observation, plan/apply metadata, drift, destructive-change detection
-Ansible: managed-host live coverage, execution outcomes, measurable configuration drift
-Milestone-level closure: determine which gaps require future authorized runtime actions or evidence sources not currently available
+git fetch origin
+
+git switch --track origin/agent/m6-terraform-readonly-plan-evidence
+
+python3 -m pytest -q \
+  tests/test_terraform_readonly_plan_evidence.py
+
+PYTHONPATH=src python3 \
+  scripts/discovery/m6_terraform_readonly_plan_evidence.py
+
+echo "discovery_rc=$?"
 ```
+
+Do not use strict interactive shell mode.
+
+Acceptance rules:
+
+- focused tests must pass;
+- no Terraform apply/import/state mutation command may run;
+- no saved plan may be written and state locking must remain disabled;
+- raw stdout/stderr, resource identity, state/tfvars values, provider values, endpoints, and credentials must not enter evidence output;
+- `configuration_vs_state` and `refresh_only` must both complete for both roots before source status is COMPLETE;
+- provider reads in refresh-only mode are observation-only;
+- failed/unclassified observation must preserve UNKNOWN rather than infer absence;
+- a complete result may establish only bounded plan/destructive/state-tracked drift evidence, never universal live-resource coverage or apply success.
+
+If live acceptance succeeds, create an accepted report, run the full repository suite, inspect exact four-file scope, then PR/squash-merge. Reassess M6 again after that slice rather than automatically adding another probe.
 
 ## Trust invariants
 
 - infrastructure interaction remains read-only;
 - declared state is not observed/live state;
 - local state structure is not live resource evidence;
-- declared-to-local-state structural match is not freshness/live/drift evidence;
+- provider reads are observation only;
 - bounded absence is not universal absence;
 - `FAILED_TO_OBSERVE`/`INCOMPLETE` is not negative evidence;
-- raw Terraform state/real tfvars and Ansible variable/Vault/credential material do not enter evidence/AI context;
-- only explicitly safe aggregate structure/relationship data may enter evidence;
-- no drift, execution success, idempotence, compliance, or destructive-change result is inferred without authoritative evidence;
+- raw Terraform state/plan/real tfvars and Ansible Vault/credential material do not enter evidence/AI context;
+- only explicitly safe aggregate structure/status data may enter evidence;
+- no apply success or universal drift/coverage claim is inferred without authoritative evidence;
 - unknowns are not forced closed;
 - generated operational artifacts keep `mutation_allowed=false`.
 
