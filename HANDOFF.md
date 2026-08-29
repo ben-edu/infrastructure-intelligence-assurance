@@ -29,9 +29,10 @@ docs/reports/2026-08-29-m6-terraform-root-module-declared-coverage.md
 docs/reports/2026-08-29-m6-terraform-execution-declaration-discovery.md
 docs/reports/2026-08-29-m6-terraform-runtime-artifact-source-discovery.md
 docs/reports/2026-08-29-m6-terraform-local-state-safe-structure.md
+docs/reports/2026-08-29-m6-terraform-declared-to-local-state-structural-coverage.md
 ```
 
-Accepted bounded Terraform evidence:
+Accepted bounded Terraform evidence before this slice:
 
 ```text
 root candidates: terraform/environments/bm1, terraform/environments/bm2
@@ -43,14 +44,7 @@ local states parsed complete: 2/2 roots
 local-state managed resource blocks: 2
 local-state managed instances: 6
 local-state managed resource type counts: proxmox_vm_qemu=2
-latest accepted full suite: 395 passed in 1.74s
-```
-
-Per-root local-state safe structure:
-
-```text
-bm1: managed_resource_blocks=1, managed_instances=2
-bm2: managed_resource_blocks=1, managed_instances=4
+latest accepted full suite before this slice: 395 passed in 1.74s
 ```
 
 Preserve:
@@ -63,8 +57,6 @@ Terraform apply result: UNKNOWN
 Terraform drift: UNKNOWN
 Terraform destructive-change status: UNKNOWN
 ```
-
-Local state structure is not current-state, authoritative-state, coverage, or live-resource proof.
 
 ## Accepted Milestone 6 — Ansible/Jenkins path
 
@@ -93,64 +85,58 @@ scripts/discovery/m6_terraform_declared_state_structural_coverage.py
 tests/test_terraform_declared_state_structural_coverage.py
 ```
 
-Goal:
+Report:
 
 ```text
-Compare only aggregate non-sensitive declared resource-type block counts against aggregate local-state managed resource-type block counts per accepted Terraform root.
+docs/reports/2026-08-29-m6-terraform-declared-to-local-state-structural-coverage.md
 ```
 
-Relationship sources:
+Accepted focused/live validation:
 
 ```text
-declared side: safe Git-tracked Terraform resource-type counts by root directory
-state side: process-local safe Terraform state resource-type block counts by root
+focused tests: 4 passed in 0.06s
+discovery_rc: 0
+source_mode: DECLARED_GIT_TF_TO_LOCAL_STATE_SAFE_TYPE_COUNT_RELATIONSHIP
+source_status: COMPLETE
+declared_source_status: COMPLETE
+state_source_status: COMPLETE
+roots_expected: 2
+roots_compared_complete: 2
 ```
 
-Comparison rule:
+Accepted per-root relationship:
 
 ```text
-per root, compare resource-type -> resource-block-count maps
-managed state instance count is NOT compared with declared resource-block count
+bm1: comparison_status=DECLARED_TO_LOCAL_STATE_STRUCTURAL_MATCH, declared_resource_blocks=1, state_managed_resource_blocks=1, declared_resource_type_counts=proxmox_vm_qemu=1, state_managed_resource_type_counts=proxmox_vm_qemu=1, matched_resource_type_block_count=1
+bm2: comparison_status=DECLARED_TO_LOCAL_STATE_STRUCTURAL_MATCH, declared_resource_blocks=1, state_managed_resource_blocks=1, declared_resource_type_counts=proxmox_vm_qemu=1, state_managed_resource_type_counts=proxmox_vm_qemu=1, matched_resource_type_block_count=1
 ```
 
-Permitted projection:
+Aggregate accepted relationship:
 
 ```text
-per-root declared resource block count
-per-root local-state managed resource block count
-per-root declared resource-type counts
-per-root local-state managed resource-type counts
-per-root structural match/mismatch status
-aggregate matched resource-type block count
-aggregate declared-to-local-state structural coverage status
-```
-
-Explicitly prohibited:
-
-```text
-raw HCL or raw Terraform state
-resource names or addresses
-instance keys/indexes or identities
-state attribute values
-outputs or output values
-serial/lineage identifiers
-provider configuration strings/aliases
-real tfvars
-endpoints, credentials, sensitive connection strings
+declared_resource_blocks: 2
+state_managed_resource_blocks: 2
+matched_resource_type_block_count: 2
+declared_to_local_state_structural_coverage_status: DECLARED_TO_LOCAL_STATE_STRUCTURAL_MATCH
 ```
 
 Interpretation boundary:
 
 ```text
+structural match = limited declared-to-local-state structural relationship evidence only
 structural match != current or authoritative state
 structural match != state freshness
-structural match != live resource coverage
-structural mismatch != drift
-structural relationship != plan/apply result
-structural relationship != destructive-change evidence
+structural match != state-backed coverage
+structural match != live resource existence/coverage
+structural match != plan/apply outcome
+structural match != drift
+structural match != destructive-change evidence
+structural mismatch, if later observed, != drift without separate authoritative verification
 ```
 
-Preserve regardless of result:
+Managed state instance counts are intentionally not compared with declared resource-block counts.
+
+Preserve:
 
 ```text
 state_backed_coverage_status: UNKNOWN
@@ -163,45 +149,59 @@ drift_claims: 0
 destructive_change_claims: 0
 ```
 
-Fail closed if either declared or local-state structural source is incomplete or an expected root cannot be safely related.
+## Trust boundary
+
+```text
+mutation_allowed: False
+terraform_cli_invoked: False
+provider_api_invoked: False
+raw_hcl_projected: False
+raw_state_projected: False
+resource_names_or_addresses_projected: False
+instance_identity_projected: False
+state_values_projected: False
+tfvars_inspected: False
+```
+
+Only aggregate declared resource-type block counts and aggregate local-state managed resource-type block counts entered evidence.
+
+Raw HCL/state, resource names/addresses, instance keys/identities, state values, outputs, serial/lineage, provider configuration, real tfvars, endpoints, credentials, and sensitive connection strings did not enter evidence output.
+
+No Terraform CLI, provider API, SSH connection, repository mutation, or infrastructure mutation was performed.
+
+## Merge gate — PENDING FULL SUITE
+
+Focused tests and live relationship discovery passed. Because reusable implementation/tests changed, run the full repository suite before PR/merge.
 
 ## Exact next step
 
-On `mgmt-automation`:
+On `mgmt-automation` run only:
 
 ```bash
 cd ~/projects/infrastructure-intelligence-assurance
-
-git fetch origin
-
-git switch --track origin/agent/m6-terraform-declared-state-coverage
-
-python3 -m pytest -q \
-  tests/test_terraform_declared_state_structural_coverage.py
-
-PYTHONPATH=src python3 \
-  scripts/discovery/m6_terraform_declared_state_structural_coverage.py
-
-echo "discovery_rc=$?"
+python3 -m pytest -q
 ```
 
-Acceptance rules:
+Do not use strict interactive shell mode.
 
-- focused tests must pass;
-- both declared and state structural sources must be complete;
-- both accepted roots must compare completely;
-- only aggregate type/count relationships may be projected;
-- no resource/instance identity or raw configuration/state may enter evidence output;
-- mismatch must not be promoted to drift;
-- match must not be promoted to live/state freshness or authoritative-state claims;
-- no Terraform CLI/provider API/SSH/infrastructure mutation is allowed.
+If the full suite passes:
+
+1. record the exact pass count in this handoff/report/PR;
+2. inspect changed-file scope and ensure no temporary/debug/placeholder files exist;
+3. create/inspect a non-draft PR and squash-merge when clean;
+4. carry the new accepted `main` SHA into the next branch handoff;
+5. reassess remaining Milestone 6 gaps before adding another probe;
+6. do not promote this structural match to state freshness, authoritative ownership, live coverage, plan/apply, drift, or destructive-change evidence.
+
+Prefer a next slice only if it adds materially stronger independent read-only evidence. Do not add weak probes merely to force remaining unknowns closed.
 
 ## Trust invariants
 
 - infrastructure interaction remains read-only;
-- declared state is not observed state;
+- declared state is not observed/live state;
 - runtime artifact metadata is not state-backed coverage;
 - local state structure is not live resource evidence;
+- declared-to-local-state structural match is not live/state freshness evidence;
 - bounded absence is not universal absence;
 - `FAILED_TO_OBSERVE`/`INCOMPLETE` is not negative evidence;
 - raw Terraform state/real tfvars and Ansible variable/Vault/credential material do not enter evidence/AI context;
