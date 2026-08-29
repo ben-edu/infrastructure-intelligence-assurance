@@ -15,8 +15,8 @@ Project Sources remain authoritative for durable goals, roadmap, trust principle
 
 ```text
 repository: ben-edu/infrastructure-intelligence-assurance
-accepted main after PR #62: a92f18cd59e50818a5290a0a354eea7a07d47129
-active branch: agent/m6-terraform-root-module-coverage
+accepted main after PR #63: 85301c6fa9725fc3439cbb13bd2c9325f5cfe458
+active branch: agent/m6-terraform-execution-declaration-discovery
 package on accepted main: 0.27.0
 Milestone 5 overall: NOT COMPLETE
 Milestone 5 read-only source discovery: COMPLETE FOR CURRENT AUTHORITATIVE SOURCES
@@ -33,9 +33,9 @@ Accepted closure report:
 docs/reports/2026-08-23-m5-read-only-discovery-closure.md
 ```
 
-Do not create additional Milestone 5 probes merely to force preserved unknowns closed. Controlled restore/integrity work remains deferred until explicitly authorized.
+Controlled restore/integrity work remains deferred until explicitly authorized.
 
-## Accepted Milestone 6 slice — Terraform declared-state inventory
+## Accepted Milestone 6 — Terraform declared-state inventory
 
 Report:
 
@@ -43,40 +43,21 @@ Report:
 docs/reports/2026-08-29-m6-terraform-declared-state-inventory.md
 ```
 
-Accepted bounded result:
+Accepted state:
 
 ```text
-focused tests: 4 passed in 0.42s
-source_mode: GIT_TRACKED_TF_ONLY
-source_status: COMPLETE
-tracked_tf_files_returned: 15
-tracked_tf_files_scanned: 15
-terraform_directories_total: 3
-root_candidates_heuristic: 2
-module_directories_heuristic: 1
-backend_blocks: 0
-provider_blocks: 2
-resource_blocks: 2
-module_blocks: 2
-provider_types: proxmox=2
-resource_types: proxmox_vm_qemu=2
-managed_resource_coverage_status: DECLARED_CONFIGURATION_ONLY
+Git-tracked .tf files: 15/15 scanned
+root candidates: 2
+module directories: 1
+provider types: proxmox=2
+resource types: proxmox_vm_qemu=2
+backend blocks: 0
 live_resource_coverage_status: UNKNOWN
-drift_claims: 0
-destructive_change_claims: 0
+drift_status: UNKNOWN
+destructive_change_status: UNKNOWN
 ```
 
-Directory inventory:
-
-```text
-terraform/environments/bm1 -> ROOT_CANDIDATE
-terraform/environments/bm2 -> ROOT_CANDIDATE
-terraform/modules/proxmox_vm -> MODULE_DIRECTORY
-```
-
-Configuration-derived resources remain DECLARED state only. Backend absence is bounded source absence only and does not establish absence of state/backend elsewhere.
-
-## Accepted Milestone 6 slice — Terraform root/module declared coverage
+## Accepted Milestone 6 — Terraform root/module declared coverage
 
 Report:
 
@@ -84,77 +65,110 @@ Report:
 docs/reports/2026-08-29-m6-terraform-root-module-declared-coverage.md
 ```
 
-Accepted tests:
-
-```text
-root/module discovery: 4 passed in 0.09s
-resource-location probe: 2 passed in 0.07s
-```
-
-Accepted root/module relationships:
+Accepted structural result:
 
 ```text
 terraform/environments/bm1
-  module_blocks: 1
+  direct declared proxmox_vm_qemu blocks: 1
   resolved local module: terraform/modules/proxmox_vm
-  resource types in resolved module: NONE_OBSERVED
-  direct root resource types: proxmox_vm_qemu=1
 
 terraform/environments/bm2
-  module_blocks: 1
+  direct declared proxmox_vm_qemu blocks: 1
   resolved local module: terraform/modules/proxmox_vm
-  resource types in resolved module: NONE_OBSERVED
-  direct root resource types: proxmox_vm_qemu=1
 
 terraform/modules/proxmox_vm
-  declared resource types: NONE_OBSERVED
+  declared resource blocks: 0
 ```
 
-Summary:
+The local module relationships are declared structure only. Terraform state membership, runtime instance count, provider reachability, live resource existence, drift, and destructive-change status remain UNKNOWN.
+
+## Accepted Milestone 6 — Terraform execution declaration discovery
+
+Report:
 
 ```text
-root_candidates_total: 2
-module_blocks_total: 2
-relationships_resolved: 2
-roots_with_resolved_local_module: 2
-roots_with_declared_resource_path_through_module: 0
-direct_root_resource_blocks: 2
-module_declared_resource_blocks: 0
-live_resource_coverage_status: UNKNOWN
-state_backed_coverage_status: UNKNOWN
+docs/reports/2026-08-29-m6-terraform-execution-declaration-discovery.md
+```
+
+Accepted corrected live result:
+
+```text
+focused tests: 4 passed in 0.09s
+source_mode: GIT_TRACKED_SAFE_WORKFLOW_SCRIPT_TEXT_ONLY
+source_status: COMPLETE
+tracked_files_returned: 400
+candidate_files_selected: 160
+candidate_files_scanned: 160
+read_or_decode_skips: 0
+oversize_skips: 0
+terraform_execution_signal_files: NONE_OBSERVED
+terraform_signal_files: 0
+phase_file_counts: NONE_OBSERVED
+phase_signal_counts: NONE_OBSERVED
+files_with_gate_signal: 0
+```
+
+Phase declaration status:
+
+```text
+init: NONE_OBSERVED_IN_BOUNDED_SOURCE
+validate: NONE_OBSERVED_IN_BOUNDED_SOURCE
+plan: NONE_OBSERVED_IN_BOUNDED_SOURCE
+apply: NONE_OBSERVED_IN_BOUNDED_SOURCE
+destroy: NONE_OBSERVED_IN_BOUNDED_SOURCE
+refresh: NONE_OBSERVED_IN_BOUNDED_SOURCE
+import: NONE_OBSERVED_IN_BOUNDED_SOURCE
+```
+
+Preserve:
+
+```text
+execution_outcome_status: UNKNOWN
+plan_result_status: UNKNOWN
+apply_result_status: UNKNOWN
 drift_status: UNKNOWN
 destructive_change_status: UNKNOWN
 ```
 
-The local module relationship is real declared structure, but the accepted `proxmox_vm_qemu` blocks are declared directly in `bm1` and `bm2`, not inside `terraform/modules/proxmox_vm`.
+The first live run exposed a gate-only false positive. The implementation was corrected so a file enters Terraform execution evidence only when at least one explicit Terraform phase token exists. Gate metadata is considered only for Terraform-signal files.
 
-Do not infer runtime VM count from the two resource blocks. Meta-arguments, variable-driven expansion, state membership, live existence, and provider reachability remain outside the accepted evidence.
+`NONE_OBSERVED_IN_BOUNDED_SOURCE` remains bounded negative evidence only; it is not proof that Terraform execution never occurs elsewhere or manually.
 
 ## Exact next step
 
-Start the smallest useful Terraform execution-governance slice: **Git-tracked plan/apply declaration discovery**.
+Start the smallest useful Ansible slice: **Git-tracked Ansible declared inventory** for the known infrastructure repository.
 
-Goal: determine whether the bounded infrastructure repository declares Terraform execution workflows/scripts and whether they distinguish plan from apply, without executing Terraform and without reading secrets or runtime values.
-
-Safe questions:
+Bounded source:
 
 ```text
-Are Git-tracked CI/workflow/script files present that explicitly reference Terraform plan/apply/init/validate?
-Which execution phases are declared by safe filename/structural command-token evidence?
-Is apply declaration present, absent in bounded scope, or unknown?
-Is any approval/gate signal safely observable from workflow structure?
+/home/ben/projects/afpa-infra-rebuild
+Git-tracked safe Ansible source only
 ```
 
-Safety constraints:
+First questions:
 
-- scan Git-tracked text only;
-- exclude env/secret/credential/private-key/certificate/tfvars/state paths;
-- do not print raw command lines or arguments;
-- do not print environment values, credentials, endpoints, or connection strings;
-- project only file identifier, execution token category, and bounded gate/approval metadata when structurally explicit;
-- do not invoke Terraform, Jenkins, GitHub Actions, or provider APIs;
-- do not infer successful plan/apply execution from declared workflow text;
-- preserve drift and destructive-change results as UNKNOWN.
+```text
+Which inventory candidates are declared?
+Which playbook candidates are declared?
+Which role directories are declared?
+Which host/group identifiers can be safely counted without exposing addresses or secrets?
+What managed-host coverage can be stated from declarations only?
+```
+
+Exclude:
+
+```text
+Ansible Vault contents
+vault passwords
+inventory host addresses when sensitive
+ansible_password / become_password / private keys
+.env
+secret/credential/token material
+runtime facts
+Ansible execution or SSH connections
+```
+
+Do not call declared inventory hosts `OBSERVED` managed hosts. Keep configuration declarations separate from execution outcomes and live state.
 
 ## Trust invariants
 
@@ -163,8 +177,8 @@ Safety constraints:
 - declared execution workflow is not observed execution outcome;
 - source artifacts and derived assurance remain separate;
 - Terraform state and real tfvars do not enter evidence/AI context;
-- provider/backend/module sensitive values are not projected;
-- external module sources are not followed;
+- Ansible Vault and credential material do not enter evidence/AI context;
+- raw commands and sensitive runtime values are not projected;
 - no drift or destructive-change result is inferred without appropriate evidence;
 - unknowns are not forced closed without authoritative evidence;
 - no secrets, credentials, private keys, raw sensitive configuration, or sensitive connection strings enter evidence/AI context;
