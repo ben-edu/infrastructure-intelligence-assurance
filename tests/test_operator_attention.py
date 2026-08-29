@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -9,6 +10,8 @@ import pytest
 from infra_assurance.operator_attention import (
     build_operator_attention_summary,
     load_json_artifact,
+    main,
+    render_operator_attention_markdown,
 )
 
 
@@ -134,3 +137,54 @@ def test_json_loader_rejects_symlinks_and_non_object_payload(tmp_path: Path):
     scalar.write_text("[]", encoding="utf-8")
     with pytest.raises(ValueError, match="top-level shape"):
         load_json_artifact(scalar)
+
+
+def test_runtime_main_writes_json_and_markdown_from_existing_artifacts(tmp_path: Path, monkeypatch):
+    inventory, context, change_context = _inputs()
+    inventory_path = tmp_path / "inventory.json"
+    context_path = tmp_path / "context.json"
+    change_path = tmp_path / "change-context.json"
+    out_path = tmp_path / "operator-attention.json"
+    summary_path = tmp_path / "operator-attention.md"
+
+    inventory_path.write_text(json.dumps(inventory), encoding="utf-8")
+    context_path.write_text(json.dumps(context), encoding="utf-8")
+    change_path.write_text(json.dumps(change_context), encoding="utf-8")
+
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "operator_attention",
+            "--inventory", str(inventory_path),
+            "--context", str(context_path),
+            "--change-context", str(change_path),
+            "--out", str(out_path),
+            "--summary-out", str(summary_path),
+        ],
+    )
+
+    assert main() == 0
+    artifact = json.loads(out_path.read_text(encoding="utf-8"))
+    markdown = summary_path.read_text(encoding="utf-8")
+    assert artifact["mutation_allowed"] is False
+    assert artifact["scope"] == "KUBERNETES_EXISTING_EVIDENCE_ONLY"
+    assert artifact["summary"]["attention_now_total"] == 3
+    assert "# Operator Attention Summary" in markdown
+    assert "DECLARED_OBSERVED_DRIFT" in markdown
+    assert "private-field" not in markdown
+
+
+def test_systemd_integration_runs_installed_module_as_service_identity():
+    repo_root = Path(__file__).resolve().parents[1]
+    service = (repo_root / "systemd" / "infra-assurance-kubernetes.service").read_text(encoding="utf-8")
+
+    assert "User=infra-assurance" in service
+    assert "Environment=PYTHONPATH=/opt/infra-assurance/src" in service
+    assert "-m infra_assurance.operator_attention" in service
+    assert "--inventory /var/lib/infra-assurance/evidence/inventory.json" in service
+    assert "--context /var/lib/infra-assurance/evidence/context.json" in service
+    assert "--change-context /var/lib/infra-assurance/evidence/change-context.json" in service
+    assert "--out /var/lib/infra-assurance/evidence/operator-attention.json" in service
+    assert "--summary-out /var/lib/infra-assurance/evidence/operator-attention.md" in service
+    assert "ReadWritePaths=/var/lib/infra-assurance/evidence" in service
