@@ -1,7 +1,7 @@
 # Milestone 6 — Terraform Declared-to-Local-State Structural Coverage
 
 Date: 2026-08-29
-Status: ACCEPTED PENDING FULL-SUITE GATE
+Status: ACCEPTED
 Mode: read-only / aggregate declared-to-local-state relationship
 
 ## Scope
@@ -23,6 +23,12 @@ Focused tests:
 
 ```text
 4 passed in 0.06s
+```
+
+Repository-wide regression gate:
+
+```text
+399 passed in 2.11s
 ```
 
 Accepted live discovery:
@@ -52,8 +58,6 @@ state_managed_resource_blocks: 2
 matched_resource_type_block_count: 2
 declared_to_local_state_structural_coverage_status: DECLARED_TO_LOCAL_STATE_STRUCTURAL_MATCH
 ```
-
-A repository-wide test suite remains required before merge because this slice adds reusable discovery implementation and tests.
 
 ## Accepted interpretation
 
@@ -106,6 +110,6 @@ No Terraform CLI, provider API, SSH connection, repository mutation, or infrastr
 
 ## Next smallest useful step
 
-After the repository-wide suite passes and this slice is merged, reassess the remaining Milestone 6 gaps before adding another probe.
+Reassess the remaining Milestone 6 gaps before adding another probe.
 
 Do not use this structural match to justify a drift or live-resource claim. A next slice should be selected only if it can add materially stronger read-only evidence, such as a safe authoritative live/provider observation or another independently valuable governance signal, without exposing sensitive Terraform state or credentials.
