@@ -73,7 +73,6 @@ bounded workflow/script files scanned for Ansible execution declarations: 156
 accepted Ansible execution declaration files: 0
 preferred runtime outcome source candidate: JENKINS_READ_ONLY_SOURCE_CANDIDATE
 Jenkins integration source capability: JOB_AND_BUILD_METADATA_CAPABILITY_SIGNAL_OBSERVED
-latest accepted full suite before PR #71: 376 passed in 1.63s
 ```
 
 Preserve:
@@ -86,7 +85,7 @@ idempotence: UNKNOWN
 configuration drift: UNKNOWN
 ```
 
-## Active Milestone 6 — Jenkins API metadata-only probe
+## Merge-ready Milestone 6 — Jenkins API metadata-only probe
 
 Implementation:
 
@@ -95,41 +94,26 @@ scripts/discovery/m6_jenkins_api_metadata_probe.py
 tests/test_jenkins_api_metadata_probe.py
 ```
 
-Report recorded on this branch:
+Report:
 
 ```text
 docs/reports/2026-08-29-m6-jenkins-api-metadata-probe.md
 ```
 
-### First attempt — failed observation, not negative evidence
+### Rejected first observation
 
 ```text
 focused tests: 4 passed in 0.08s
 connection_config_status: CONNECTION_CONFIG_UNAVAILABLE
-env_files_observed: 1
-env_files_read_for_approved_keys: 0
 jenkins_api_invoked: False
 api_observation_status: NOT_ATTEMPTED
 jobs_total: 0
 discovery_rc: 2
 ```
 
-Do not interpret the first attempt's `jobs_total: 0` as Jenkins having zero jobs. No API call occurred.
+This is `FAILED_TO_OBSERVE / NOT_ATTEMPTED`. Do not reuse the zero values as negative Jenkins evidence.
 
-### Retry fix
-
-The parser now:
-
-```text
-accepts only explicit JENKINS_-scoped connection keys
-supports URL/ENDPOINT, USER/USERNAME, TOKEN/PASSWORD/API_KEY roles
-supports `export KEY=value`
-rejects generic URL/TOKEN/PASSWORD variables
-fails closed on multiple distinct values for one role
-never projects connection key names or values
-```
-
-### Successful live retry — accepted Jenkins runtime metadata
+### Accepted retry
 
 ```text
 focused tests: 5 passed in 0.06s
@@ -150,12 +134,18 @@ last_build_result_counts: SUCCESS=11
 ansible_name_signal_last_build_result_counts: NONE_OBSERVED
 ```
 
+Repository-wide gate:
+
+```text
+381 passed in 1.72s
+```
+
 Interpretation boundary:
 
 ```text
 This is accepted Jenkins runtime metadata evidence.
 It is NOT accepted Ansible execution-outcome evidence.
-The 11 SUCCESS values are Jenkins last-build result categories only.
+The 11 SUCCESS values are Jenkins last-build categories only.
 No weak `ansible` token was observed in in-memory job names; this is bounded weak-name absence only.
 Job names and build numbers were not projected.
 ```
@@ -190,28 +180,20 @@ SSH performed: False
 
 No console log, `config.xml`, build parameter, environment value, raw command, inventory argument, host target, Vault material, job name, build number, endpoint value, or credential value entered evidence output.
 
-## Merge gate — PENDING
+## Merge gate
 
-Focused tests and live retry passed. Because reusable implementation/tests changed, run the full repository suite before PR/merge.
+```text
+focused tests: PASS — 5 passed in 0.06s
+live retry: PASS — discovery_rc=0
+full repository suite: PASS — 381 passed in 1.72s
+```
 
 ## Exact next step
 
-On `mgmt-automation` run only:
-
-```bash
-cd ~/projects/infrastructure-intelligence-assurance
-python3 -m pytest -q
-```
-
-Do not use strict interactive shell mode.
-
-If the full suite passes:
-
-1. record the exact pass count in this handoff/report/PR;
-2. inspect changed-file scope and ensure no temporary/debug/placeholder files exist;
-3. create/inspect a non-draft PR and squash-merge when clean;
-4. carry the new accepted `main` SHA into the next branch handoff;
-5. start a bounded **Ansible-to-Jenkins relationship source discovery**.
+1. Inspect changed-file scope for `agent/m6-jenkins-api-metadata-probe` and ensure no temporary/debug/placeholder files exist.
+2. Create/inspect a non-draft PR and squash-merge when clean.
+3. Carry the new accepted `main` SHA into the next branch handoff.
+4. Start bounded **Ansible-to-Jenkins relationship source discovery**.
 
 The next slice must determine whether any safe authoritative metadata source can relate a Jenkins job/build to Ansible execution without reading console logs, job configuration bodies, build parameters, raw command bodies, credentials, or sensitive host/inventory data.
 
