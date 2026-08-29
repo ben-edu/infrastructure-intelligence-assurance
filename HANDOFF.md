@@ -2,28 +2,14 @@
 
 Project Sources remain authoritative for durable goals, roadmap, architecture/trust principles, and operating rules.
 
-For context-window-independent continuation, read:
-
-```text
-docs/PROJECT_CONTINUITY.md
-```
-
-## Resume protocol
-
-1. Read Project Sources.
-2. Read `docs/PROJECT_CONTINUITY.md`.
-3. Read `HANDOFF.md` from `main`.
-4. Check active branches/PRs; prefer a newer branch `HANDOFF.md` for in-flight state.
-5. Read only reports/ADRs relevant to the active slice.
-6. Prefer repository state and fresh evidence over chat reconstruction.
-7. Continue the `Exact next step` unless new evidence invalidates it.
+For context-window-independent continuation, read `docs/PROJECT_CONTINUITY.md`, then this file, then only the report/ADR for the active slice.
 
 ## Active checkpoint
 
 ```text
 repository: ben-edu/infrastructure-intelligence-assurance
-accepted main after PR #68: aca9eb51913a319a1b0945d491a0e4d28b265a3b
-active branch: agent/m6-ansible-execution-declaration-discovery
+accepted main after PR #69: 7990345f42b3df0655d1e0a789e33f6a87ebe5d2
+active branch: agent/m6-ansible-execution-outcome-source-discovery
 package on accepted main: 0.27.0
 Milestone 5 overall: NOT COMPLETE
 Milestone 5 read-only source discovery: COMPLETE FOR CURRENT AUTHORITATIVE SOURCES
@@ -107,44 +93,24 @@ Report:
 docs/reports/2026-08-29-m6-ansible-playbook-role-declared-coverage.md
 ```
 
-Accepted validation:
-
-```text
-focused tests: 4 passed in 0.10s
-full repository suite: 364 passed in 1.51s
-discovery_rc: 0
-source_status: COMPLETE
-playbook_files_scanned: 10
-```
-
 Accepted summary:
 
 ```text
-declared_role_directories_total: 7
-referenced_role_directories_total: 7
-unreferenced_in_direct_playbook_scope_total: 0
-playbooks_with_resolved_local_role: 8
-playbooks_with_no_role_reference: 2
-playbooks_with_unknown_role_reference: 0
-resolved_role_reference_signals: 9
-unresolved_role_reference_signals: 0
-unparsed_role_structures: 0
-declared_role_coverage_status: STRUCTURAL_CONFIGURATION_ONLY
+focused tests: 4 passed in 0.10s
+full suite: 364 passed in 1.51s
+playbooks scanned: 10
+declared role directories: 7
+referenced role directories: 7
+playbooks with resolved local role: 8
+playbooks with no direct role reference: 2
+unresolved role references: 0
+unparsed role structures: 0
 execution_outcome_status: UNKNOWN
 idempotence_status: UNKNOWN
 configuration_drift_status: UNKNOWN
 ```
 
-No supported direct role reference was observed in `ansible/playbooks/ping.yml` or `ansible/playbooks/vault-check.yml`. This is bounded direct-reference absence only.
-
-## Merge-ready Milestone 6 — Ansible execution-declaration discovery
-
-Implementation:
-
-```text
-scripts/discovery/m6_ansible_execution_declaration_discovery.py
-tests/test_ansible_execution_declaration_discovery.py
-```
+## Accepted Milestone 6 — Ansible execution-declaration discovery
 
 Report:
 
@@ -152,47 +118,76 @@ Report:
 docs/reports/2026-08-29-m6-ansible-execution-declaration-discovery.md
 ```
 
-Validation:
+Accepted result:
 
 ```text
 focused tests: 4 passed in 0.09s
-full repository suite: 368 passed in 1.59s
+full suite: 368 passed in 1.59s
+candidate files scanned: 156
+ansible execution signal files: 0
+ansible-playbook: NONE_OBSERVED_IN_BOUNDED_SOURCE
+ansible-runner run: NONE_OBSERVED_IN_BOUNDED_SOURCE
+ansible-navigator run: NONE_OBSERVED_IN_BOUNDED_SOURCE
+execution outcome/success/idempotence/drift: UNKNOWN
+```
+
+Bounded declaration absence does not prove Ansible is never executed elsewhere.
+
+## Merge-ready Milestone 6 — Ansible execution-outcome source discovery
+
+Implementation:
+
+```text
+scripts/discovery/m6_ansible_execution_outcome_source_discovery.py
+tests/test_ansible_execution_outcome_source_discovery.py
+```
+
+Report:
+
+```text
+docs/reports/2026-08-29-m6-ansible-execution-outcome-source-discovery.md
+```
+
+Validation:
+
+```text
+focused tests: 4 passed in 0.06s
+full repository suite: 372 passed in 1.66s
 discovery_rc: 0
-source_status: COMPLETE
-tracked_files_returned: 400
-candidate_files_selected: 156
-candidate_files_scanned: 156
-read_or_decode_skips: 0
-oversize_skips: 0
 ```
 
-Accepted bounded result:
+Accepted source-capability evidence:
 
 ```text
-ansible_execution_signal_files: 0
-entrypoint_file_counts: NONE_OBSERVED
-entrypoint_signal_counts: NONE_OBSERVED
-files_with_gate_signal: 0
-ansible_playbook_declaration_status: NONE_OBSERVED_IN_BOUNDED_SOURCE
-ansible_runner_run_declaration_status: NONE_OBSERVED_IN_BOUNDED_SOURCE
-ansible_navigator_run_declaration_status: NONE_OBSERVED_IN_BOUNDED_SOURCE
+Jenkins:
+  jenkins_source_candidate_status: CONFIG_CANDIDATE_OBSERVED
+  candidate_directories_observed: 1
+  candidate_files_observed: 4
+  env_like_files_observed: 1
+  metadata_failures: 0
+  credential_values_inspected: False
+  jenkins_api_invoked: False
+
+Management-host scheduler metadata:
+  source_status: COMPLETE
+  unit_file_status: COMPLETE
+  timer_status: COMPLETE
+  ansible_unit_names: NONE_OBSERVED
+  ansible_timer_names: NONE_OBSERVED
+  ansible_cron_names: NONE_OBSERVED
+  cron_metadata_failures: 0
+  explicit_scheduler_signal_count: 0
+
+preferred_source_candidate: JENKINS_READ_ONLY_SOURCE_CANDIDATE
 ```
 
-Accepted entry-point vocabulary is intentionally limited to:
+Interpretation boundary:
 
 ```text
-ansible-playbook
-ansible-runner run
-ansible-navigator run
-```
-
-Generic `ansible` and `ansible-lint` are not execution evidence. Gate-only files are excluded.
-
-Interpretation:
-
-```text
-No accepted Ansible execution declaration was observed in the bounded safe Git source.
-This does NOT prove Ansible is never executed manually, through Jenkins, another repository, an operator workstation, or another automation system.
+A Jenkins configuration candidate does not prove Jenkins orchestrates Ansible.
+No Jenkins job/build outcome has been observed.
+No console log, job configuration body, command, argument, environment value, credential, host target, or Vault material was read.
+Management-host scheduler NONE_OBSERVED results are bounded name-level absence only.
 ```
 
 Preserve:
@@ -201,7 +196,6 @@ Preserve:
 execution_outcome_status: UNKNOWN
 execution_success_status: UNKNOWN
 idempotence_status: UNKNOWN
-live_managed_host_coverage_status: UNKNOWN
 configuration_drift_status: UNKNOWN
 successful_execution_claims: 0
 idempotence_claims: 0
@@ -212,44 +206,41 @@ drift_claims: 0
 
 ```text
 focused tests: PASS
-live discovery: PASS
-full repository suite: PASS — 368 passed in 1.59s
+live source discovery: PASS
+full repository suite: PASS — 372 passed in 1.66s
 ```
 
 This slice is merge-ready after PR scope/mergeability inspection.
 
 ## Exact next step
 
-1. Inspect changed-file scope for `agent/m6-ansible-execution-declaration-discovery`.
+1. Inspect changed-file scope for `agent/m6-ansible-execution-outcome-source-discovery`.
 2. Ensure no temporary/debug/placeholder files exist.
 3. Create/inspect a non-draft PR and squash-merge when clean.
 4. Carry the new accepted `main` SHA into the next branch handoff.
-5. Start **Ansible execution-outcome source discovery**.
+5. Start **Jenkins read-only Ansible outcome capability probe**.
 
-Preferred next-source order after merge:
+Future Jenkins probe goal:
 
 ```text
-1. Jenkins read-only job/build metadata if Ansible is orchestrated there
-2. otherwise bounded management-host scheduler/service metadata if an explicit Ansible execution unit exists
-3. preserve execution outcome as UNKNOWN if no authoritative source exists
+Determine whether the observed Jenkins integration can safely enumerate job/build metadata without reading console logs, job configuration bodies, environment values, credentials, command arguments, inventory arguments, or host targets.
 ```
 
-The future outcome-source discovery must not print raw commands, arguments, environment values, credentials, inventory arguments, host targets, or Vault material.
+Allowed future evidence should be metadata-only, such as safe capability status and aggregate job/build metadata availability. Do not project sensitive job configuration, command strings, console logs, environment variables, credentials, or build parameters.
+
+If safe metadata cannot be obtained, keep Ansible execution outcome `UNKNOWN` rather than widening to unsafe or weak sources.
 
 ## Trust invariants
 
 - infrastructure interaction remains read-only;
+- source-candidate discovery is not execution-outcome evidence;
 - declared state is not observed state;
-- absence of a declared execution entry point is not absence of execution;
-- a declared execution entry point would still not be execution-outcome evidence;
-- source artifacts and derived assurance remain separate;
+- bounded absence is not universal absence;
+- `FAILED_TO_OBSERVE`/`INCOMPLETE` is not negative evidence;
 - Terraform state/real tfvars and Ansible Vault/credential material do not enter evidence/AI context;
-- host identifiers and sensitive inventory values are not projected;
-- `NONE_OBSERVED_IN_BOUNDED_SOURCE` is not universal absence;
-- `FAILED_TO_OBSERVE` is not negative evidence;
+- no raw commands, arguments, environment values, credentials, host targets, or sensitive connection strings enter evidence/AI context;
 - no drift, execution success, idempotence, compliance, or destructive-change result is inferred without authoritative evidence;
 - unknowns are not forced closed;
-- no secrets, credentials, private keys, raw sensitive configuration, or sensitive connection strings enter evidence/AI context;
 - generated operational artifacts keep `mutation_allowed=false`.
 
 ## Continuity rule
