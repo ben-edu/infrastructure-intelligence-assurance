@@ -29,7 +29,7 @@ def test_commands_are_read_only_and_do_not_write_saved_plan():
     assert "-refresh-only" in refresh_only
 
 
-def test_json_stream_projects_only_action_counts():
+def test_json_stream_projects_only_planned_action_counts():
     payload = b"\n".join(
         [
             b'{"type":"planned_change","change":{"resource":{"addr":"proxmox_vm_qemu.private-name"},"action":"update"}}',
@@ -40,13 +40,36 @@ def test_json_stream_projects_only_action_counts():
 
     result = MODULE._parse_json_stream(payload)
 
-    assert result["action_counts"] == {"replace": 1, "update": 1}
+    assert result["planned_action_counts"] == {"replace": 1, "update": 1}
+    assert result["drift_action_counts"] == {}
     assert result["planned_change_events"] == 2
-    assert result["recognized_action_events"] == 2
+    assert result["resource_drift_events"] == 0
+    assert result["recognized_planned_action_events"] == 2
     rendered = repr(result)
     assert "private-name" not in rendered
     assert "secret-name" not in rendered
     assert "private diagnostic text" not in rendered
+
+
+def test_json_stream_classifies_resource_drift_without_identity():
+    payload = b"\n".join(
+        [
+            b'{"type":"resource_drift","change":{"resource":{"addr":"proxmox_vm_qemu.private-one"},"action":"update"}}',
+            b'{"type":"resource_drift","change":{"resource":{"addr":"proxmox_vm_qemu.private-two"},"action":"delete"}}',
+            b'{"type":"planned_change","change":{"resource":{"addr":"proxmox_vm_qemu.private-three"},"action":"noop"}}',
+        ]
+    )
+
+    result = MODULE._parse_json_stream(payload)
+
+    assert result["drift_action_counts"] == {"delete": 1, "update": 1}
+    assert result["planned_action_counts"] == {"noop": 1}
+    assert result["resource_drift_events"] == 2
+    assert result["recognized_drift_action_events"] == 2
+    rendered = repr(result)
+    assert "private-one" not in rendered
+    assert "private-two" not in rendered
+    assert "private-three" not in rendered
 
 
 def test_destructive_status_fails_closed_for_unclassified_changes():
