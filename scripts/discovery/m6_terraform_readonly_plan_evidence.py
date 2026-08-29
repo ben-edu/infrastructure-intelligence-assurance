@@ -52,6 +52,7 @@ def _empty_mode(mode: str, status: str) -> dict[str, Any]:
         "json_lines": 0,
         "malformed_json_lines": 0,
         "planned_change_events": 0,
+        "resource_drift_events": 0,
         "recognized_action_events": 0,
         "action_counts": {},
         "change_signal": "UNKNOWN",
@@ -73,11 +74,14 @@ def _normalize_action(value: Any) -> str | None:
 
 
 def _parse_json_stream(stdout: bytes) -> dict[str, Any]:
-    counts: Counter[str] = Counter()
+    planned_counts: Counter[str] = Counter()
+    drift_counts: Counter[str] = Counter()
     json_lines = 0
     malformed = 0
     planned_events = 0
-    recognized_events = 0
+    drift_events = 0
+    recognized_planned_events = 0
+    recognized_drift_events = 0
 
     for raw_line in stdout.splitlines():
         if not raw_line.strip():
@@ -92,24 +96,40 @@ def _parse_json_stream(stdout: bytes) -> dict[str, Any]:
             malformed += 1
             continue
         json_lines += 1
-        if event.get("type") != "planned_change":
+
+        event_type = event.get("type")
+        if event_type not in {"planned_change", "resource_drift"}:
             continue
-        planned_events += 1
+
         change = event.get("change")
         if not isinstance(change, dict):
+            if event_type == "planned_change":
+                planned_events += 1
+            else:
+                drift_events += 1
             continue
+
         action = _normalize_action(change.get("action"))
-        if action is None:
-            continue
-        counts[action] += 1
-        recognized_events += 1
+        if event_type == "planned_change":
+            planned_events += 1
+            if action is not None:
+                planned_counts[action] += 1
+                recognized_planned_events += 1
+        else:
+            drift_events += 1
+            if action is not None:
+                drift_counts[action] += 1
+                recognized_drift_events += 1
 
     return {
         "json_lines": json_lines,
         "malformed_json_lines": malformed,
         "planned_change_events": planned_events,
-        "recognized_action_events": recognized_events,
-        "action_counts": dict(sorted(counts.items())),
+        "resource_drift_events": drift_events,
+        "recognized_planned_action_events": recognized_planned_events,
+        "recognized_drift_action_events": recognized_drift_events,
+        "planned_action_counts": dict(sorted(planned_counts.items())),
+        "drift_action_counts": dict(sorted(drift_counts.items())),
     }
 
 
@@ -148,8 +168,18 @@ def _run_plan(root: Path, mode: str) -> dict[str, Any]:
         return result
 
     parsed = _parse_json_stream(completed.stdout)
-    result.update(parsed)
+    result["json_lines"] = parsed["json_lines"]
+    result["malformed_json_lines"] = parsed["malformed_json_lines"]
+    result["planned_change_events"] = parsed["planned_change_events"]
+    result["resource_drift_events"] = parsed["resource_drift_events"]
     result["terraform_exit_code"] = completed.returncode
+
+    if mode == "configuration_vs_state":
+        result["recognized_action_events"] = parsed["recognized_planned_action_events"]
+        result["action_counts"] = parsed["planned_action_counts"]
+    else:
+        result["recognized_action_events"] = parsed["recognized_drift_action_events"]
+        result["action_counts"] = parsed["drift_action_counts"]
 
     if parsed["malformed_json_lines"]:
         result["observation_status"] = "INVALID_JSON_STREAM"
@@ -161,7 +191,7 @@ def _run_plan(root: Path, mode: str) -> dict[str, Any]:
         return result
 
     if completed.returncode == 2:
-        if parsed["recognized_action_events"]:
+        if result["recognized_action_events"]:
             result["observation_status"] = "COMPLETE_CHANGES_OBSERVED"
         else:
             result["observation_status"] = "COMPLETE_CHANGES_UNCLASSIFIED"
@@ -337,8 +367,9 @@ def main() -> int:
     print("===== INTERPRETATION BOUNDARY =====")
     print("The configuration plan uses refresh=false and compares declared configuration with the bounded local state; it is not a live drift check.")
     print("The refresh-only plan may read the provider and can signal differences between state-tracked resources and live provider observations within the bounded roots.")
+    print("Refresh-only action counts come only from Terraform resource_drift events; resource identity is discarded before projection.")
     print("A complete refresh-only no-change result is bounded state-tracked alignment evidence, not proof that all live resources are Terraform-managed.")
-    print("A destructive action is classified only from recognized configuration-plan action events. Unclassified plan changes preserve destructive-change status as UNKNOWN.")
+    print("A destructive action is classified only from recognized configuration-plan planned_change events. Unclassified plan changes preserve destructive-change status as UNKNOWN.")
     print("No apply result, full live-resource coverage, or universal drift claim is inferred.")
 
     print()
