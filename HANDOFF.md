@@ -38,18 +38,6 @@ unknowns_total: 0
 required_live_verification_total: 0
 ```
 
-Accepted attention items:
-
-```text
-Service/monitoring/loki-headless
-  code=SERVICE_SELECTOR_MULTIPLE_CONTROLLER_MATCHES
-  severity=AMBIGUOUS
-
-Ingress/validation/nginx-validation
-  code=DECLARED_OBSERVED_DRIFT
-  severity=DRIFT
-```
-
 Rejected/incomplete attempts preserved:
 
 ```text
@@ -67,17 +55,17 @@ Goal:
 Generate operator-attention.json and operator-attention.md during the existing five-minute collector run, from the installed package under the existing infra-assurance identity.
 ```
 
-Target artifacts:
+Runtime report:
 
 ```text
-/var/lib/infra-assurance/evidence/operator-attention.json
-/var/lib/infra-assurance/evidence/operator-attention.md
+docs/reports/2026-08-29-m7-operator-attention-runtime-integration.md
 ```
 
 Prepared files:
 
 ```text
 HANDOFF.md
+docs/reports/2026-08-29-m7-operator-attention-runtime-integration.md
 scripts/deploy-operator-attention-runtime.sh
 src/infra_assurance/operator_attention.py
 systemd/infra-assurance-kubernetes.service
@@ -107,19 +95,11 @@ focused tests: 7 passed in 0.21s
 
 The helper was run without `--apply` and printed only the bounded plan. No mutation occurred.
 
-## Authorization — RECEIVED
-
-Authorization applies only to the reviewed management-host deployment helper scope. It does not authorize broader infrastructure mutation, Kubernetes mutation, permission broadening, remediation, or unrelated runtime changes.
-
 ## Live deployment — ACCEPTED
 
-The user executed:
+After explicit authorization, the bounded helper was run with `--apply`.
 
-```bash
-sudo bash scripts/deploy-operator-attention-runtime.sh --apply
-```
-
-Observed result:
+Accepted result:
 
 ```text
 deployment_status=COMPLETE
@@ -132,29 +112,89 @@ runtime_identity=infra-assurance
 Accepted interpretation:
 
 ```text
-- installed operator-attention runtime integration completed;
-- the existing collector service completed successfully;
-- both target derived artifacts were produced;
+- installed runtime integration completed successfully;
+- existing collector service completed successfully;
+- both target derived artifacts were generated;
 - runtime identity remained infra-assurance;
 - no root runtime design was introduced;
 - broader infrastructure mutation remains unauthorized.
 ```
 
-The deployment result does not by itself validate the generated operator-attention summary contents. A safe allowlisted read of only top-level summary metadata is still required before the runtime integration report can be finalized.
+## Safe generated-artifact verification — ACCEPTED
 
-## Exact next gate — SAFE ARTIFACT VERIFICATION
+The generated JSON was inspected only through an allowlisted safe projection. Raw artifact content was not printed.
 
-On `mgmt-automation`, read only allowlisted metadata from the generated JSON. Do not print the raw artifact.
+Accepted metadata:
 
-After that succeeds:
+```text
+operator_attention_version: 0.1
+cluster_id: k3s-main
+mutation_allowed: False
+scope: KUBERNETES_EXISTING_EVIDENCE_ONLY
+source_artifacts: inventory.json,context.json,change-context.json
+```
 
-1. create `docs/reports/2026-08-29-m7-operator-attention-runtime-integration.md`;
-2. record exact safe runtime summary values and focused result;
-3. run the full repository suite;
-4. inspect exact branch scope/no temporary files;
-5. create/inspect a non-draft PR;
-6. verify mergeability and filenames;
-7. squash-merge and carry the new main SHA forward.
+Accepted summary:
+
+```text
+workloads_total: 68
+workloads_with_attention: 3
+attention_now_total: 2
+recent_changes_total: 0
+unknowns_total: 0
+required_live_verification_total: 0
+```
+
+Accepted attention items:
+
+```text
+source=topology code=SERVICE_SELECTOR_MULTIPLE_CONTROLLER_MATCHES severity=AMBIGUOUS subject=Service/monitoring/loki-headless
+source=drift code=DECLARED_OBSERVED_DRIFT severity=DRIFT subject=Ingress/validation/nginx-validation
+```
+
+Truncation:
+
+```text
+attention_now_truncated: False
+recent_changes_truncated: False
+unknowns_truncated: False
+required_live_verification_truncated: False
+```
+
+Interpretation:
+
+```text
+- runtime output matches the previously accepted M7 contract for current loaded evidence;
+- zero recent-change/unknown/verification counts are bounded absence only;
+- no remediation or mutation is implied by attention items;
+- generated artifact preserves mutation_allowed=false.
+```
+
+## Exact next gate — FULL REPOSITORY SUITE
+
+Run on `mgmt-automation`:
+
+```bash
+cd ~/projects/infrastructure-intelligence-assurance
+python3 -m pytest -q
+```
+
+Do not use strict interactive shell mode.
+
+If the full suite passes:
+
+1. record the exact pass count/time in this handoff and the runtime report;
+2. verify branch scope is exactly six intended files:
+   - `HANDOFF.md`
+   - `docs/reports/2026-08-29-m7-operator-attention-runtime-integration.md`
+   - `scripts/deploy-operator-attention-runtime.sh`
+   - `src/infra_assurance/operator_attention.py`
+   - `systemd/infra-assurance-kubernetes.service`
+   - `tests/test_operator_attention.py`
+3. ensure no temporary/debug/placeholder files exist;
+4. create/inspect a non-draft PR;
+5. verify mergeability and changed filenames;
+6. squash-merge and carry the new accepted main SHA forward.
 
 ## Remaining project direction
 
