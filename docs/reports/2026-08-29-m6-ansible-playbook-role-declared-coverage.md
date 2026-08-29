@@ -28,6 +28,12 @@ Focused test result:
 4 passed in 0.10s
 ```
 
+Repository-wide regression result:
+
+```text
+364 passed in 1.51s
+```
+
 Discovery result:
 
 ```text
@@ -39,7 +45,7 @@ read_or_decode_skips=0
 oversize_skips=0
 ```
 
-A repository-wide test suite is required before merge because this slice adds reusable discovery implementation and tests.
+The focused, live, and repository-wide gates all passed.
 
 ## Accepted declared relationships
 
@@ -143,8 +149,8 @@ These unknowns must not be promoted from declared playbook structure.
 
 ## Next smallest useful slice
 
-After the repository-wide test suite passes and this slice is merged, perform bounded **Ansible execution-declaration discovery**.
+Perform bounded **Ansible execution-declaration discovery**.
 
-Goal: determine whether safe Git-tracked workflow/script files explicitly declare `ansible-playbook` or closely bounded Ansible execution entry points, without executing Ansible and without printing raw commands or arguments.
+Goal: determine whether safe Git-tracked workflow/script files explicitly declare `ansible-playbook` or tightly bounded Ansible execution entry points, without executing Ansible and without printing raw commands or arguments.
 
 This is declaration evidence only. It must not be treated as execution history or success evidence.
