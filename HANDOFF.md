@@ -86,7 +86,7 @@ drift: UNKNOWN
 destructive-change status: UNKNOWN
 ```
 
-The first Terraform execution scan had a rejected gate-only false positive. The corrected implementation requires a Terraform phase token before a file enters Terraform execution evidence. Do not reuse the rejected result.
+Do not reuse the rejected first Terraform execution scan that contained a gate-only false positive.
 
 ## Accepted Milestone 6 — Ansible declared inventory
 
@@ -118,11 +118,14 @@ role directories: 7
 inventory group declarations: 6
 inventory host declarations: 8
 managed_host_coverage_status: DECLARED_CONFIGURATION_ONLY
+live_managed_host_coverage_status: UNKNOWN
+execution_outcome_status: UNKNOWN
+configuration_drift_status: UNKNOWN
 ```
 
-The 8 host declarations are not 8 verified/reachable managed hosts.
+The 8 host declarations are not verified/reachable managed hosts.
 
-## Active Milestone 6 — Ansible playbook-to-role declared coverage
+## Merge-ready Milestone 6 — Ansible playbook-to-role declared coverage
 
 Implementation:
 
@@ -131,16 +134,17 @@ scripts/discovery/m6_ansible_playbook_role_coverage.py
 tests/test_ansible_playbook_role_coverage.py
 ```
 
-Acceptance report already recorded on this branch:
+Report:
 
 ```text
 docs/reports/2026-08-29-m6-ansible-playbook-role-declared-coverage.md
 ```
 
-Focused/live validation:
+Validation:
 
 ```text
 focused tests: 4 passed in 0.10s
+full repository suite: 364 passed in 1.51s
 discovery_rc: 0
 source_status: COMPLETE
 tracked_files_returned: 400
@@ -190,37 +194,31 @@ configuration_drift_status: UNKNOWN
 
 `NONE_OBSERVED` here is bounded direct-reference absence only. It does not prove the playbook cannot reach roles indirectly through dependencies, nested includes, dynamic expressions, or other entry points.
 
-## Merge gate — PENDING
+## Merge gate
 
-Because this slice adds reusable discovery implementation and tests, run the repository-wide suite before PR/merge.
+```text
+focused tests: PASS
+live discovery: PASS
+full repository suite: PASS — 364 passed in 1.51s
+```
+
+This slice is merge-ready after PR scope/mergeability inspection.
 
 ## Exact next step
 
-On `mgmt-automation` run only:
+1. Create/inspect the PR for `agent/m6-ansible-playbook-role-coverage`.
+2. Ensure changed-file scope is exactly the intended implementation, tests, report, and handoff.
+3. Squash-merge when mergeable.
+4. Carry the new accepted `main` SHA into the next branch handoff.
+5. Start **Ansible execution-declaration discovery**.
 
-```bash
-cd ~/projects/infrastructure-intelligence-assurance
-python3 -m pytest -q
-```
-
-Do not wrap it in strict interactive shell mode.
-
-If the full suite passes:
-
-1. record the exact pass count in this handoff/report/PR;
-2. create or inspect the PR for `agent/m6-ansible-playbook-role-coverage`;
-3. ensure only intended files changed and no placeholders/debug files exist;
-4. squash-merge;
-5. record the new accepted `main` SHA in the next branch handoff;
-6. start **Ansible execution-declaration discovery**.
-
-Next-slice goal after merge:
+Next-slice goal:
 
 ```text
 Determine whether safe Git-tracked workflow/script files explicitly declare ansible-playbook or another tightly bounded Ansible execution entry point.
 ```
 
-That future slice is declaration evidence only. It must not infer execution history or success.
+Future execution-declaration evidence must remain declaration-only. It must not infer execution history, success, host reachability, idempotence, or drift.
 
 ## Trust invariants
 
