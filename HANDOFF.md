@@ -149,7 +149,7 @@ execution outcome/success/idempotence/drift: UNKNOWN
 
 A Jenkins configuration candidate is not evidence that Jenkins orchestrates Ansible or that any build ran.
 
-## Active Milestone 6 — Jenkins read-only Ansible outcome capability probe
+## Merge-ready Milestone 6 — Jenkins read-only Ansible outcome capability probe
 
 Implementation:
 
@@ -158,16 +158,17 @@ scripts/discovery/m6_jenkins_ansible_outcome_capability_probe.py
 tests/test_jenkins_ansible_outcome_capability_probe.py
 ```
 
-Report recorded on this branch:
+Report:
 
 ```text
 docs/reports/2026-08-29-m6-jenkins-ansible-outcome-capability.md
 ```
 
-Focused/live validation:
+Validation:
 
 ```text
 focused tests: 4 passed in 0.05s
+full repository suite: 376 passed in 1.63s
 discovery_rc: 0
 source_status: COMPLETE
 roots_observed: 1
@@ -210,28 +211,23 @@ idempotence_claims: 0
 drift_claims: 0
 ```
 
-## Merge gate — PENDING
+## Merge gate
 
-Because this slice adds reusable discovery implementation and tests, the repository-wide suite must pass before PR/merge.
+```text
+focused tests: PASS
+live capability probe: PASS
+full repository suite: PASS — 376 passed in 1.63s
+```
+
+This slice is merge-ready after PR scope and mergeability inspection.
 
 ## Exact next step
 
-On `mgmt-automation` run only:
-
-```bash
-cd ~/projects/infrastructure-intelligence-assurance
-python3 -m pytest -q
-```
-
-Do not wrap it in strict interactive shell mode.
-
-If the full suite passes:
-
-1. record the exact pass count in this handoff/report/PR;
-2. inspect changed-file scope and ensure no temporary/debug/placeholder files exist;
-3. create/inspect a non-draft PR and squash-merge when clean;
-4. carry the new accepted `main` SHA into the next branch handoff;
-5. start a bounded **Jenkins API metadata-only probe**.
+1. Inspect changed-file scope for `agent/m6-jenkins-ansible-outcome-capability`.
+2. Ensure no temporary/debug/placeholder files exist.
+3. Create/inspect a non-draft PR and squash-merge when clean.
+4. Carry the new accepted `main` SHA into the next branch handoff.
+5. Start a bounded **Jenkins API metadata-only probe**.
 
 Future Jenkins runtime probe goal:
 
