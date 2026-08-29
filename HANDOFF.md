@@ -35,7 +35,7 @@ docs/reports/2026-08-23-m5-read-only-discovery-closure.md
 
 Controlled restore/integrity work remains deferred until explicitly authorized.
 
-## Accepted Milestone 6 slice — Terraform declared-state inventory
+## Accepted Milestone 6 — Terraform declared-state inventory
 
 Report:
 
@@ -57,7 +57,7 @@ drift_status: UNKNOWN
 destructive_change_status: UNKNOWN
 ```
 
-## Accepted Milestone 6 slice — Terraform root/module declared coverage
+## Accepted Milestone 6 — Terraform root/module declared coverage
 
 Report:
 
@@ -80,88 +80,95 @@ terraform/modules/proxmox_vm
   declared resource blocks: 0
 ```
 
-The two local module relationships are declared structure only. The two accepted resource blocks are declared directly in the two root candidates. Terraform state membership, runtime instance count, provider reachability, live resource existence, drift, and destructive-change status remain UNKNOWN.
+The local module relationships are declared structure only. Terraform state membership, runtime instance count, provider reachability, live resource existence, drift, and destructive-change status remain UNKNOWN.
 
-## Active Milestone 6 slice — Terraform execution declaration discovery
+## Accepted Milestone 6 — Terraform execution declaration discovery
 
-Implementation:
-
-```text
-scripts/discovery/m6_terraform_execution_declaration_discovery.py
-tests/test_terraform_execution_declaration_discovery.py
-```
-
-Goal: determine whether Git-tracked safe workflow/script text declares Terraform execution phases without executing Terraform or reading runtime secrets/state.
-
-Candidate source classes are bounded to known CI/build files and safe script/workflow suffixes. Sensitive paths, `.tfvars`, Terraform state, `.terraform`, credentials, secrets, private-key material, and token-bearing path classes are excluded.
-
-Safe projections:
+Report:
 
 ```text
-safe relative file identifier
-Terraform phase categories only:
-  init
-  validate
-  plan
-  apply
-  destroy
-  refresh
-  import
-bounded gate keyword signal: true/false
-phase file counts
-phase token counts
+docs/reports/2026-08-29-m6-terraform-execution-declaration-discovery.md
 ```
 
-Never print or persist:
+Accepted corrected live result:
 
 ```text
-raw command lines
-command arguments
-environment values
-credentials/tokens/passwords
-endpoints/connection strings
-Terraform plan/apply output
-Terraform state
-real tfvars
+focused tests: 4 passed in 0.09s
+source_mode: GIT_TRACKED_SAFE_WORKFLOW_SCRIPT_TEXT_ONLY
+source_status: COMPLETE
+tracked_files_returned: 400
+candidate_files_selected: 160
+candidate_files_scanned: 160
+read_or_decode_skips: 0
+oversize_skips: 0
+terraform_execution_signal_files: NONE_OBSERVED
+terraform_signal_files: 0
+phase_file_counts: NONE_OBSERVED
+phase_signal_counts: NONE_OBSERVED
+files_with_gate_signal: 0
 ```
 
-Semantics:
+Phase declaration status:
 
 ```text
-phase token observed in Git-tracked workflow/script = DECLARATION_SIGNAL_OBSERVED
-phase token absent from bounded source = NONE_OBSERVED_IN_BOUNDED_SOURCE
-execution outcome = UNKNOWN
-plan result = UNKNOWN
-apply result = UNKNOWN
-drift = UNKNOWN
-destructive-change status = UNKNOWN
+init: NONE_OBSERVED_IN_BOUNDED_SOURCE
+validate: NONE_OBSERVED_IN_BOUNDED_SOURCE
+plan: NONE_OBSERVED_IN_BOUNDED_SOURCE
+apply: NONE_OBSERVED_IN_BOUNDED_SOURCE
+destroy: NONE_OBSERVED_IN_BOUNDED_SOURCE
+refresh: NONE_OBSERVED_IN_BOUNDED_SOURCE
+import: NONE_OBSERVED_IN_BOUNDED_SOURCE
 ```
 
-A gate keyword is a lexical declaration signal only. It does not prove that the gate protects a specific apply step unless future stronger structural evidence establishes that relationship.
+Preserve:
 
-No Terraform, Jenkins, GitHub Actions, or provider API is invoked by this discovery.
+```text
+execution_outcome_status: UNKNOWN
+plan_result_status: UNKNOWN
+apply_result_status: UNKNOWN
+drift_status: UNKNOWN
+destructive_change_status: UNKNOWN
+```
+
+The first live run exposed a gate-only false positive. The implementation was corrected so a file enters Terraform execution evidence only when at least one explicit Terraform phase token exists. Gate metadata is considered only for Terraform-signal files.
+
+`NONE_OBSERVED_IN_BOUNDED_SOURCE` remains bounded negative evidence only; it is not proof that Terraform execution never occurs elsewhere or manually.
 
 ## Exact next step
 
-On `mgmt-automation`:
+Start the smallest useful Ansible slice: **Git-tracked Ansible declared inventory** for the known infrastructure repository.
 
-```bash
-cd ~/projects/infrastructure-intelligence-assurance
+Bounded source:
 
-git fetch origin
-
-git switch --track origin/agent/m6-terraform-execution-declaration-discovery
-
-python3 -m pytest -q \
-  tests/test_terraform_execution_declaration_discovery.py
-
-PYTHONPATH=src python3 \
-  scripts/discovery/m6_terraform_execution_declaration_discovery.py
-
-echo "discovery_rc=$?"
+```text
+/home/ben/projects/afpa-infra-rebuild
+Git-tracked safe Ansible source only
 ```
 
-Accept only bounded declaration signals. Do not infer execution success, drift, or destructive-change outcomes.
+First questions:
+
+```text
+Which inventory candidates are declared?
+Which playbook candidates are declared?
+Which role directories are declared?
+Which host/group identifiers can be safely counted without exposing addresses or secrets?
+What managed-host coverage can be stated from declarations only?
+```
+
+Exclude:
+
+```text
+Ansible Vault contents
+vault passwords
+inventory host addresses when sensitive
+ansible_password / become_password / private keys
+.env
+secret/credential/token material
+runtime facts
+Ansible execution or SSH connections
+```
+
+Do not call declared inventory hosts `OBSERVED` managed hosts. Keep configuration declarations separate from execution outcomes and live state.
 
 ## Trust invariants
 
@@ -170,6 +177,7 @@ Accept only bounded declaration signals. Do not infer execution success, drift, 
 - declared execution workflow is not observed execution outcome;
 - source artifacts and derived assurance remain separate;
 - Terraform state and real tfvars do not enter evidence/AI context;
+- Ansible Vault and credential material do not enter evidence/AI context;
 - raw commands and sensitive runtime values are not projected;
 - no drift or destructive-change result is inferred without appropriate evidence;
 - unknowns are not forced closed without authoritative evidence;
