@@ -11,7 +11,7 @@ active branch: agent/m7-operator-attention-runtime-integration
 Milestone 7: ACTIVE
 management host: mgmt-automation
 repository mutation allowed: true
-bounded management-host deployment authorized: true
+bounded management-host deployment authorized and completed: true
 broader infrastructure mutation authorized: false
 ```
 
@@ -61,7 +61,7 @@ Runtime report:
 docs/reports/2026-08-29-m7-operator-attention-runtime-integration.md
 ```
 
-Prepared files:
+Changed files expected for this slice:
 
 ```text
 HANDOFF.md
@@ -89,6 +89,7 @@ No new service, timer, identity, datastore, infrastructure query, or source of t
 
 ```text
 focused tests: 7 passed in 0.21s
+full repository suite: 412 passed in 2.00s
 ```
 
 ## Deployment dry-run — ACCEPTED / NO MUTATION
@@ -170,31 +171,32 @@ Interpretation:
 - generated artifact preserves mutation_allowed=false.
 ```
 
-## Exact next gate — FULL REPOSITORY SUITE
+## Merge gate — READY
 
-Run on `mgmt-automation`:
+All required gates for this slice passed:
 
-```bash
-cd ~/projects/infrastructure-intelligence-assurance
-python3 -m pytest -q
+```text
+focused tests: PASS
+bounded deployment: PASS
+service result: success
+runtime identity: infra-assurance
+operator-attention JSON/Markdown: observed
+safe artifact verification: PASS
+full suite: 412 passed in 2.00s
 ```
 
-Do not use strict interactive shell mode.
+Before merge:
 
-If the full suite passes:
+1. verify branch scope is exactly the six intended files listed above;
+2. ensure no temporary/debug/placeholder files exist;
+3. create/inspect a non-draft PR;
+4. verify changed filenames and mergeability;
+5. squash-merge;
+6. carry the new accepted main SHA into the next checkpoint.
 
-1. record the exact pass count/time in this handoff and the runtime report;
-2. verify branch scope is exactly six intended files:
-   - `HANDOFF.md`
-   - `docs/reports/2026-08-29-m7-operator-attention-runtime-integration.md`
-   - `scripts/deploy-operator-attention-runtime.sh`
-   - `src/infra_assurance/operator_attention.py`
-   - `systemd/infra-assurance-kubernetes.service`
-   - `tests/test_operator_attention.py`
-3. ensure no temporary/debug/placeholder files exist;
-4. create/inspect a non-draft PR;
-5. verify mergeability and changed filenames;
-6. squash-merge and carry the new accepted main SHA forward.
+## Next smallest useful step after merge
+
+Reassess Milestone 7 against the roadmap before adding anything else. Do not jump directly to a dashboard. Prefer the smallest remaining operator-facing slice that materially reduces cognitive load, potentially a bounded cross-domain adapter for already accepted M5/M6 assurance signals if that provides more value than additional Kubernetes-only presentation.
 
 ## Remaining project direction
 
