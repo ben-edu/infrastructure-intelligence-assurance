@@ -82,6 +82,25 @@ def test_discover_excludes_sensitive_paths_and_does_not_return_raw_commands(tmp_
     assert "sensitive-plan-name" not in repr(result)
 
 
+def test_gate_only_file_is_not_terraform_execution_evidence(tmp_path: Path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    (repo / "service.py").write_text(
+        "approval_required = True\nconfirm = 'manual'\n",
+        encoding="utf-8",
+    )
+    _git_add_all(repo)
+
+    result = MODULE.discover(repo)
+
+    assert result["source_status"] == "COMPLETE"
+    assert result["candidate_files_scanned"] == 1
+    assert result["files"] == []
+    assert result["files_with_gate_signal"] == 0
+    assert not result["phase_file_counts"]
+    assert not result["phase_signal_counts"]
+
+
 def test_no_signal_is_bounded_absence_not_execution_failure(tmp_path: Path):
     repo = tmp_path / "repo"
     repo.mkdir()
