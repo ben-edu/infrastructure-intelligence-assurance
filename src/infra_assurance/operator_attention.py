@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+import argparse
 import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+from .io_utils import atomic_write_json, atomic_write_text
 
 SUMMARY_VERSION = "0.1"
 DEFAULT_MAX_ITEMS = 20
@@ -254,3 +257,108 @@ def load_default_sources(paths: dict[str, Path] = DEFAULT_SOURCES) -> dict[str, 
     if set(paths) != required:
         raise ValueError("operator attention source map must contain exactly the required source keys")
     return {name: load_json_artifact(path) for name, path in paths.items()}
+
+
+def render_operator_attention_markdown(summary: dict[str, Any]) -> str:
+    counts = summary["summary"]
+    lines = [
+        "# Operator Attention Summary",
+        "",
+        f"Cluster: `{summary['cluster_id']}`",
+        f"Generated: `{summary['generated_at']}`",
+        "Mutation allowed: `false`",
+        f"Scope: `{summary['scope']}`",
+        "",
+        "## Summary",
+        "",
+        f"- Workloads: {counts['workloads_total']}",
+        f"- Workloads with attention: {counts['workloads_with_attention']}",
+        f"- Attention items: {counts['attention_now_total']}",
+        f"- Recent changes: {counts['recent_changes_total']}",
+        f"- Unknown or stale items: {counts['unknowns_total']}",
+        f"- Required live verification: {counts['required_live_verification_total']}",
+        "",
+        "## Attention now",
+        "",
+    ]
+
+    if summary["attention_now"]:
+        for item in summary["attention_now"]:
+            subject = item.get("subject") or "-"
+            lines.append(
+                f"- [{item.get('source', '-')}/{item.get('severity', 'UNKNOWN')}] "
+                f"{item.get('code', 'ATTENTION')} — {subject}"
+            )
+    else:
+        lines.append("- None observed in the loaded source artifacts.")
+
+    lines.extend(["", "## Recent changes", ""])
+    if summary["recent_changes"]:
+        for item in summary["recent_changes"]:
+            lines.append(f"- [{item.get('classification', 'UNKNOWN')}] {item.get('subject') or '-'}")
+    else:
+        lines.append("- None observed in the loaded source artifacts.")
+
+    lines.extend(["", "## Unknown or stale", ""])
+    if summary["unknowns"]:
+        for item in summary["unknowns"]:
+            lines.append(
+                f"- [{item.get('source', '-')}/{item.get('code', 'UNKNOWN_EVIDENCE')}] "
+                f"{item.get('subject') or '-'}"
+            )
+    else:
+        lines.append("- None observed in the loaded source artifacts.")
+
+    lines.extend(["", "## Required live verification", ""])
+    if summary["required_live_verification"]:
+        for item in summary["required_live_verification"]:
+            lines.append(f"- [{item.get('source', '-')}/{item.get('code', 'LIVE_VERIFICATION_REQUIRED')}] {item.get('check') or '-'}")
+    else:
+        lines.append("- None observed in the loaded source artifacts.")
+
+    lines.extend(
+        [
+            "",
+            "## Trust boundary",
+            "",
+            "This is a derived operator-facing projection over existing Kubernetes evidence artifacts only.",
+            "It performs no live infrastructure query and does not replace the underlying evidence artifacts.",
+            "Absence in a section is bounded to the loaded source artifacts and their own freshness/trust boundaries.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Build the read-only operator-attention projection from already-generated Kubernetes evidence artifacts. "
+            "This command performs no live infrastructure query."
+        )
+    )
+    parser.add_argument("--inventory", type=Path, required=True)
+    parser.add_argument("--context", type=Path, required=True)
+    parser.add_argument("--change-context", type=Path, required=True)
+    parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--summary-out", type=Path)
+    parser.add_argument("--max-items", type=int, default=DEFAULT_MAX_ITEMS)
+    args = parser.parse_args()
+
+    if args.max_items < 1:
+        parser.error("--max-items must be positive")
+
+    summary = build_operator_attention_summary(
+        load_json_artifact(args.inventory),
+        load_json_artifact(args.context),
+        load_json_artifact(args.change_context),
+        max_items=args.max_items,
+    )
+    atomic_write_json(args.out, summary)
+    if args.summary_out:
+        atomic_write_text(args.summary_out, render_operator_attention_markdown(summary))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
