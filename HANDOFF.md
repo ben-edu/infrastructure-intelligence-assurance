@@ -143,39 +143,74 @@ sensitive connection strings
 
 Unknown/stale/failed evidence remains explicit; absence in the operator projection is not universal absence.
 
+## First live attempt — FAILED TO OBSERVE due execution identity
+
+Focused tests:
+
+```text
+5 passed in 0.05s
+```
+
+First live probe as interactive user `ben`:
+
+```text
+source_status: FAILED_TO_OBSERVE
+failure_category: PermissionError
+discovery_rc=2
+```
+
+Interpretation:
+
+```text
+- this is NOT zero-attention evidence;
+- this is NOT source-artifact absence evidence;
+- the probe failed before a valid operator-attention projection could be built;
+- the failure is consistent with the evidence artifacts being owned/readable through the dedicated infra-assurance service identity rather than the interactive user;
+- do not change artifact permissions merely to make the probe pass;
+- retry with privilege scoped to the existing `infra-assurance` service identity, not root.
+```
+
+No report or PR may be created from this failed observation.
+
 ## Exact next step
 
-On `mgmt-automation`:
+On `mgmt-automation`, first pull the current branch handoff update:
 
 ```bash
 cd ~/projects/infrastructure-intelligence-assurance
 
-git fetch origin
+git pull --ff-only origin agent/m7-operator-attention-summary-contract
+```
 
-git switch --track origin/agent/m7-operator-attention-summary-contract
+Then retry only the live probe under the existing read-only service identity:
 
-python3 -m pytest -q \
-  tests/test_operator_attention.py
+```bash
+sudo -u infra-assurance env \
+  PYTHONPATH="$PWD/src" \
+  python3 "$PWD/scripts/discovery/m7_operator_attention_summary_probe.py"
+```
 
-PYTHONPATH=src python3 \
-  scripts/discovery/m7_operator_attention_summary_probe.py
+Then capture the return code in the normal interactive shell:
 
+```bash
 echo "discovery_rc=$?"
 ```
 
-Do not use strict interactive shell mode.
+Do not use strict interactive shell mode. Do not run the focused tests under sudo; their accepted result is already `5 passed in 0.05s` under the normal user context.
 
-Acceptance rules:
+Acceptance rules for retry:
 
-- focused tests must pass;
 - all three existing artifacts must load successfully;
 - all three artifacts must resolve to one matching cluster;
 - no live infrastructure query or mutation may occur;
 - only allowlisted summary/metadata may be projected;
 - source failures must be `FAILED_TO_OBSERVE`, not zero-attention evidence;
-- live output must be interpreted only within `KUBERNETES_EXISTING_EVIDENCE_ONLY` scope.
+- live output must be interpreted only within `KUBERNETES_EXISTING_EVIDENCE_ONLY` scope;
+- executing the live read under `infra-assurance` is an identity-scoped file-read boundary only and must not add root access or change artifact permissions.
 
-If accepted, create a report, run the full repository suite because reusable implementation/tests changed, inspect exact four-file scope, then PR/squash-merge.
+If the service identity cannot traverse/read the repository code path, preserve `FAILED_TO_OBSERVE`; do not weaken file permissions. Use the failure only to choose a narrower execution packaging path in the next revision.
+
+If the retry succeeds, create a report, run the full repository suite because reusable implementation/tests changed, inspect exact five-file scope after the report is added (`HANDOFF.md`, report, implementation, probe, tests), then PR/squash-merge.
 
 ## Next M7 direction after this slice
 
