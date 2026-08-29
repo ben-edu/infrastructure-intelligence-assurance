@@ -1,7 +1,7 @@
 # Milestone 7 — Backup Assurance Operator Adapter
 
 Date: 2026-08-29
-Status: ACCEPTED PENDING FULL-SUITE GATE
+Status: ACCEPTED
 Mode: compact read-only operator projection over existing backup-assurance evidence
 
 ## Scope
@@ -28,6 +28,12 @@ Focused tests:
 
 ```text
 6 passed in 0.05s
+```
+
+Full repository suite:
+
+```text
+418 passed in 1.96s
 ```
 
 ## Live validation
@@ -128,6 +134,6 @@ The eight verification categories describe what authoritative evidence is still 
 - no secret, credential, raw Terraform state, Kubernetes Secret value, or sensitive connection string enters the projection;
 - no remediation is authorized or implied.
 
-## Remaining gate
+## Acceptance status
 
-A full repository regression suite is required before PR/merge because reusable implementation and tests changed.
+Focused tests, live read-only validation, trust checks, and the full repository regression suite all passed. This contract slice is merge-ready.
