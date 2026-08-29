@@ -4,17 +4,22 @@ Evidence-first infrastructure context and assurance platform.
 
 ## Current status
 
-Milestone 0 — Evidence Contract is complete.
+Milestones 0–4 are complete within their accepted scopes and live-validation boundaries.
 
-Milestone 1 — Kubernetes evidence, topology, and read-only planning preflight is complete and live-validated.
+Milestone 5 — Backup and Recovery Assurance is **not complete overall**. Its current authoritative read-only source-discovery phase is complete, while restore verification, integrity verification, retention effectiveness, accepted RPO/RTO evaluation, stronger physical failure-domain assurance, and application/database-consistent backup evidence remain explicitly unresolved or deferred until stronger evidence or controlled mutation is authorized.
 
-Milestone 2 — bounded history, trust-aware diff, dedicated Git declared-state observation, and declared-vs-observed drift are complete and live-validated.
+Milestone 6 — IaC Governance is active. Accepted read-only slices currently cover bounded Terraform declared-state structure, Terraform root/module relationships, bounded Terraform execution-declaration discovery, and Ansible declared-state inventory. Terraform state-backed coverage, live provider coverage, Ansible execution outcomes, idempotence, managed-host live coverage, and configuration drift remain `UNKNOWN` unless separately verified.
 
-Milestone 3 — workload-centric operational inventory plus Prometheus Operator configuration coverage is complete and live-validated.
+The live evidence loop established by earlier milestones continues to run on the management host every five minutes.
 
-Milestone 4 now starts with authoritative Prometheus runtime target-health and active-alert evidence attached to the existing workload inventory without replacing Prometheus or Alertmanager.
+For exact current execution state and context-window-independent continuation, read:
 
-The live loop runs on the management host every five minutes.
+```text
+HANDOFF.md
+docs/PROJECT_CONTINUITY.md
+```
+
+Project Sources remain authoritative for durable goals, roadmap, architecture/trust principles, and operating rules. `HANDOFF.md` is the current accepted execution checkpoint; if an active project branch/PR contains a newer handoff, prefer that branch version for in-flight work.
 
 ## Runtime model
 
@@ -128,7 +133,7 @@ UNKNOWN
 
 ## Prometheus runtime intelligence
 
-Milestone 4 begins with direct read-only Prometheus HTTP API evidence reached through the Kubernetes API Service proxy for:
+Milestone 4 includes direct read-only Prometheus HTTP API evidence reached through the Kubernetes API Service proxy for:
 
 ```text
 monitoring/kube-prom-stack-prometheus:9090
@@ -213,7 +218,9 @@ A failed Prometheus runtime query becomes `PARTIAL` or `FAILED_TO_OBSERVE` and n
 
 Raw Kubernetes Secret values are never collected. The Kubernetes observer has no Secret access and no mutating verbs.
 
-`mutation_allowed` remains `false`.
+Declared Terraform/Ansible configuration is not promoted to live managed-resource or managed-host state. Bounded source absence is not universal absence, and execution declarations are not execution outcomes.
+
+`mutation_allowed` remains `false` unless an explicitly reviewed and authorized slice changes that boundary.
 
 ## Install or refresh on the management host
 
@@ -270,9 +277,12 @@ python3 -m pytest -q
 
 See:
 
+- `HANDOFF.md` for the exact current accepted checkpoint and next step;
+- `docs/PROJECT_CONTINUITY.md` for context-window-independent resume rules;
+- `docs/reports/2026-08-23-m5-read-only-discovery-closure.md` for the Milestone 5 read-only closure boundary;
 - `docs/decisions/0008-workload-centric-operational-inventory.md` for the workload inventory boundary;
 - `docs/decisions/0009-prometheus-operator-coverage-is-not-scrape-health.md` for configuration coverage semantics;
 - `docs/decisions/0010-prometheus-runtime-evidence-via-read-only-service-proxy.md` for runtime Prometheus access and trust boundaries;
 - `docs/milestone-3-workload-operational-inventory.md` for the workload inventory slice;
 - `docs/milestone-3-prometheus-operator-coverage.md` for configuration coverage;
-- `docs/milestone-4-prometheus-runtime-intelligence.md` for the first runtime observability slice.
+- `docs/milestone-4-prometheus-runtime-intelligence.md` for runtime observability.
