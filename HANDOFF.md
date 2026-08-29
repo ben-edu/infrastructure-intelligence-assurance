@@ -94,7 +94,7 @@ configuration_vs_state: terraform plan -refresh=false
 refresh_only: terraform plan -refresh-only
 ```
 
-Common safety behavior:
+Safety behavior:
 
 ```text
 -input=false
@@ -107,17 +107,17 @@ stdout/stderr captured process-locally only
 provider reads allowed only for refresh-only observation
 ```
 
-Raw plan/diagnostics, resource identities, state/tfvars/provider values, endpoints, credentials, and sensitive connection strings must never be projected.
+Raw plan/diagnostics, resource identities, state/tfvars/provider values, endpoints, credentials, and sensitive connection strings are not projected.
 
-## Accepted retry after parser correction
+## Accepted validation and live evidence
 
-Focused tests:
+Focused tests after parser correction:
 
 ```text
 6 passed in 0.07s
 ```
 
-Live accepted evidence:
+Accepted live retry:
 
 ```text
 discovery_rc=0
@@ -128,7 +128,7 @@ roots_configuration_plan_complete: 2
 roots_refresh_only_plan_complete: 2
 ```
 
-Per-root:
+Per-root accepted evidence:
 
 ```text
 bm1:
@@ -160,6 +160,12 @@ refresh_only_action_counts: update=6
 configuration_plan_status: COMPLETE
 state_tracked_refresh_drift_status: STATE_TRACKED_DRIFT_CHANGE_SIGNAL_OBSERVED
 destructive_change_status: NONE_OBSERVED_IN_COMPLETE_CONFIGURATION_PLAN
+```
+
+Repository-wide regression gate:
+
+```text
+405 passed in 1.79s
 ```
 
 Accepted interpretation:
@@ -203,30 +209,24 @@ Terraform stdout/stderr remained process-local. No raw plan JSON, diagnostics, r
 
 No Terraform apply/import/state mutation command, SSH connection, repository mutation, or infrastructure mutation was performed. Provider reads during refresh-only planning were observation-only.
 
-## Merge gate — PENDING FULL SUITE
+## Merge gate — READY
 
-Focused tests and live evidence are accepted. Because reusable implementation/tests changed, run the full repository suite before PR/merge.
+Focused tests, accepted live retry, and full repository suite all passed.
 
-## Exact next step
+Before merge:
 
-On `mgmt-automation` run only:
+1. inspect branch/PR scope and confirm exactly `HANDOFF.md`, report, implementation, and tests;
+2. ensure no temporary/debug/placeholder files exist;
+3. create a non-draft PR;
+4. verify changed filenames and mergeability;
+5. squash-merge;
+6. carry the new accepted `main` SHA into the next checkpoint.
 
-```bash
-cd ~/projects/infrastructure-intelligence-assurance
-python3 -m pytest -q
-```
+## Post-merge reassessment rule
 
-Do not use strict interactive shell mode.
+Do not automatically add another probe.
 
-If the full suite passes:
-
-1. record the exact pass count in this handoff/report/PR;
-2. inspect branch scope and ensure only `HANDOFF.md`, report, implementation, and tests changed;
-3. create/inspect a non-draft PR and squash-merge when clean;
-4. carry the new accepted `main` SHA into the next checkpoint;
-5. reassess Milestone 6 rather than automatically adding another probe.
-
-Remaining stronger gaps after this slice include:
+Remaining stronger M6 gaps after this slice:
 
 ```text
 Terraform apply outcome: UNKNOWN
@@ -235,7 +235,23 @@ Ansible live managed-host coverage: UNKNOWN
 Ansible execution outcome/idempotence/drift: UNKNOWN
 ```
 
-Do not add another slice unless it has a materially stronger safe source or justified future authorized action.
+The accepted evidence already provides:
+
+```text
+Terraform declared-state inventory and root/module coverage
+Terraform execution declaration discovery
+Terraform local runtime-artifact metadata
+Terraform local-state aggregate structure
+Terraform declared-to-local-state structural relationship
+Terraform bounded configuration plan metadata
+Terraform destructive-proposal detection
+Terraform bounded state-tracked refresh drift signal
+Ansible declared inventory/playbook/role coverage
+Ansible execution declaration/source discovery
+bounded Jenkins/Ansible relationship closure
+```
+
+After merge, reassess Milestone 6 against `03_DELIVERY_ROADMAP.md` and the accepted reports. Prefer milestone closure with explicit preserved UNKNOWNs if the remaining gaps require mutation, unavailable authoritative sources, or materially stronger access. Do not add weak probes merely to force UNKNOWNs closed.
 
 ## Trust invariants
 
