@@ -8,123 +8,19 @@ For context-window-independent continuation, read `docs/PROJECT_CONTINUITY.md`, 
 
 ```text
 repository: ben-edu/infrastructure-intelligence-assurance
-accepted main after PR #77: 61a5478e207e9c497e7cdcb624f853324b9de984
-active branch: agent/m6-readonly-governance-closure
+accepted main after PR #78: 779d60956730b915c8d929fbbb2841699a5caf1b
+active branch: agent/m7-operator-attention-summary-contract
 package on accepted main: 0.27.0
 Milestone 5 overall: NOT COMPLETE
 Milestone 5 read-only source discovery: COMPLETE FOR CURRENT AUTHORITATIVE SOURCES
 Milestone 6 overall: NOT COMPLETE
 Milestone 6 current read-only governance phase: COMPLETE FOR CURRENT AUTHORITATIVE SOURCES AND SAFE OBSERVATION PATHS
+Milestone 7: ACTIVE
 mutation_allowed: false
 management host: mgmt-automation
-bounded infrastructure repository: /home/ben/projects/afpa-infra-rebuild
 ```
 
-## Accepted Milestone 6 — Terraform evidence
-
-Accepted reports:
-
-```text
-docs/reports/2026-08-29-m6-terraform-declared-state-inventory.md
-docs/reports/2026-08-29-m6-terraform-root-module-declared-coverage.md
-docs/reports/2026-08-29-m6-terraform-execution-declaration-discovery.md
-docs/reports/2026-08-29-m6-terraform-runtime-artifact-source-discovery.md
-docs/reports/2026-08-29-m6-terraform-local-state-safe-structure.md
-docs/reports/2026-08-29-m6-terraform-declared-to-local-state-structural-coverage.md
-docs/reports/2026-08-29-m6-terraform-readonly-plan-evidence.md
-```
-
-Accepted bounded Terraform evidence:
-
-```text
-roots: terraform/environments/bm1, terraform/environments/bm2
-module directory: terraform/modules/proxmox_vm
-provider type: proxmox
-resource type: proxmox_vm_qemu
-workspace-state directories observed: 0
-workspace directories observed: 0
-backend metadata candidates observed: 0
-workspace-selection metadata candidates observed: 0
-local state artifacts observed: 2/2 roots
-local states parsed complete: 2/2 roots
-local-state managed resource blocks: 2
-local-state managed instances: 6
-local-state managed resource type counts: proxmox_vm_qemu=2
-declared-to-local-state structural relationship: DECLARED_TO_LOCAL_STATE_STRUCTURAL_MATCH
-matched declared/state resource-type blocks: 2/2
-Terraform execution signal files in bounded workflow/script source: 0
-configuration plan status: COMPLETE
-configuration action counts: NONE_OBSERVED
-destructive change status: NONE_OBSERVED_IN_COMPLETE_CONFIGURATION_PLAN
-state-tracked refresh drift status: STATE_TRACKED_DRIFT_CHANGE_SIGNAL_OBSERVED
-refresh-only drift actions: update=6 (bm1=2, bm2=4)
-latest accepted full suite: 405 passed in 1.79s
-```
-
-Preserve:
-
-```text
-Terraform apply outcome: UNKNOWN
-Terraform full live-resource coverage: UNKNOWN
-Terraform state-backed coverage / state authority: UNKNOWN
-Terraform state freshness: UNKNOWN
-```
-
-The accepted drift finding is bounded to state-tracked resources in the two accepted roots. It is not universal infrastructure drift and does not expose resource/attribute identity.
-
-## Accepted Milestone 6 — Ansible evidence
-
-Accepted reports:
-
-```text
-docs/reports/2026-08-29-m6-ansible-declared-state-inventory.md
-docs/reports/2026-08-29-m6-ansible-playbook-role-declared-coverage.md
-docs/reports/2026-08-29-m6-ansible-execution-declaration-discovery.md
-docs/reports/2026-08-29-m6-ansible-execution-outcome-source-discovery.md
-docs/reports/2026-08-29-m6-jenkins-ansible-outcome-capability.md
-docs/reports/2026-08-29-m6-jenkins-api-metadata-probe.md
-docs/reports/2026-08-29-m6-ansible-jenkins-relationship-source-discovery.md
-```
-
-Accepted bounded Ansible structure:
-
-```text
-operational inventory: ansible/inventories/lab/hosts.yml
-declared groups: 6
-declared hosts: 8
-playbooks observed: 10
-local role directories observed: 7
-all 7 local roles referenced by supported direct playbook references
-8/10 playbooks resolved local roles
-ansible-playbook declaration: NONE_OBSERVED_IN_BOUNDED_SOURCE
-ansible-runner run declaration: NONE_OBSERVED_IN_BOUNDED_SOURCE
-ansible-navigator run declaration: NONE_OBSERVED_IN_BOUNDED_SOURCE
-Ansible-to-Jenkins declared relationship source: NONE_OBSERVED_IN_BOUNDED_SOURCE
-```
-
-Preserve:
-
-```text
-managed_host_live_coverage: UNKNOWN
-execution_outcome_status: UNKNOWN
-execution_success_status: UNKNOWN
-idempotence_status: UNKNOWN
-configuration_drift_status: UNKNOWN
-```
-
-Do not add more Jenkins-to-Ansible probes without a materially stronger safe source.
-
-## Rejected / incomplete observations not to reuse
-
-```text
-Terraform execution-declaration initial false positive from gate-only vocabulary: REJECTED
-Jenkins API first connection attempt: FAILED_TO_OBSERVE / NOT_ATTEMPTED
-Ansible-to-Jenkins first relationship scan: SOURCE_INCOMPLETE due one skipped candidate
-Terraform read-only plan first attempt refresh_only_actions=NONE_OBSERVED: REJECTED AS ACTION-ABSENCE EVIDENCE; parser lacked resource_drift classification
-GitHub connector 404 for ben-edu/afpa-infra-rebuild: NOT source-absence evidence; accepted source remains local /home/ben/projects/afpa-infra-rebuild
-```
-
-## Active closure slice
+## Accepted Milestone 6 closure
 
 Closure report:
 
@@ -132,77 +28,237 @@ Closure report:
 docs/reports/2026-08-29-m6-read-only-governance-closure.md
 ```
 
-Decision:
+Preserve:
 
 ```text
-Milestone 6 overall: NOT COMPLETE
-Milestone 6 current read-only governance phase: COMPLETE FOR CURRENT AUTHORITATIVE SOURCES AND SAFE OBSERVATION PATHS
-remaining stronger gaps: EXPLICITLY PRESERVED
-mutation/stronger-access work: DEFERRED
+Terraform apply outcome: UNKNOWN
+Terraform full live-resource coverage/state authority: UNKNOWN
+Ansible live managed-host coverage: UNKNOWN
+Ansible execution outcome/success/idempotence/configuration drift: UNKNOWN
 ```
 
-Why the phase stops here:
+Do not resume weak M6 probing merely to force UNKNOWNs closed.
+
+Accepted bounded Terraform governance evidence includes:
 
 ```text
-Terraform apply outcome requires authoritative execution evidence not currently available.
-Terraform full live-resource coverage/state authority requires stronger live identity/ownership evidence.
-Ansible live managed-host coverage requires stronger authoritative runtime relationship evidence.
-Ansible execution outcomes/idempotence/configuration drift require actual execution or a stronger trusted execution source and may cross the current mutation boundary.
+configuration_plan_status: COMPLETE
+configuration_action_counts: NONE_OBSERVED
+destructive_change_status: NONE_OBSERVED_IN_COMPLETE_CONFIGURATION_PLAN
+state_tracked_refresh_drift_status: STATE_TRACKED_DRIFT_CHANGE_SIGNAL_OBSERVED
+refresh_only_action_counts: update=6 (bm1=2, bm2=4)
 ```
 
-No additional weak source-name or indirect relationship probe should be added merely to force an UNKNOWN closed.
+This remains bounded state-tracked drift only, not universal infrastructure drift.
 
-## Transition direction
+## Active Milestone 7 slice — operator attention summary contract
 
-After this docs-only closure is merged, the project may proceed to Milestone 7 — Operational Intelligence Layer without pretending M6 is fully complete.
-
-The smallest useful Milestone 7 slice should remain read-only and reuse existing evidence. It should reduce operator cognitive load by projecting a compact prioritized operational view from already accepted artifacts rather than introducing a new datastore or replacing specialized tools.
-
-A good first M7 slice is an evidence-only **operator attention summary contract** that answers, from existing artifacts only:
+Goal:
 
 ```text
-what needs attention now
-what changed
-what is unknown or stale
-where bounded drift exists
-what requires live verification before action
+Build the smallest read-only operator-facing projection that reduces cognitive load using existing evidence only.
 ```
 
-Do not build a broad dashboard/platform layer yet. Define and test the smallest projection contract first.
-
-## Closure branch merge rule
-
-This branch is docs-only:
+Implementation:
 
 ```text
-HANDOFF.md
-README.md
-docs/reports/2026-08-29-m6-read-only-governance-closure.md
+src/infra_assurance/operator_attention.py
+scripts/discovery/m7_operator_attention_summary_probe.py
+tests/test_operator_attention.py
 ```
 
-No new implementation/tests are introduced, so no additional full-suite run is required beyond the accepted `405 passed in 1.79s` from PR #77.
+Accepted report:
+
+```text
+docs/reports/2026-08-29-m7-operator-attention-summary-contract.md
+```
+
+Existing source artifacts only:
+
+```text
+/var/lib/infra-assurance/evidence/inventory.json
+/var/lib/infra-assurance/evidence/context.json
+/var/lib/infra-assurance/evidence/change-context.json
+```
+
+Projection scope:
+
+```text
+KUBERNETES_EXISTING_EVIDENCE_ONLY
+```
+
+Derived sections:
+
+```text
+attention_now
+recent_changes
+unknowns
+required_live_verification
+```
+
+No new infrastructure query, collector identity, datastore, or source of truth is introduced.
+
+## Validation — ACCEPTED
+
+Focused tests:
+
+```text
+5 passed in 0.05s
+```
+
+Repository-wide regression gate:
+
+```text
+410 passed in 1.83s
+```
+
+### Rejected/incomplete live attempts
+
+Attempt 1 as interactive user `ben`:
+
+```text
+source_status: FAILED_TO_OBSERVE
+failure_category: PermissionError
+discovery_rc=2
+```
+
+Do not reuse as zero-attention or source-absence evidence.
+
+Attempt 2 under `infra-assurance` from the repository under `/home/ben`:
+
+```text
+python3: can't open file '/home/ben/projects/infrastructure-intelligence-assurance/scripts/discovery/m7_operator_attention_summary_probe.py': [Errno 13] Permission denied
+discovery_rc=2
+```
+
+This failed before code execution because the service identity cannot traverse the user-private repository path. It is an execution-packaging failure, not an evidence-source failure. Do not weaken permissions.
+
+### Accepted live attempt
+
+A one-time privileged read-only validation was used because the repository source tree and protected evidence artifacts are under incompatible Unix access boundaries. This is validation packaging only and is not the intended runtime model.
+
+Accepted output:
+
+```text
+discovery_rc=0
+source_status: COMPLETE
+source_artifacts_loaded: 3
+cluster_id: k3s-main
+scope: KUBERNETES_EXISTING_EVIDENCE_ONLY
+
+workloads_total: 68
+workloads_with_attention: 3
+attention_now_total: 2
+recent_changes_total: 0
+unknowns_total: 0
+required_live_verification_total: 0
+```
+
+Accepted attention projection:
+
+```text
+source=topology
+code=SERVICE_SELECTOR_MULTIPLE_CONTROLLER_MATCHES
+severity=AMBIGUOUS
+subject=Service/monitoring/loki-headless
+
+source=drift
+code=DECLARED_OBSERVED_DRIFT
+severity=DRIFT
+subject=Ingress/validation/nginx-validation
+```
+
+Truncation:
+
+```text
+max_items_per_section: 20
+attention_now_truncated: False
+recent_changes_truncated: False
+unknowns_truncated: False
+required_live_verification_truncated: False
+```
+
+Interpretation:
+
+```text
+- the three bounded source artifacts loaded successfully and target k3s-main;
+- the operator-facing projection contains two deduplicated current attention items;
+- workloads_with_attention=3 is the inventory-level workload count and is not required to equal attention_now_total=2;
+- recent_changes=0, unknowns=0, and required_live_verification=0 are bounded absence only within the loaded artifacts and their own freshness/trust boundaries;
+- no remediation or mutation is implied by an attention item.
+```
+
+## Trust boundary
+
+```text
+mutation_allowed: false
+live_infrastructure_query_performed: false
+source_artifacts_written: false
+new_datastore_used: false
+raw_source_artifacts_projected: false
+secrets_or_credentials_projected: false
+```
+
+Only allowlisted summary and compact metadata are projected. Raw Kubernetes evidence values, arbitrary resource values, raw diagnostics, credentials, Secret values, Terraform state, and sensitive connection strings do not enter the projection.
+
+The successful root execution is a one-time validation workaround only. Future runtime integration must use the installed package/runtime path under the existing `infra-assurance` service identity and must not broaden file permissions.
+
+## Merge gate — READY
+
+Accepted validations:
+
+```text
+focused: 5 passed in 0.05s
+live: discovery_rc=0 / source_status=COMPLETE
+full suite: 410 passed in 1.83s
+```
 
 Before merge:
 
-1. verify branch scope is exactly the three docs above;
+1. verify branch scope is exactly five files:
+   - `HANDOFF.md`
+   - `docs/reports/2026-08-29-m7-operator-attention-summary-contract.md`
+   - `src/infra_assurance/operator_attention.py`
+   - `scripts/discovery/m7_operator_attention_summary_probe.py`
+   - `tests/test_operator_attention.py`
 2. ensure no temporary/debug/placeholder files exist;
 3. create/inspect a non-draft PR;
-4. verify mergeability;
+4. verify changed filenames and mergeability;
 5. squash-merge;
-6. carry the new accepted `main` SHA into the first M7 branch handoff.
+6. carry the new accepted `main` SHA into the next branch handoff.
+
+## Exact next step after merge
+
+Integrate the accepted contract into the existing five-minute artifact-generation path before adding a dashboard or broad cross-domain inbox.
+
+Target derived artifacts:
+
+```text
+/var/lib/infra-assurance/evidence/operator-attention.json
+/var/lib/infra-assurance/evidence/operator-attention.md
+```
+
+The integration must:
+
+```text
+run from the installed package/runtime path under infra-assurance
+reuse existing generated evidence only
+remain read-only against infrastructure
+preserve failed/stale/unknown source semantics
+avoid a new datastore or source of truth
+avoid broad dashboard construction
+```
+
+Only after that integration is accepted should the project decide whether a small cross-domain adapter for accepted M5/M6 assurance signals is the next useful step.
 
 ## Trust invariants
 
 - infrastructure interaction remains read-only;
-- declared/local state is not universal live truth;
-- provider reads are observation-only;
-- bounded state-tracked drift is not universal drift;
-- complete configuration no-change is not a provider/live drift check;
-- `FAILED_TO_OBSERVE`/`INCOMPLETE` is not negative evidence;
-- raw Terraform state/plan/real tfvars and Ansible Vault/credential material do not enter evidence/AI context;
-- only explicitly safe aggregate structure/status data may enter evidence;
-- no apply success or universal coverage claim is inferred without authoritative evidence;
-- unknowns are not forced closed;
+- derived operator projections do not replace source evidence;
+- stale/failed/unknown evidence remains explicit;
+- bounded absence is not universal absence;
+- no secret, credential, raw Terraform state, or raw Kubernetes Secret value enters the projection;
+- no remediation or mutation is implied by an attention item;
 - generated operational artifacts keep `mutation_allowed=false`.
 
 ## Continuity rule
