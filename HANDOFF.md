@@ -19,7 +19,7 @@ management host: mgmt-automation
 bounded infrastructure repository: /home/ben/projects/afpa-infra-rebuild
 ```
 
-## Accepted Milestone 6 — Terraform
+## Accepted Milestone 6 — Terraform prior evidence
 
 Reports:
 
@@ -92,63 +92,73 @@ Ansible-to-Jenkins first relationship scan: SOURCE_INCOMPLETE due one skipped ca
 
 ## Active Milestone 6 — Terraform runtime-artifact source discovery
 
-Implementation prepared on this branch:
+Implementation:
 
 ```text
 scripts/discovery/m6_terraform_runtime_artifact_source_discovery.py
 tests/test_terraform_runtime_artifact_source_discovery.py
 ```
 
+Report recorded on this branch:
+
+```text
+docs/reports/2026-08-29-m6-terraform-runtime-artifact-source-discovery.md
+```
+
 Goal:
 
 ```text
-Determine whether the two previously accepted Terraform root candidates expose local runtime-artifact metadata that could qualify a later safe state/workspace/plan evidence source.
+Determine whether the two previously accepted Terraform root candidates expose local runtime-artifact metadata that can justify a later safe state/workspace/plan evidence source.
 ```
 
 This slice is filesystem-metadata-only. It does not open Terraform runtime artifacts and does not invoke Terraform.
 
-Bounded roots:
+### Accepted validation and live evidence
 
 ```text
-terraform/environments/bm1
-terraform/environments/bm2
+focused tests: 4 passed in 0.06s
+discovery_rc: 0
+source_mode: BOUNDED_TERRAFORM_ROOT_FILESYSTEM_METADATA_ONLY
+source_status: COMPLETE
+root_directories_expected: 2
+root_directories_observed: 2
+metadata_failures: 0
+symlink_entries_skipped: 0
 ```
 
-Generic metadata classes only:
+Per-root accepted metadata:
 
 ```text
-.terraform working directory existence
-terraform.tfstate existence
-terraform.tfstate.backup existence
-terraform.tfstate.d existence
-aggregate workspace-directory count without workspace names
-.terraform/terraform.tfstate backend-metadata candidate existence
-.terraform/environment workspace-selection metadata candidate existence
-narrow top-level saved-plan candidates: tfplan / *.tfplan
+bm1: working_directory=OBSERVED, state_artifact=OBSERVED, state_backup_artifact=OBSERVED, workspace_state_directory=NONE_OBSERVED, workspace_directories=0, backend_metadata_candidate=NONE_OBSERVED, workspace_selection_metadata_candidate=NONE_OBSERVED, saved_plan_candidates=0
+bm2: working_directory=OBSERVED, state_artifact=OBSERVED, state_backup_artifact=OBSERVED, workspace_state_directory=NONE_OBSERVED, workspace_directories=0, backend_metadata_candidate=NONE_OBSERVED, workspace_selection_metadata_candidate=NONE_OBSERVED, saved_plan_candidates=0
 ```
 
-Explicitly prohibited:
+Aggregate accepted metadata:
 
 ```text
-opening or parsing state/state-backup/backend/workspace/plan files
-reading real tfvars
-printing workspace names
-printing artifact-specific filenames beyond generic Terraform conventions
-printing resource addresses, provider values, endpoints, credentials, commands, or connection strings
-Terraform CLI/provider API invocation
+working_directories_observed: 2
+top_level_state_artifacts_observed: 2
+top_level_state_backup_artifacts_observed: 2
+workspace_state_directories_observed: 0
+workspace_directories_observed: 0
+backend_metadata_candidates_observed: 0
+workspace_selection_metadata_candidates_observed: 0
+saved_plan_artifact_candidates_observed: 0
+runtime_artifact_source_status: RUNTIME_ARTIFACT_METADATA_OBSERVED
 ```
 
 Interpretation boundary:
 
 ```text
 runtime artifact metadata != state-backed coverage
-runtime artifact metadata != current/authoritative Terraform state
+state artifact existence != current/authoritative/complete state
+state backup artifact existence != recovery validation
 saved plan metadata != plan outcome
 working directory metadata != successful init/apply
 filesystem absence != absence of remote state or external CI execution
 ```
 
-Preserve regardless of result:
+Preserve regardless of this result:
 
 ```text
 state_backed_coverage_status: UNKNOWN
@@ -157,51 +167,57 @@ plan_result_status: UNKNOWN
 apply_result_status: UNKNOWN
 drift_status: UNKNOWN
 destructive_change_status: UNKNOWN
+state_backed_coverage_claims: 0
+drift_claims: 0
+destructive_change_claims: 0
 ```
 
-Fail closed:
+## Trust boundary
 
 ```text
-missing expected root => SOURCE_INCOMPLETE
-metadata lookup failure => SOURCE_INCOMPLETE
-relevant symlink => SOURCE_INCOMPLETE
+mutation_allowed: False
+terraform_cli_invoked: False
+terraform_state_contents_inspected: False
+terraform_plan_contents_inspected: False
+terraform_tfvars_contents_inspected: False
+provider_api_invoked: False
 ```
+
+Only filesystem metadata for the two accepted Terraform roots and generic runtime-artifact names was inspected. State/state-backup/backend/workspace/plan/tfvars contents, resource addresses, workspace names, provider values, endpoints, credentials, raw commands, and sensitive connection strings were not opened or projected.
+
+Relevant symlinks or metadata failures fail closed as incomplete observation.
+
+## Merge gate — PENDING
+
+Focused tests and live discovery passed. Because reusable implementation/tests changed, run the full repository suite before PR/merge.
 
 ## Exact next step
 
-On `mgmt-automation`:
+On `mgmt-automation` run only:
 
 ```bash
 cd ~/projects/infrastructure-intelligence-assurance
-
-git fetch origin
-
-git switch --track origin/agent/m6-terraform-runtime-artifact-source
-
-python3 -m pytest -q \
-  tests/test_terraform_runtime_artifact_source_discovery.py
-
-PYTHONPATH=src python3 \
-  scripts/discovery/m6_terraform_runtime_artifact_source_discovery.py
-
-echo "discovery_rc=$?"
+python3 -m pytest -q
 ```
 
-Acceptance rules:
+Do not use strict interactive shell mode.
 
-- focused tests must pass;
-- bounded roots must be observed completely for bounded absence to be accepted;
-- no Terraform artifact contents may be opened;
-- no Terraform CLI/provider API may be invoked;
-- symlink/metadata failures remain incomplete observation, not negative evidence;
-- runtime artifact metadata must not be promoted to state-backed coverage, plan/apply result, drift, or destructive-change evidence.
+If the full suite passes:
 
-If a safe local runtime-artifact candidate is observed, use the result only to decide whether a later aggregate read-only verification is justified. If none is observed in a complete scan, record bounded local-artifact absence and do not infer that remote/external Terraform state does not exist.
+1. record the exact pass count in this handoff/report/PR;
+2. inspect changed-file scope and ensure no temporary/debug/placeholder files exist;
+3. create/inspect a non-draft PR and squash-merge when clean;
+4. carry the new accepted `main` SHA into the next branch handoff;
+5. use the observed local state artifacts only to justify a separate tightly bounded **Terraform local-state safe structural aggregation** slice;
+6. that future slice may inspect state process-locally only if it projects aggregate non-sensitive structure and never exposes state values, resource addresses, instance names, outputs, provider configuration values, endpoints, credentials, or raw state.
+
+Until such a future slice is separately implemented and accepted, state-backed coverage and all live/plan/apply/drift/destructive statuses remain `UNKNOWN`.
 
 ## Trust invariants
 
 - infrastructure interaction remains read-only;
 - declared state is not observed state;
+- runtime artifact metadata is not state-backed coverage;
 - bounded absence is not universal absence;
 - `FAILED_TO_OBSERVE`/`INCOMPLETE` is not negative evidence;
 - Terraform state/real tfvars and Ansible variable/Vault/credential material do not enter evidence/AI context;
