@@ -28,15 +28,16 @@ docs/reports/2026-08-29-m6-terraform-declared-state-inventory.md
 docs/reports/2026-08-29-m6-terraform-root-module-declared-coverage.md
 docs/reports/2026-08-29-m6-terraform-execution-declaration-discovery.md
 docs/reports/2026-08-29-m6-terraform-runtime-artifact-source-discovery.md
+docs/reports/2026-08-29-m6-terraform-local-state-safe-structure.md
 ```
 
-Accepted bounded Terraform structure/runtime metadata:
+Accepted bounded Terraform evidence:
 
 ```text
 root candidates: terraform/environments/bm1, terraform/environments/bm2
 module directory: terraform/modules/proxmox_vm
 provider type: proxmox
-resource type: proxmox_vm_qemu
+declared resource type: proxmox_vm_qemu
 execution declaration files in bounded workflow/script source: 0
 local top-level state artifacts observed by metadata: 2/2 roots
 local state-backup artifacts observed by metadata: 2/2 roots
@@ -45,7 +46,18 @@ workspace-state directories observed: 0
 backend metadata candidates observed: 0
 workspace-selection metadata candidates observed: 0
 saved plan candidates observed: 0
-latest accepted full suite before PR #74: 391 passed in 5.58s
+local states parsed complete: 2/2 roots
+local-state managed resource blocks: 2
+local-state managed instances: 6
+local-state managed resource type counts: proxmox_vm_qemu=2
+latest accepted full suite for this branch: 395 passed in 1.74s
+```
+
+Per-root local-state safe structure:
+
+```text
+bm1: managed_resource_blocks=1, managed_instances=2
+bm2: managed_resource_blocks=1, managed_instances=4
 ```
 
 Preserve:
@@ -59,7 +71,7 @@ Terraform drift: UNKNOWN
 Terraform destructive-change status: UNKNOWN
 ```
 
-Runtime-artifact metadata is source-capability evidence only and is not current/authoritative state or coverage evidence.
+Local state structure is not current-state, authoritative-state, coverage, or live-resource proof.
 
 ## Accepted Milestone 6 — Ansible/Jenkins path
 
@@ -91,7 +103,7 @@ Jenkins API first connection attempt: NOT_ATTEMPTED / FAILED_TO_OBSERVE
 Ansible-to-Jenkins first relationship scan: SOURCE_INCOMPLETE due one skipped candidate
 ```
 
-## Active Milestone 6 — Terraform local-state safe structural aggregation
+## Merge-ready Milestone 6 — Terraform local-state safe structural aggregation
 
 Implementation:
 
@@ -100,80 +112,28 @@ scripts/discovery/m6_terraform_local_state_structure.py
 tests/test_terraform_local_state_structure.py
 ```
 
-Report recorded on this branch:
-
-```text
-docs/reports/2026-08-29-m6-terraform-local-state-safe-structure.md
-```
-
-Goal:
-
-```text
-Parse the two observed local terraform.tfstate files process-locally and project only explicitly allowlisted aggregate non-sensitive structure.
-```
-
-### Accepted validation and live evidence
+Validation:
 
 ```text
 focused tests: 4 passed in 0.05s
-discovery_rc: 0
-source_mode: LOCAL_TERRAFORM_STATE_PROCESS_LOCAL_SAFE_STRUCTURE_ONLY
+live discovery: discovery_rc=0
+full repository suite: 395 passed in 1.74s
+```
+
+Accepted live state structure:
+
+```text
 source_status: COMPLETE
-roots_expected: 2
 roots_parsed_complete: 2
-```
-
-Per-root safe structure:
-
-```text
-bm1: parse_status=COMPLETE, managed_resource_blocks=1, data_resource_blocks=0, managed_instances=2, data_instances=0
-bm2: parse_status=COMPLETE, managed_resource_blocks=1, data_resource_blocks=0, managed_instances=4, data_instances=0
-```
-
-Aggregate safe structure:
-
-```text
 managed_resource_blocks: 2
-data_resource_blocks: 0
-other_resource_blocks: 0
 managed_instances: 6
-data_instances: 0
-other_instances: 0
 managed_resource_type_counts: proxmox_vm_qemu=2
 state_structure_status: STRUCTURAL_AGGREGATE_OBSERVED
 ```
 
-Interpretation boundary:
+Trust boundary:
 
 ```text
-local state structure != state-backed coverage
-local state structure != current/authoritative state
-local state structure != live resource existence
-resource/instance counts != declared-to-state coverage
-local state structure != plan/apply outcome
-local state structure != drift/destructive-change evidence
-```
-
-Preserve:
-
-```text
-state_backed_coverage_status: UNKNOWN
-live_resource_coverage_status: UNKNOWN
-plan_result_status: UNKNOWN
-apply_result_status: UNKNOWN
-drift_status: UNKNOWN
-destructive_change_status: UNKNOWN
-state_backed_coverage_claims: 0
-drift_claims: 0
-destructive_change_claims: 0
-```
-
-## Trust boundary
-
-```text
-mutation_allowed: False
-terraform_cli_invoked: False
-provider_api_invoked: False
 raw_state_projected: False
 state_values_projected: False
 resource_addresses_projected: False
@@ -182,42 +142,23 @@ instance_keys_projected: False
 outputs_projected: False
 serial_or_lineage_projected: False
 provider_configuration_projected: False
+terraform_cli_invoked: False
+provider_api_invoked: False
+mutation_allowed: False
 ```
 
-Terraform state was parsed only process-locally to compute allowlisted aggregate structure.
-
-No raw state JSON, attribute values, resource names/addresses, instance keys/indexes, outputs/output values, serial/lineage identifiers, provider configuration strings/aliases, endpoints, credentials, sensitive attributes, or private connection data entered evidence output.
-
-Sensitive-looking resource-type categories are redacted before projection.
-
-No Terraform CLI, provider API, SSH connection, repository mutation, or infrastructure mutation was performed.
-
-## Merge gate — PENDING
-
-Focused tests and live state aggregation passed. Because reusable implementation/tests changed, run the full repository suite before PR/merge.
+No raw Terraform state, state values, resource names/addresses, instance keys, outputs, serial/lineage, provider configuration, endpoints, credentials, or private connection data entered evidence output.
 
 ## Exact next step
 
-On `mgmt-automation` run only:
+1. Inspect branch/PR scope and ensure only `HANDOFF.md`, the accepted report, implementation, and tests changed.
+2. Create/inspect a non-draft PR and squash-merge when clean.
+3. Carry the new accepted `main` SHA into the next branch handoff.
+4. Start a bounded **Terraform declared-to-local-state structural coverage** slice.
+5. Compare only aggregate non-sensitive declared resource-type block counts against aggregate local-state managed resource-type block counts per accepted root.
+6. Do not expose resource names, addresses, instance identities, state values, tfvars, provider configuration, endpoints, credentials, or raw state.
 
-```bash
-cd ~/projects/infrastructure-intelligence-assurance
-python3 -m pytest -q
-```
-
-Do not use strict interactive shell mode.
-
-If the full suite passes:
-
-1. record the exact pass count in this handoff/report/PR;
-2. inspect changed-file scope and ensure no temporary/debug/placeholder files exist;
-3. create/inspect a non-draft PR and squash-merge when clean;
-4. carry the new accepted `main` SHA into the next branch handoff;
-5. start a separate bounded **Terraform declared-to-local-state structural coverage** slice;
-6. compare only aggregate non-sensitive declared resource-type block counts against aggregate local-state managed resource-type block counts per accepted root;
-7. do not expose resource names, addresses, instance identities, state values, tfvars, provider configuration, endpoints, credentials, or raw state.
-
-A successful declared-to-state structural type/count relationship may establish limited structural coverage only. It must not be promoted to live resource coverage, state freshness, plan/apply success, drift, or destructive-change evidence.
+A successful structural relationship may establish only limited declared-to-local-state structural coverage. It must not be promoted to live resource coverage, state freshness, plan/apply success, drift, or destructive-change evidence.
 
 ## Trust invariants
 
