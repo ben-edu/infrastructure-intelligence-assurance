@@ -165,25 +165,51 @@ run the operator-attention runtime as root
 
 The existing collector run remains read-only against infrastructure, but deployment itself mutates the management-host installed code and systemd definition and writes derived evidence artifacts.
 
+## Deployment dry-run — ACCEPTED / NO MUTATION
+
+The user pulled the active branch and ran the helper without `--apply`:
+
+```bash
+sudo bash scripts/deploy-operator-attention-runtime.sh
+```
+
+Observed result:
+
+```text
+This deployment helper performs only these bounded mutations:
+- installs src/infra_assurance/operator_attention.py into /opt/infra-assurance/src/infra_assurance/operator_attention.py
+- installs systemd/infra-assurance-kubernetes.service into /etc/systemd/system/infra-assurance-kubernetes.service
+- runs systemctl daemon-reload
+- starts the existing infra-assurance-kubernetes.service once
+- verifies operator-attention.json and operator-attention.md were produced
+
+It does not run bootstrap-observer.sh, change Kubernetes RBAC, change kubeconfig, change Git source configuration, add a new service/timer, or broaden filesystem permissions.
+
+Re-run with --apply only after explicit authorization.
+```
+
+Accepted interpretation:
+
+```text
+- dry-run completed successfully;
+- no management-host runtime mutation occurred;
+- no Kubernetes mutation occurred;
+- no artifact was written by the helper;
+- the bounded deployment scope is now operator-reviewed;
+- live deployment remains blocked on explicit authorization.
+```
+
 ## Mutation boundary — WAITING FOR EXPLICIT AUTHORIZATION
 
 Do not run the deployment helper with `--apply` until the user explicitly authorizes this management-host runtime mutation.
 
-Repository preparation and focused tests are complete. The next live gate is blocked only by authorization.
+Repository preparation, focused tests, and no-op deployment review are complete. The next live gate is blocked only by authorization.
 
-If authorized, first pull the current branch and inspect the no-op deployment plan:
+If authorized, execute only:
 
 ```bash
 cd ~/projects/infrastructure-intelligence-assurance
 git pull --ff-only origin agent/m7-operator-attention-runtime-integration
-sudo bash scripts/deploy-operator-attention-runtime.sh
-```
-
-The no-argument run exits without mutation after printing the bounded plan.
-
-Then, only under explicit authorization, execute:
-
-```bash
 sudo bash scripts/deploy-operator-attention-runtime.sh --apply
 ```
 
