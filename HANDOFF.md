@@ -29,7 +29,7 @@ Accepted report:
 docs/reports/2026-08-29-m7-operator-attention-summary-contract.md
 ```
 
-Accepted validation:
+Accepted baseline validation:
 
 ```text
 focused tests: 5 passed in 0.05s
@@ -66,8 +66,6 @@ service-identity probe from /home/ben source tree: FAILED_TO_OBSERVE before code
 
 Do not reuse either failed attempt as zero-attention or source-absence evidence.
 
-The one-time root validation used for the accepted contract is not an accepted runtime design.
-
 ## Active slice — runtime integration into the existing five-minute collector
 
 Goal:
@@ -85,15 +83,17 @@ Target artifacts:
 
 No new timer, service identity, datastore, infrastructure query, or source of truth is introduced.
 
-### Prepared implementation
-
-Modified module:
+Prepared files:
 
 ```text
 src/infra_assurance/operator_attention.py
+systemd/infra-assurance-kubernetes.service
+tests/test_operator_attention.py
+scripts/deploy-operator-attention-runtime.sh
+HANDOFF.md
 ```
 
-Added runtime behavior:
+The runtime module:
 
 ```text
 python3 -m infra_assurance.operator_attention
@@ -104,27 +104,7 @@ python3 -m infra_assurance.operator_attention
   --summary-out <operator-attention.md>
 ```
 
-The runtime writer:
-
-```text
-- loads only the three accepted derived artifacts;
-- reuses the accepted projection contract;
-- writes JSON and Markdown atomically using existing io_utils;
-- performs no live infrastructure query;
-- performs no remediation;
-- preserves mutation_allowed=false in the artifact;
-- rejects symlink/oversize/non-object source artifacts through the existing loader.
-```
-
-Modified service definition:
-
-```text
-systemd/infra-assurance-kubernetes.service
-```
-
-A new `ExecStartPost` invokes the installed module after the main Kubernetes runtime has produced `inventory.json`, `context.json`, and `change-context.json`.
-
-The existing service boundary remains:
+The service integration remains under:
 
 ```text
 User=infra-assurance
@@ -137,62 +117,101 @@ ReadWritePaths includes /var/lib/infra-assurance/evidence
 
 No root runtime execution is introduced.
 
-Modified tests:
+## Repository validation — ACCEPTED
+
+Focused tests on the active branch:
 
 ```text
-tests/test_operator_attention.py
+7 passed in 0.21s
 ```
 
-Tests now cover:
+This validates the projection contract, runtime JSON/Markdown writer, safe loader behavior, and systemd wiring under the `infra-assurance` identity.
+
+A repository-wide suite is still required after the live integration is accepted and before PR/merge.
+
+## Narrow deployment helper
+
+Prepared helper:
 
 ```text
-accepted projection contract
-unallowlisted-field exclusion
-cluster mismatch fail-closed behavior
-deduplication/truncation
-safe JSON loader
-runtime JSON/Markdown writer
-systemd installed-module integration under infra-assurance
+scripts/deploy-operator-attention-runtime.sh
 ```
 
-Expected focused test count on this branch: 7. Accept only actual runtime output.
+Without `--apply`, it makes no changes and prints the bounded mutation plan.
 
-## Mutation boundary
+With `--apply`, it performs only:
 
-Repository changes for this slice are prepared and testable without infrastructure mutation.
+```text
+1. install src/infra_assurance/operator_attention.py -> /opt/infra-assurance/src/infra_assurance/operator_attention.py
+2. install systemd/infra-assurance-kubernetes.service -> /etc/systemd/system/infra-assurance-kubernetes.service
+3. python compile-check of the installed module
+4. systemctl daemon-reload
+5. start the existing infra-assurance-kubernetes.service once
+6. verify service Result=success
+7. verify operator-attention.json and operator-attention.md exist and are owned by infra-assurance:infra-assurance
+```
 
-Do NOT yet run `scripts/bootstrap-observer.sh`, copy files into `/opt`, modify `/etc/systemd/system`, reload systemd, or start the collector service. Those actions change the management-host runtime and require explicit user authorization before the live integration gate.
+It explicitly does NOT:
 
-The existing collector remains unchanged on `mgmt-automation` until that authorization is given.
+```text
+run bootstrap-observer.sh
+change Kubernetes RBAC
+change kubeconfig
+change Git source configuration
+add a service or timer
+broaden filesystem permissions
+run the operator-attention runtime as root
+```
 
-## Exact next step
+The existing collector run remains read-only against infrastructure, but deployment itself mutates the management-host installed code and systemd definition and writes derived evidence artifacts.
 
-On `mgmt-automation`, run only repository tests:
+## Mutation boundary — WAITING FOR EXPLICIT AUTHORIZATION
+
+Do not run the deployment helper with `--apply` until the user explicitly authorizes this management-host runtime mutation.
+
+Repository preparation and focused tests are complete. The next live gate is blocked only by authorization.
+
+If authorized, first pull the current branch and inspect the no-op deployment plan:
 
 ```bash
 cd ~/projects/infrastructure-intelligence-assurance
-
-git fetch origin
-
-git switch --track origin/agent/m7-operator-attention-runtime-integration
-
-python3 -m pytest -q \
-  tests/test_operator_attention.py
+git pull --ff-only origin agent/m7-operator-attention-runtime-integration
+sudo bash scripts/deploy-operator-attention-runtime.sh
 ```
 
-Do not use strict interactive shell mode.
+The no-argument run exits without mutation after printing the bounded plan.
 
-Acceptance for this gate:
+Then, only under explicit authorization, execute:
+
+```bash
+sudo bash scripts/deploy-operator-attention-runtime.sh --apply
+```
+
+After deployment, collect only safe verification metadata and operator-attention summary counts; do not print raw source artifacts or sensitive values.
+
+## Acceptance rules for the live integration
+
+Accept only if:
 
 ```text
-- focused tests pass;
-- no live collector/systemd/bootstrap action is performed;
-- no infrastructure or management-host runtime mutation is performed.
+deployment_status=COMPLETE
+service_result=success
+operator_attention_json=OBSERVED
+operator_attention_markdown=OBSERVED
+runtime_identity=infra-assurance
 ```
 
-After focused tests pass, the next gate is a reviewed live deployment of only the runtime integration. That gate requires explicit authorization because it changes the installed collector code/service definition on `mgmt-automation`.
+Then verify the generated JSON only through an allowlisted safe summary projection. Preserve source failures as FAILED_TO_OBSERVE, never as zero-attention evidence.
 
-Prefer a narrow installation/deployment procedure over rerunning broad bootstrap behavior that could re-apply Kubernetes RBAC unnecessarily.
+If live integration is accepted:
+
+1. create `docs/reports/2026-08-29-m7-operator-attention-runtime-integration.md`;
+2. record exact safe live values and focused result;
+3. run the full repository suite;
+4. inspect exact branch scope and no temporary files;
+5. create/inspect a non-draft PR;
+6. verify mergeability and changed filenames;
+7. squash-merge and carry the new main SHA forward.
 
 ## Preserved M6 boundaries
 
@@ -209,7 +228,8 @@ Do not reopen weak M6 probes.
 
 - infrastructure interaction remains read-only unless separately authorized;
 - repository changes do not imply deployment authorization;
-- runtime integration must remain under `infra-assurance`, not root;
+- runtime integration remains under `infra-assurance`, not root;
+- deployment mutation is limited to the installed module, existing systemd unit, daemon reload, one existing collector run, and derived artifact writes;
 - derived operator projections do not replace source evidence;
 - stale/failed/unknown evidence remains explicit;
 - bounded absence is not universal absence;
