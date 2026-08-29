@@ -2,7 +2,7 @@
 
 Project Sources remain authoritative for durable goals, roadmap, architecture/trust principles, and operating rules.
 
-For context-window-independent continuation, read `docs/PROJECT_CONTINUITY.md`, then this file, then only the report/ADR for the active slice.
+For context-window-independent continuation, read `docs/PROJECT_CONTINUITY.md`, then this file, then only reports/ADRs relevant to the active slice.
 
 ## Active checkpoint
 
@@ -50,14 +50,16 @@ Preserve Terraform state-backed coverage, live resource coverage, execution outc
 
 Do not reuse the rejected first Terraform execution scan that contained a gate-only false positive.
 
-## Accepted Milestone 6 — Ansible declared structure
+## Accepted Milestone 6 — Ansible declared/source path
 
-Reports:
+Accepted reports:
 
 ```text
 docs/reports/2026-08-29-m6-ansible-declared-state-inventory.md
 docs/reports/2026-08-29-m6-ansible-playbook-role-declared-coverage.md
 docs/reports/2026-08-29-m6-ansible-execution-declaration-discovery.md
+docs/reports/2026-08-29-m6-ansible-execution-outcome-source-discovery.md
+docs/reports/2026-08-29-m6-jenkins-ansible-outcome-capability.md
 ```
 
 Accepted bounded state:
@@ -69,98 +71,86 @@ role directories: 7
 inventory group declarations: 6
 inventory host declarations: 8
 referenced local role directories: 7/7
-playbooks with resolved local role: 8
-playbooks with no direct role reference: 2
-bounded safe workflow/script files scanned for Ansible execution declarations: 156
+bounded workflow/script files scanned for Ansible execution declarations: 156
 accepted Ansible execution declaration files: 0
-managed host coverage: DECLARED_CONFIGURATION_ONLY
-live managed host coverage: UNKNOWN
-execution outcome/success/idempotence/drift: UNKNOWN
-```
-
-Bounded declaration absence does not prove Ansible is never executed elsewhere.
-
-## Accepted Milestone 6 — Ansible execution outcome source path
-
-Reports:
-
-```text
-docs/reports/2026-08-29-m6-ansible-execution-outcome-source-discovery.md
-docs/reports/2026-08-29-m6-jenkins-ansible-outcome-capability.md
-```
-
-Accepted source selection and capability:
-
-```text
-preferred source candidate: JENKINS_READ_ONLY_SOURCE_CANDIDATE
-management-host Ansible-named unit/timer/cron signals: NONE_OBSERVED
+preferred runtime outcome source candidate: JENKINS_READ_ONLY_SOURCE_CANDIDATE
 Jenkins integration source capability: JOB_AND_BUILD_METADATA_CAPABILITY_SIGNAL_OBSERVED
-console capability signal files: 1 — explicitly outside permitted evidence path
-config-body capability signal files: 0
-latest focused tests: 4 passed in 0.05s
-latest full suite before PR #71: 376 passed in 1.63s
-```
-
-Interpretation boundary:
-
-```text
-Jenkins source-code capability is not Jenkins runtime evidence.
-Jenkins runtime metadata is not automatically Ansible execution evidence.
-Console logs and job config bodies remain outside the permitted evidence path.
+latest accepted full suite before PR #71: 376 passed in 1.63s
 ```
 
 Preserve:
 
 ```text
-execution_outcome_status: UNKNOWN
-execution_success_status: UNKNOWN
-idempotence_status: UNKNOWN
-configuration_drift_status: UNKNOWN
-successful_execution_claims: 0
-idempotence_claims: 0
-drift_claims: 0
+live managed host coverage: UNKNOWN
+Ansible execution outcome: UNKNOWN
+Ansible execution success: UNKNOWN
+idempotence: UNKNOWN
+configuration drift: UNKNOWN
 ```
+
+Jenkins integration capability is not Jenkins runtime evidence. Jenkins runtime metadata is not automatically Ansible execution evidence.
 
 ## Active Milestone 6 — Jenkins API metadata-only probe
 
-Implementation prepared on this branch:
+Implementation:
 
 ```text
 scripts/discovery/m6_jenkins_api_metadata_probe.py
 tests/test_jenkins_api_metadata_probe.py
 ```
 
-Goal:
+### First live attempt — NOT ACCEPTED AS OUTCOME EVIDENCE
+
+Validation before attempt:
 
 ```text
-Establish whether the accepted read-only Jenkins integration can safely enumerate runtime job/build metadata through a GET-only Jenkins JSON API request.
+focused tests: 4 passed in 0.08s
 ```
 
-Local authentication boundary:
+Observed attempt:
 
 ```text
-Only approved Jenkins URL/user/token/password keys may be loaded locally from process environment or the bounded Jenkins integration .env file.
-Credential and endpoint values must never be printed or persisted.
+connection_config_status: CONNECTION_CONFIG_UNAVAILABLE
+env_files_observed: 1
+env_files_read_for_approved_keys: 0
+credential_material_loaded_locally: False
+jenkins_api_invoked: False
+api_observation_status: NOT_ATTEMPTED
+jobs_total: 0
+jobs_with_last_build_metadata: 0
+discovery_rc: 2
 ```
 
-Permitted Jenkins API surface:
+Interpretation:
 
 ```text
-GET root /api/json with restricted tree:
-jobs[name,color,lastBuild[number,result,timestamp,building]]
+This is FAILED_TO_OBSERVE / NOT_ATTEMPTED, not negative Jenkins evidence.
+`jobs_total: 0` from this attempt MUST NOT be interpreted as Jenkins having zero jobs.
+No Jenkins API call occurred.
+No credential value or endpoint value was projected.
 ```
 
-Names and build numbers may be used only in memory. They must not be projected. Job names are inspected only for a weak `ansible` token count.
+Likely issue: the first parser accepted only a short fixed list of Jenkins connection-key aliases while the bounded integration `.env` uses another Jenkins-scoped naming/format convention.
 
-Permitted projection:
+### Retry fix prepared on active branch
+
+The connection parser now:
 
 ```text
-connection config status
-API observation status
-aggregate job count
-aggregate jobs with last-build metadata
-aggregate weak ansible-name-signal job count
-aggregate safe last-build result categories/counts
+accepts only keys with explicit JENKINS_ scope
+classifies URL/ENDPOINT, USER/USERNAME, TOKEN/PASSWORD/API_KEY roles
+supports `export KEY=value`
+rejects generic URL/TOKEN/PASSWORD variables
+fails closed if multiple distinct values map to the same connection role
+never projects key names or values
+```
+
+The permitted Jenkins runtime surface remains unchanged:
+
+```text
+HTTP method: GET only
+endpoint class: root /api/json only
+restricted tree: jobs[name,color,lastBuild[number,result,timestamp,building]]
 ```
 
 Explicitly prohibited:
@@ -189,9 +179,7 @@ On `mgmt-automation`:
 ```bash
 cd ~/projects/infrastructure-intelligence-assurance
 
-git fetch origin
-
-git switch --track origin/agent/m6-jenkins-api-metadata-probe
+git pull --ff-only origin agent/m6-jenkins-api-metadata-probe
 
 python3 -m pytest -q \
   tests/test_jenkins_api_metadata_probe.py
@@ -205,13 +193,13 @@ echo "discovery_rc=$?"
 Acceptance rules:
 
 - focused tests must pass;
-- only GET metadata endpoint may be invoked;
-- authentication values may be loaded locally but must never be projected;
-- endpoint URL value must not be projected;
+- connection material must resolve without projecting key names or values;
+- only a GET metadata endpoint may be invoked;
 - no console/config/parameters/environment/command/host-target surfaces may be requested;
 - job names/build numbers must not be printed or persisted;
-- API observation failure is `FAILED_TO_OBSERVE`, not negative evidence;
-- Jenkins build outcome metadata must not be promoted to Ansible execution success/idempotence/drift claims.
+- connection/API observation failure remains `FAILED_TO_OBSERVE`, never negative evidence;
+- Jenkins build metadata must not be promoted to Ansible execution success/idempotence/drift claims;
+- if retry succeeds, run the full repository suite before PR/merge.
 
 ## Trust invariants
 
