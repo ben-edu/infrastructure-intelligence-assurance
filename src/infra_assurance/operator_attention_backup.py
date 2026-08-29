@@ -83,6 +83,11 @@ def build_operator_attention_with_backup(
         ("source", "code", "check", "target"),
     )
 
+    operator_attention_total = int(operator["summary"].get("attention_now_total", 0) or 0)
+    operator_required_total = int(operator["summary"].get("required_live_verification_total", 0) or 0)
+    combined_attention_total = operator_attention_total + len(backup_attention)
+    combined_required_total = operator_required_total + len(backup_required)
+
     result = dict(operator)
     result["scope"] = CROSS_DOMAIN_SCOPE
     result["attention_now"] = attention_all[:max_items]
@@ -95,8 +100,8 @@ def build_operator_attention_with_backup(
     ]
 
     summary = dict(operator["summary"])
-    summary["attention_now_total"] = len(attention_all)
-    summary["required_live_verification_total"] = len(required_all)
+    summary["attention_now_total"] = combined_attention_total
+    summary["required_live_verification_total"] = combined_required_total
     summary["backup_assets_total"] = backup["summary"]["assets_total"]
     summary["backup_protection_unknown"] = backup["summary"]["protection_unknown"]
     summary["backup_restore_verification_unknown"] = backup["summary"]["restore_verification_unknown"]
@@ -104,8 +109,8 @@ def build_operator_attention_with_backup(
     result["summary"] = summary
 
     truncation = dict(operator["truncation"])
-    truncation["attention_now_truncated"] = len(attention_all) > max_items
-    truncation["required_live_verification_truncated"] = len(required_all) > max_items
+    truncation["attention_now_truncated"] = combined_attention_total > max_items
+    truncation["required_live_verification_truncated"] = combined_required_total > max_items
     result["truncation"] = truncation
 
     result["backup_assurance"] = {
