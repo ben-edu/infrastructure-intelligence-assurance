@@ -1,7 +1,7 @@
 # Milestone 6 — Terraform Local-State Safe Structural Aggregation
 
 Date: 2026-08-29
-Status: ACCEPTED PENDING FULL-SUITE GATE
+Status: ACCEPTED
 Mode: read-only / process-local state parsing / aggregate projection only
 
 ## Scope
@@ -23,6 +23,12 @@ Focused tests:
 
 ```text
 4 passed in 0.05s
+```
+
+Repository-wide regression gate:
+
+```text
+395 passed in 1.74s
 ```
 
 Accepted live discovery:
@@ -54,8 +60,6 @@ other_instances: 0
 managed_resource_type_counts: proxmox_vm_qemu=2
 state_structure_status: STRUCTURAL_AGGREGATE_OBSERVED
 ```
-
-A repository-wide test suite remains required before merge because this slice adds reusable discovery implementation and tests.
 
 ## Accepted interpretation
 
@@ -113,7 +117,7 @@ No Terraform CLI, provider API, SSH connection, repository mutation, or infrastr
 
 ## Next smallest useful step
 
-After the repository-wide suite passes and this slice is merged, perform a separate bounded **Terraform declared-to-local-state structural coverage** slice.
+Perform a separate bounded **Terraform declared-to-local-state structural coverage** slice.
 
 That relationship may compare only aggregate non-sensitive declared resource-type block counts against aggregate local-state managed resource-type block counts per accepted root. It must not expose resource names, addresses, instance identities, state values, provider configuration, tfvars, endpoints, credentials, or raw state.
 
