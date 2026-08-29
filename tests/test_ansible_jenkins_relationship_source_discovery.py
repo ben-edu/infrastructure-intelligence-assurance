@@ -67,3 +67,26 @@ def test_discover_preserves_ansible_outcome_unknown_when_none_observed(tmp_path,
     assert result["configuration_drift_status"] == "UNKNOWN"
     assert result["successful_execution_claims"] == 0
     assert result["drift_claims"] == 0
+
+
+def test_stream_scan_handles_candidate_larger_than_old_half_megabyte_limit(tmp_path):
+    candidate = tmp_path / "pipeline.json"
+    candidate.write_text("x" * (600 * 1024) + " jenkins ", encoding="utf-8")
+
+    status, jenkins, ansible = MODULE._scan_candidate_file("pipeline.json", candidate)
+
+    assert status == "COMPLETE"
+    assert jenkins is True
+    assert ansible is False
+
+
+def test_stream_scan_fails_closed_above_hard_ceiling(tmp_path, monkeypatch):
+    candidate = tmp_path / "pipeline.json"
+    candidate.write_text("jenkins ansible-playbook" * 10, encoding="utf-8")
+    monkeypatch.setattr(MODULE, "MAX_SCAN_BYTES", 32)
+
+    status, jenkins, ansible = MODULE._scan_candidate_file("pipeline.json", candidate)
+
+    assert status == "OVERSIZE"
+    assert jenkins is False
+    assert ansible is False
