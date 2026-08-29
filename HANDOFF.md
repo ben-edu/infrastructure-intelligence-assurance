@@ -72,7 +72,7 @@ configuration drift: UNKNOWN
 
 The eleven Jenkins `SUCCESS` values are Jenkins last-build metadata only and are not Ansible success evidence.
 
-## Active Milestone 6 — Ansible-to-Jenkins relationship source discovery
+## Merge-ready Milestone 6 — Ansible-to-Jenkins relationship source discovery
 
 Implementation:
 
@@ -81,7 +81,7 @@ scripts/discovery/m6_ansible_jenkins_relationship_source_discovery.py
 tests/test_ansible_jenkins_relationship_source_discovery.py
 ```
 
-Report recorded on this branch:
+Report:
 
 ```text
 docs/reports/2026-08-29-m6-ansible-jenkins-relationship-source-discovery.md
@@ -99,7 +99,7 @@ AND one accepted Ansible execution entry point in the same safe tracked text fil
 
 Generic `jenkins` / `ansible` token co-occurrence does not count.
 
-### First live attempt — rejected for bounded absence
+### Rejected first attempt
 
 ```text
 focused tests: 4 passed in 0.06s
@@ -115,18 +115,11 @@ discovery_rc: 2
 
 This is `FAILED_TO_OBSERVE / INCOMPLETE`. Do not reuse its zero relationship count as negative evidence.
 
-### Retry fix
-
-The old `512 KiB` whole-file ceiling was replaced by bounded streaming with an `8 MiB` hard ceiling. Raw source content is neither retained as evidence nor printed. Files above the hard ceiling or read/decode failures still fail closed.
-
-Additional guards verify safe streaming above the old ceiling and fail-closed behavior above the hard ceiling.
-
-### Successful retry — accepted bounded relationship absence
+### Accepted retry
 
 ```text
 focused tests: 6 passed in 0.14s
 discovery_rc: 0
-source_mode: GIT_TRACKED_SAFE_JENKINS_ANSIBLE_RELATIONSHIP_TEXT_ONLY
 source_status: COMPLETE
 tracked_files_returned: 400
 candidate_files_selected: 158
@@ -140,11 +133,17 @@ explicit_relationship_signal_files: 0
 relationship_source_status: NONE_OBSERVED_IN_BOUNDED_SOURCE
 ```
 
+Repository-wide gate:
+
+```text
+387 passed in 1.76s
+```
+
 Interpretation:
 
 ```text
 No explicit declared Jenkins-to-Ansible relationship was observed in the complete bounded safe Git source.
-This is bounded declared-source absence only, not proof that Jenkins can never invoke Ansible elsewhere.
+This is bounded declared-source absence only, not universal absence.
 Previously accepted Jenkins build SUCCESS metadata cannot be promoted to Ansible execution-success evidence.
 ```
 
@@ -184,29 +183,21 @@ Only safe Git-tracked workflow/script-like text was inspected. Sensitive paths, 
 
 No raw source lines, commands, arguments, credentials, host/inventory values, job names, build numbers, endpoints, console logs, config bodies, or build parameters entered evidence output.
 
-## Merge gate — PENDING
+## Merge gate
 
-Focused tests and live retry passed. Because reusable implementation/tests changed, run the full repository suite before PR/merge.
+```text
+focused tests: PASS — 6 passed in 0.14s
+live retry: PASS — discovery_rc=0
+full repository suite: PASS — 387 passed in 1.76s
+```
 
 ## Exact next step
 
-On `mgmt-automation` run only:
-
-```bash
-cd ~/projects/infrastructure-intelligence-assurance
-python3 -m pytest -q
-```
-
-Do not use strict interactive shell mode.
-
-If the full suite passes:
-
-1. record the exact pass count in this handoff/report/PR;
-2. inspect changed-file scope and ensure no temporary/debug/placeholder files exist;
-3. create/inspect a non-draft PR and squash-merge when clean;
-4. carry the new accepted `main` SHA into the next branch handoff;
-5. do not continue the Jenkins-to-Ansible relationship path without new evidence;
-6. return to remaining Milestone 6 gaps and choose the smallest independent read-only slice that can add authoritative evidence.
+1. Inspect branch/PR changed-file scope and ensure no temporary/debug/placeholder files exist.
+2. Create/inspect a non-draft PR and squash-merge when clean.
+3. Carry the new accepted `main` SHA into the next branch handoff.
+4. Do not continue the Jenkins-to-Ansible relationship path without new evidence.
+5. Return to remaining Milestone 6 gaps and choose the smallest independent read-only slice that can add authoritative evidence.
 
 ## Trust invariants
 
