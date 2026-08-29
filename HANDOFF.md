@@ -8,8 +8,8 @@ For context-window-independent continuation, read `docs/PROJECT_CONTINUITY.md`, 
 
 ```text
 repository: ben-edu/infrastructure-intelligence-assurance
-accepted main after PR #71: b8e962b8895bde867a425b5161aea07e938ea97f
-active branch: agent/m6-jenkins-api-metadata-probe
+accepted main after PR #72: 2ca3faeae0ad29c142ee7c24a019b43e61f84971
+active branch: agent/m6-ansible-jenkins-relationship-source
 package on accepted main: 0.27.0
 Milestone 5 overall: NOT COMPLETE
 Milestone 5 read-only source discovery: COMPLETE FOR CURRENT AUTHORITATIVE SOURCES
@@ -46,9 +46,9 @@ docs/reports/2026-08-29-m6-terraform-root-module-declared-coverage.md
 docs/reports/2026-08-29-m6-terraform-execution-declaration-discovery.md
 ```
 
-Preserve Terraform state-backed coverage, live resource coverage, execution outcome, plan/apply result, drift, and destructive-change status as `UNKNOWN` unless stronger authoritative evidence is added. Do not reuse the rejected first Terraform execution scan containing the gate-only false positive.
+Preserve Terraform state-backed coverage, live resource coverage, execution outcome, plan/apply result, drift, and destructive-change status as `UNKNOWN`. Do not reuse the rejected first Terraform gate-only false positive.
 
-## Accepted Milestone 6 — Ansible declared/source path
+## Accepted Milestone 6 — Ansible and Jenkins evidence path
 
 Accepted reports:
 
@@ -58,6 +58,7 @@ docs/reports/2026-08-29-m6-ansible-playbook-role-declared-coverage.md
 docs/reports/2026-08-29-m6-ansible-execution-declaration-discovery.md
 docs/reports/2026-08-29-m6-ansible-execution-outcome-source-discovery.md
 docs/reports/2026-08-29-m6-jenkins-ansible-outcome-capability.md
+docs/reports/2026-08-29-m6-jenkins-api-metadata-probe.md
 ```
 
 Accepted bounded state:
@@ -66,13 +67,25 @@ Accepted bounded state:
 inventory files: 5
 playbooks: 10
 role directories: 7
-inventory group declarations: 6
-inventory host declarations: 8
 referenced local role directories: 7/7
-bounded workflow/script files scanned for Ansible execution declarations: 156
-accepted Ansible execution declaration files: 0
+accepted Ansible execution declaration files in bounded safe Git source: 0
 preferred runtime outcome source candidate: JENKINS_READ_ONLY_SOURCE_CANDIDATE
 Jenkins integration source capability: JOB_AND_BUILD_METADATA_CAPABILITY_SIGNAL_OBSERVED
+Jenkins API observation: COMPLETE
+Jenkins jobs observed: 25
+jobs with last-build metadata: 11
+Jenkins last-build categories: SUCCESS=11
+weak in-memory ansible-name-signal jobs: 0
+latest accepted full suite before PR #72: 381 passed in 1.72s
+```
+
+Rejected Jenkins API observation that must not be reused:
+
+```text
+first connection attempt: CONNECTION_CONFIG_UNAVAILABLE
+jenkins_api_invoked: False
+api_observation_status: NOT_ATTEMPTED
+zero job values from that attempt are FAILED_TO_OBSERVE, not negative evidence
 ```
 
 Preserve:
@@ -85,129 +98,100 @@ idempotence: UNKNOWN
 configuration drift: UNKNOWN
 ```
 
-## Merge-ready Milestone 6 — Jenkins API metadata-only probe
+The eleven Jenkins `SUCCESS` values are Jenkins last-build metadata only and are not Ansible success evidence.
 
-Implementation:
+## Active Milestone 6 — Ansible-to-Jenkins relationship source discovery
 
-```text
-scripts/discovery/m6_jenkins_api_metadata_probe.py
-tests/test_jenkins_api_metadata_probe.py
-```
-
-Report:
+Implementation prepared on this branch:
 
 ```text
-docs/reports/2026-08-29-m6-jenkins-api-metadata-probe.md
+scripts/discovery/m6_ansible_jenkins_relationship_source_discovery.py
+tests/test_ansible_jenkins_relationship_source_discovery.py
 ```
 
-### Rejected first observation
+Goal:
 
 ```text
-focused tests: 4 passed in 0.08s
-connection_config_status: CONNECTION_CONFIG_UNAVAILABLE
-jenkins_api_invoked: False
-api_observation_status: NOT_ATTEMPTED
-jobs_total: 0
-discovery_rc: 2
+Determine whether a bounded safe Git-tracked source contains an explicit declared relationship between Jenkins context and an accepted Ansible execution entry point.
 ```
 
-This is `FAILED_TO_OBSERVE / NOT_ATTEMPTED`. Do not reuse the zero values as negative Jenkins evidence.
-
-### Accepted retry
+A positive relationship signal requires both in the same safe tracked text file:
 
 ```text
-focused tests: 5 passed in 0.06s
-discovery_rc: 0
-connection_config_status: CONNECTION_CONFIG_READY
-env_files_observed: 1
-env_files_read_for_approved_keys: 1
-credential_material_loaded_locally: True
-credential_values_projected: False
-endpoint_value_projected: False
-jenkins_api_invoked: True
-api_observation_status: COMPLETE
-jobs_total: 25
-jobs_with_last_build_metadata: 11
-ansible_name_signal_jobs: 0
-ansible_name_signal_jobs_with_last_build_metadata: 0
-last_build_result_counts: SUCCESS=11
-ansible_name_signal_last_build_result_counts: NONE_OBSERVED
+explicit Jenkins context
+AND
+one accepted Ansible execution entry point:
+  ansible-playbook
+  ansible-runner run
+  ansible-navigator run
 ```
 
-Repository-wide gate:
+Generic words such as `ansible` or `jenkins` alone do not count.
+
+Safe source scope:
 
 ```text
-381 passed in 1.72s
+Git-tracked Jenkins/workflow/script-like text only
+sensitive path classes excluded
+Ansible group_vars/host_vars/vars excluded
+Terraform state/tfvars excluded
+.env excluded
+credential/token/private-key-like paths excluded
 ```
 
-Interpretation boundary:
+Permitted projection:
 
 ```text
-This is accepted Jenkins runtime metadata evidence.
-It is NOT accepted Ansible execution-outcome evidence.
-The 11 SUCCESS values are Jenkins last-build categories only.
-No weak `ansible` token was observed in in-memory job names; this is bounded weak-name absence only.
-Job names and build numbers were not projected.
+source completeness
+tracked/candidate/scanned counts
+Jenkins-context file count
+Ansible-entrypoint signal file count
+explicit relationship signal file count
+relationship source status
 ```
 
-Preserve:
+Raw source lines, commands, arguments, job names, build numbers, inventory values, host targets, credentials, endpoints, console logs, job configuration bodies, build parameters, and Vault material must not be projected.
 
-```text
-Ansible execution_outcome_status: UNKNOWN
-Ansible execution_success_status: UNKNOWN
-idempotence_status: UNKNOWN
-configuration_drift_status: UNKNOWN
-successful_execution_claims: 0
-idempotence_claims: 0
-drift_claims: 0
-```
-
-## Runtime trust boundary
-
-```text
-mutation_allowed: False
-HTTP method: GET only
-permitted endpoint class: root /api/json only
-restricted tree: jobs[name,color,lastBuild[number,result,timestamp,building]]
-console logs inspected: False
-job config bodies inspected: False
-build parameters inspected: False
-credential values projected: False
-endpoint value projected: False
-Ansible CLI invoked: False
-SSH performed: False
-```
-
-No console log, `config.xml`, build parameter, environment value, raw command, inventory argument, host target, Vault material, job name, build number, endpoint value, or credential value entered evidence output.
-
-## Merge gate
-
-```text
-focused tests: PASS — 5 passed in 0.06s
-live retry: PASS — discovery_rc=0
-full repository suite: PASS — 381 passed in 1.72s
-```
+Even a positive declared relationship signal would not prove a particular Jenkins build executed Ansible or succeeded.
 
 ## Exact next step
 
-1. Inspect changed-file scope for `agent/m6-jenkins-api-metadata-probe` and ensure no temporary/debug/placeholder files exist.
-2. Create/inspect a non-draft PR and squash-merge when clean.
-3. Carry the new accepted `main` SHA into the next branch handoff.
-4. Start bounded **Ansible-to-Jenkins relationship source discovery**.
+On `mgmt-automation`:
 
-The next slice must determine whether any safe authoritative metadata source can relate a Jenkins job/build to Ansible execution without reading console logs, job configuration bodies, build parameters, raw command bodies, credentials, or sensitive host/inventory data.
+```bash
+cd ~/projects/infrastructure-intelligence-assurance
 
-If no safe relationship source exists, preserve Ansible execution outcome as `UNKNOWN` and stop widening this evidence path merely to eliminate the unknown.
+git fetch origin
+
+git switch --track origin/agent/m6-ansible-jenkins-relationship-source
+
+python3 -m pytest -q \
+  tests/test_ansible_jenkins_relationship_source_discovery.py
+
+PYTHONPATH=src python3 \
+  scripts/discovery/m6_ansible_jenkins_relationship_source_discovery.py
+
+echo "discovery_rc=$?"
+```
+
+Acceptance rules:
+
+- focused tests must pass;
+- source must be complete for bounded absence to be accepted;
+- generic token co-occurrence is not relationship evidence;
+- no Jenkins API, Ansible CLI, SSH, console/config/parameter access, or infrastructure mutation is allowed;
+- no raw commands/arguments, credentials, host/inventory values, job names, or build identifiers may be projected;
+- relationship discovery must keep Ansible execution outcome/success/idempotence/drift `UNKNOWN`;
+- if no safe explicit relationship source is observed, record bounded absence and stop widening the Jenkins→Ansible outcome path merely to eliminate the unknown.
 
 ## Trust invariants
 
 - infrastructure interaction remains read-only;
 - declared state is not observed state;
-- Jenkins integration capability is not Jenkins runtime evidence;
 - Jenkins runtime metadata is not automatically Ansible execution evidence;
 - bounded absence is not universal absence;
 - `FAILED_TO_OBSERVE`/`INCOMPLETE` is not negative evidence;
-- Terraform state/real tfvars and Ansible Vault/credential material do not enter evidence/AI context;
+- Terraform state/real tfvars and Ansible variable/Vault/credential material do not enter evidence/AI context;
 - no raw commands, arguments, environment values, credentials, host targets, console logs, job configuration bodies, build parameters, or sensitive connection strings enter evidence/AI context;
 - no drift, execution success, idempotence, compliance, or destructive-change result is inferred without authoritative evidence;
 - unknowns are not forced closed;
