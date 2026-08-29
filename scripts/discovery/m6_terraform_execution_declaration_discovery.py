@@ -157,7 +157,11 @@ def discover(repo: Path = SOURCE_REPO) -> dict[str, Any]:
 
         phases, gate_signal = _classify_text(text)
         result["candidate_files_scanned"] += 1
-        if not phases and not gate_signal:
+
+        # Gate/approval vocabulary alone is not Terraform evidence. Gate metadata is
+        # retained only when the same file also contains at least one explicit
+        # Terraform phase token.
+        if not phases:
             continue
 
         phase_names = sorted(phases)
@@ -219,7 +223,7 @@ def main() -> int:
     if not result["files"]:
         print("terraform_execution_signal_files: NONE_OBSERVED")
     for row in result["files"]:
-        phases = ",".join(row["terraform_phase_signals"]) or "NONE_OBSERVED"
+        phases = ",".join(row["terraform_phase_signals"])
         print(
             f"path={row['path']}"
             f" terraform_phase_signals={phases}"
@@ -250,7 +254,8 @@ def main() -> int:
     print()
     print("===== INTERPRETATION BOUNDARY =====")
     print("Terraform phase tokens in Git-tracked workflow/script text are declared execution signals only, not evidence that any command executed or succeeded.")
-    print("Gate keywords are bounded lexical signals only; they do not prove that a gate protects a particular apply step unless a future stronger structural relationship is established.")
+    print("Gate keywords are considered only inside files that also contain an explicit Terraform phase token; they do not prove that a gate protects a particular apply step.")
+    print("Gate-only files are excluded from Terraform execution evidence.")
     print("NONE_OBSERVED_IN_BOUNDED_SOURCE is bounded negative evidence only, not proof that the phase is never executed elsewhere.")
     print("No plan output, apply output, state, provider result, drift result, or destructive-change result is inferred.")
 
