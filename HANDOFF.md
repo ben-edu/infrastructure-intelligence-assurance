@@ -76,67 +76,91 @@ terraform/modules/proxmox_vm -> MODULE_DIRECTORY
 
 Configuration-derived resources remain DECLARED state only. Backend absence is bounded source absence only and does not establish absence of state/backend elsewhere.
 
-## Active Milestone 6 slice — Terraform root-to-module declared coverage
+## Accepted Milestone 6 slice — Terraform root/module declared coverage
 
-Implementation:
+Report:
 
 ```text
-scripts/discovery/m6_terraform_root_module_coverage.py
-tests/test_terraform_root_module_coverage.py
+docs/reports/2026-08-29-m6-terraform-root-module-declared-coverage.md
 ```
 
-Goal: determine whether each current Terraform root candidate has a safely resolvable local-module path to declared resource types, using Git-tracked `.tf` structure only.
-
-Allowed safe projections:
+Accepted tests:
 
 ```text
-root directory identifier
-module block count
-resolved local-module relationship count
-resolved local module directory identifier
-reachable resource types and declaration counts
-structural declared-resource-path status
+root/module discovery: 4 passed in 0.09s
+resource-location probe: 2 passed in 0.07s
 ```
 
-Local module source values may be read in memory only for path resolution. They must never be printed or persisted. Only relative paths that normalize inside the bounded repository and point to a directory containing Git-tracked `.tf` files may be classified as `RESOLVED_LOCAL_MODULE`.
-
-External/registry/git/URL module sources must not be followed. Resource instance names and module block names must not be projected.
-
-Expected preserved states:
+Accepted root/module relationships:
 
 ```text
+terraform/environments/bm1
+  module_blocks: 1
+  resolved local module: terraform/modules/proxmox_vm
+  resource types in resolved module: NONE_OBSERVED
+  direct root resource types: proxmox_vm_qemu=1
+
+terraform/environments/bm2
+  module_blocks: 1
+  resolved local module: terraform/modules/proxmox_vm
+  resource types in resolved module: NONE_OBSERVED
+  direct root resource types: proxmox_vm_qemu=1
+
+terraform/modules/proxmox_vm
+  declared resource types: NONE_OBSERVED
+```
+
+Summary:
+
+```text
+root_candidates_total: 2
+module_blocks_total: 2
+relationships_resolved: 2
+roots_with_resolved_local_module: 2
+roots_with_declared_resource_path_through_module: 0
+direct_root_resource_blocks: 2
+module_declared_resource_blocks: 0
 live_resource_coverage_status: UNKNOWN
 state_backed_coverage_status: UNKNOWN
 drift_status: UNKNOWN
 destructive_change_status: UNKNOWN
 ```
 
+The local module relationship is real declared structure, but the accepted `proxmox_vm_qemu` blocks are declared directly in `bm1` and `bm2`, not inside `terraform/modules/proxmox_vm`.
+
+Do not infer runtime VM count from the two resource blocks. Meta-arguments, variable-driven expansion, state membership, live existence, and provider reachability remain outside the accepted evidence.
+
 ## Exact next step
 
-On `mgmt-automation`:
+Start the smallest useful Terraform execution-governance slice: **Git-tracked plan/apply declaration discovery**.
 
-```bash
-cd ~/projects/infrastructure-intelligence-assurance
+Goal: determine whether the bounded infrastructure repository declares Terraform execution workflows/scripts and whether they distinguish plan from apply, without executing Terraform and without reading secrets or runtime values.
 
-git fetch origin
+Safe questions:
 
-git switch --track origin/agent/m6-terraform-root-module-coverage
-
-python3 -m pytest -q \
-  tests/test_terraform_root_module_coverage.py
-
-PYTHONPATH=src python3 \
-  scripts/discovery/m6_terraform_root_module_coverage.py
-
-echo "discovery_rc=$?"
+```text
+Are Git-tracked CI/workflow/script files present that explicitly reference Terraform plan/apply/init/validate?
+Which execution phases are declared by safe filename/structural command-token evidence?
+Is apply declaration present, absent in bounded scope, or unknown?
+Is any approval/gate signal safely observable from workflow structure?
 ```
 
-Accept only structural declared-state relationships. Do not infer Terraform state membership, live resource existence, provider reachability, drift, or destructive-change status.
+Safety constraints:
+
+- scan Git-tracked text only;
+- exclude env/secret/credential/private-key/certificate/tfvars/state paths;
+- do not print raw command lines or arguments;
+- do not print environment values, credentials, endpoints, or connection strings;
+- project only file identifier, execution token category, and bounded gate/approval metadata when structurally explicit;
+- do not invoke Terraform, Jenkins, GitHub Actions, or provider APIs;
+- do not infer successful plan/apply execution from declared workflow text;
+- preserve drift and destructive-change results as UNKNOWN.
 
 ## Trust invariants
 
 - infrastructure interaction remains read-only;
 - declared state is not observed state;
+- declared execution workflow is not observed execution outcome;
 - source artifacts and derived assurance remain separate;
 - Terraform state and real tfvars do not enter evidence/AI context;
 - provider/backend/module sensitive values are not projected;
