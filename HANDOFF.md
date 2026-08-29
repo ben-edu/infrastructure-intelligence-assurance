@@ -72,7 +72,7 @@ scripts/discovery/m7_backup_assurance_operator_adapter_probe.py
 
 No runtime integration, service change, datastore, live infrastructure query, or management-host mutation is part of this contract slice.
 
-## Validation — ACCEPTED PENDING FULL SUITE
+## Validation — ACCEPTED
 
 Focused tests:
 
@@ -88,6 +88,12 @@ backup_assurance_source_status: COMPLETE
 cluster_id: k3s-main
 scope: BACKUP_ASSURANCE_EXISTING_EVIDENCE_ONLY
 discovery_rc=0
+```
+
+Full repository suite:
+
+```text
+418 passed in 1.96s
 ```
 
 Accepted compact summary:
@@ -158,30 +164,28 @@ asset detail projection: false
 secrets/credentials projection: false
 ```
 
-## Exact next gate — FULL REPOSITORY SUITE
+## Merge gate — READY
 
-On `mgmt-automation`:
+All required gates passed:
 
-```bash
-cd ~/projects/infrastructure-intelligence-assurance
-python3 -m pytest -q
+```text
+focused tests: 6 passed in 0.05s
+live read-only probe: source_status=COMPLETE / discovery_rc=0
+full suite: 418 passed in 1.96s
 ```
 
-Do not use strict interactive shell mode.
+Before merge:
 
-If the full suite passes:
-
-1. record exact pass count/time in this handoff and the report;
-2. verify branch scope is exactly five intended files:
+1. verify branch scope is exactly five intended files:
    - `HANDOFF.md`
    - `docs/reports/2026-08-29-m7-backup-assurance-operator-adapter.md`
    - `scripts/discovery/m7_backup_assurance_operator_adapter_probe.py`
    - `src/infra_assurance/backup_operator_adapter.py`
    - `tests/test_backup_operator_adapter.py`
-3. ensure no temporary/debug/placeholder files exist;
-4. create/inspect a non-draft PR;
-5. verify mergeability and changed filenames;
-6. squash-merge and carry the new accepted main SHA forward.
+2. ensure no temporary/debug/placeholder files exist;
+3. create/inspect a non-draft PR;
+4. verify mergeability and changed filenames;
+5. squash-merge and carry the new accepted main SHA forward.
 
 After merge, reassess whether integrating this compact adapter into the existing operator-attention runtime is the next smallest useful M7 step. Do not jump directly to a dashboard.
 
