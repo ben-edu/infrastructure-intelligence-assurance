@@ -39,16 +39,6 @@ unknowns_total: 0
 required_live_verification_total: 0
 ```
 
-Accepted attention items:
-
-```text
-Service/monitoring/loki-headless
-  SERVICE_SELECTOR_MULTIPLE_CONTROLLER_MATCHES / AMBIGUOUS
-
-Ingress/validation/nginx-validation
-  DECLARED_OBSERVED_DRIFT / DRIFT
-```
-
 Preserve rejected/incomplete attempts:
 
 ```text
@@ -60,39 +50,16 @@ Do not reuse either as negative evidence.
 
 ## Active slice — compact backup-assurance operator adapter
 
-Roadmap gap addressed:
+Accepted report:
 
 ```text
-What is unprotected?
-Which recovery test is overdue?
-What is unknown about protection/recovery?
+docs/reports/2026-08-29-m7-backup-assurance-operator-adapter.md
 ```
 
-Current authoritative runtime artifact already exists:
+Source artifact:
 
 ```text
 /var/lib/infra-assurance/evidence/backup-assurance.json
-```
-
-Important current trust semantics from the accepted backup-assurance foundation:
-
-```text
-protection status is UNKNOWN when authoritative backup evidence is not integrated
-UNKNOWN != UNPROTECTED
-unprotected claims require sufficient authoritative backup evidence
-restore verification UNKNOWN != restore test overdue
-```
-
-Current foundation summary schema includes:
-
-```text
-assets_total
-assets_stale
-assets_freshness_unknown
-protection_unknown
-restore_verification_unknown
-unprotected_claims
-authoritative_backup_sources_integrated
 ```
 
 Prepared implementation:
@@ -103,56 +70,120 @@ tests/test_backup_operator_adapter.py
 scripts/discovery/m7_backup_assurance_operator_adapter_probe.py
 ```
 
-The adapter intentionally projects only compact aggregate counts, compact attention codes, and deduplicated authoritative verification categories. It discards per-asset details and raw unknown text.
-
-Expected operator semantics:
-
-```text
-BACKUP_PROTECTION_UNKNOWN -> aggregate UNKNOWN only
-RESTORE_VERIFICATION_UNKNOWN -> aggregate UNKNOWN only
-AUTHORITATIVE_BACKUP_SOURCE_NOT_INTEGRATED -> explicit evidence gap
-UNPROTECTED_CLAIMS_OBSERVED -> only when source summary explicitly reports >0 authoritative claims
-recovery_test_overdue_claimed -> always false in this slice
-```
-
 No runtime integration, service change, datastore, live infrastructure query, or management-host mutation is part of this contract slice.
 
-## Exact next step
+## Validation — ACCEPTED PENDING FULL SUITE
+
+Focused tests:
+
+```text
+6 passed in 0.05s
+```
+
+Accepted live probe:
+
+```text
+source_status: COMPLETE
+backup_assurance_source_status: COMPLETE
+cluster_id: k3s-main
+scope: BACKUP_ASSURANCE_EXISTING_EVIDENCE_ONLY
+discovery_rc=0
+```
+
+Accepted compact summary:
+
+```text
+assets_total: 37
+assets_stale: 0
+assets_freshness_unknown: 0
+protection_unknown: 37
+restore_verification_unknown: 37
+unprotected_claims: 0
+authoritative_backup_sources_integrated: 0
+attention_total: 3
+required_verification_categories_total: 8
+```
+
+Accepted attention projection:
+
+```text
+BACKUP_PROTECTION_UNKNOWN / UNKNOWN / count=37
+RESTORE_VERIFICATION_UNKNOWN / UNKNOWN / count=37
+AUTHORITATIVE_BACKUP_SOURCE_NOT_INTEGRATED / UNKNOWN
+```
+
+Accepted verification categories:
+
+```text
+OBSERVE_BACKUP_MECHANISM
+OBSERVE_LAST_SUCCESSFUL_BACKUP
+OBSERVE_BACKUP_RETENTION
+OBSERVE_BACKUP_FAILURE_DOMAIN
+OBSERVE_BACKUP_INTEGRITY_VERIFICATION
+OBSERVE_RESTORE_TEST
+OBSERVE_RPO_TARGET_AND_RESULT
+OBSERVE_RTO_TARGET_AND_RESULT
+```
+
+All require an authoritative source.
+
+## Trust semantics — MUST PRESERVE
+
+```text
+UNKNOWN protection != UNPROTECTED
+restore verification UNKNOWN != recovery test overdue
+unprotected claims require authoritative backup evidence
+```
+
+Accepted probe trust checks:
+
+```text
+unknown_is_not_unprotected: True
+recovery_test_overdue_claimed: False
+authoritative_backup_evidence_required_for_unprotected: True
+```
+
+The source currently reports `unprotected_claims=0`. Do not infer unprotected assets from `protection_unknown=37`.
+
+Do not infer overdue restore testing from `restore_verification_unknown=37`.
+
+Safety boundary:
+
+```text
+mutation_allowed: false
+live infrastructure query: false
+source artifact write: false
+raw source projection: false
+asset detail projection: false
+secrets/credentials projection: false
+```
+
+## Exact next gate — FULL REPOSITORY SUITE
 
 On `mgmt-automation`:
 
 ```bash
 cd ~/projects/infrastructure-intelligence-assurance
-
-git fetch origin
-
-git switch --track origin/agent/m7-backup-assurance-operator-adapter
-
-python3 -m pytest -q \
-  tests/test_backup_operator_adapter.py
-
-sudo env \
-  PYTHONPATH="$PWD/src" \
-  python3 "$PWD/scripts/discovery/m7_backup_assurance_operator_adapter_probe.py"
-
-echo "discovery_rc=$?"
+python3 -m pytest -q
 ```
 
 Do not use strict interactive shell mode.
 
-The one-time `sudo` probe is validation-only because the repository is under `/home/ben` while the evidence artifact is protected. It performs only a bounded read of `backup-assurance.json`; it is not a runtime design.
+If the full suite passes:
 
-Acceptance rules:
+1. record exact pass count/time in this handoff and the report;
+2. verify branch scope is exactly five intended files:
+   - `HANDOFF.md`
+   - `docs/reports/2026-08-29-m7-backup-assurance-operator-adapter.md`
+   - `scripts/discovery/m7_backup_assurance_operator_adapter_probe.py`
+   - `src/infra_assurance/backup_operator_adapter.py`
+   - `tests/test_backup_operator_adapter.py`
+3. ensure no temporary/debug/placeholder files exist;
+4. create/inspect a non-draft PR;
+5. verify mergeability and changed filenames;
+6. squash-merge and carry the new accepted main SHA forward.
 
-- focused tests pass;
-- probe returns `source_status: COMPLETE` and `discovery_rc=0`;
-- raw backup-assurance artifact is not printed;
-- per-asset details are not projected;
-- UNKNOWN is not rewritten as UNPROTECTED;
-- no recovery-test-overdue claim is produced without authoritative timing evidence;
-- source failure remains FAILED_TO_OBSERVE, never zero-risk evidence.
-
-If accepted, create the report, run the full repository suite, inspect exact branch scope, PR/squash-merge, then decide whether to integrate this compact adapter into the operator-attention runtime.
+After merge, reassess whether integrating this compact adapter into the existing operator-attention runtime is the next smallest useful M7 step. Do not jump directly to a dashboard.
 
 ## Preserved M6 boundaries
 
