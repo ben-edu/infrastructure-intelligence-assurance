@@ -32,7 +32,11 @@ read_failures=0
 oversize_skips=0
 ```
 
-A repository-wide test suite remains required before merge because this slice adds reusable discovery implementation and tests.
+Repository-wide regression gate:
+
+```text
+376 passed in 1.63s
+```
 
 ## Accepted capability signals
 
@@ -94,7 +98,7 @@ No Jenkins API, Ansible CLI, SSH connection, or infrastructure mutation was perf
 
 ## Next smallest useful step
 
-After the repository-wide suite passes and this slice is merged, perform a bounded **Jenkins API metadata-only probe**.
+After this slice is merged, perform a bounded **Jenkins API metadata-only probe**.
 
 That future slice may use the accepted read-only integration capability only to establish whether safe Jenkins job/build metadata can be enumerated at runtime.
 
