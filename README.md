@@ -8,7 +8,7 @@ Milestones 0–4 are complete within their accepted scopes and live-validation b
 
 Milestone 5 — Backup and Recovery Assurance is **not complete overall**. Its current authoritative read-only source-discovery phase is complete, while restore verification, integrity verification, retention effectiveness, accepted RPO/RTO evaluation, stronger physical failure-domain assurance, and application/database-consistent backup evidence remain explicitly unresolved or deferred until stronger evidence or controlled mutation is authorized.
 
-Milestone 6 — IaC Governance is active. Accepted read-only slices currently cover bounded Terraform declared-state structure, Terraform root/module relationships, bounded Terraform execution-declaration discovery, and Ansible declared-state inventory. Terraform state-backed coverage, live provider coverage, Ansible execution outcomes, idempotence, managed-host live coverage, and configuration drift remain `UNKNOWN` unless separately verified.
+Milestone 6 — IaC Governance is **not complete overall**. Its current read-only governance phase is complete for the authoritative sources and safe observation paths currently available. Accepted evidence covers Terraform roots/workspace discovery, declared/root-module structure, local-state aggregate structure, declared-to-local-state structural relationship, bounded plan metadata, destructive-proposal detection, bounded state-tracked refresh drift signals, and Ansible declared inventory/playbook/role structure plus bounded execution-source investigation. Terraform apply outcome/full live-resource coverage/state authority and Ansible live managed-host coverage/execution outcomes/idempotence/configuration drift remain explicitly `UNKNOWN` until materially stronger evidence or authorized execution is available.
 
 The live evidence loop established by earlier milestones continues to run on the management host every five minutes.
 
@@ -218,7 +218,7 @@ A failed Prometheus runtime query becomes `PARTIAL` or `FAILED_TO_OBSERVE` and n
 
 Raw Kubernetes Secret values are never collected. The Kubernetes observer has no Secret access and no mutating verbs.
 
-Declared Terraform/Ansible configuration is not promoted to live managed-resource or managed-host state. Bounded source absence is not universal absence, and execution declarations are not execution outcomes.
+Declared Terraform/Ansible configuration is not promoted to universal live managed-resource or managed-host state. Bounded Terraform provider-read drift signals are state-tracked evidence only, and bounded source absence is not universal absence. Execution declarations are not execution outcomes.
 
 `mutation_allowed` remains `false` unless an explicitly reviewed and authorized slice changes that boundary.
 
@@ -280,6 +280,7 @@ See:
 - `HANDOFF.md` for the exact current accepted checkpoint and next step;
 - `docs/PROJECT_CONTINUITY.md` for context-window-independent resume rules;
 - `docs/reports/2026-08-23-m5-read-only-discovery-closure.md` for the Milestone 5 read-only closure boundary;
+- `docs/reports/2026-08-29-m6-read-only-governance-closure.md` for the Milestone 6 current read-only governance closure boundary;
 - `docs/decisions/0008-workload-centric-operational-inventory.md` for the workload inventory boundary;
 - `docs/decisions/0009-prometheus-operator-coverage-is-not-scrape-health.md` for configuration coverage semantics;
 - `docs/decisions/0010-prometheus-runtime-evidence-via-read-only-service-proxy.md` for runtime Prometheus access and trust boundaries;

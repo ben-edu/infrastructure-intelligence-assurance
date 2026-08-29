@@ -8,20 +8,21 @@ For context-window-independent continuation, read `docs/PROJECT_CONTINUITY.md`, 
 
 ```text
 repository: ben-edu/infrastructure-intelligence-assurance
-accepted main after PR #76: 88c4458b59a9e24d92cd6d7671be15d6525d7120
-active branch: agent/m6-terraform-readonly-plan-evidence
+accepted main after PR #77: 61a5478e207e9c497e7cdcb624f853324b9de984
+active branch: agent/m6-readonly-governance-closure
 package on accepted main: 0.27.0
 Milestone 5 overall: NOT COMPLETE
 Milestone 5 read-only source discovery: COMPLETE FOR CURRENT AUTHORITATIVE SOURCES
-Milestone 6: ACTIVE
+Milestone 6 overall: NOT COMPLETE
+Milestone 6 current read-only governance phase: COMPLETE FOR CURRENT AUTHORITATIVE SOURCES AND SAFE OBSERVATION PATHS
 mutation_allowed: false
 management host: mgmt-automation
 bounded infrastructure repository: /home/ben/projects/afpa-infra-rebuild
 ```
 
-## Accepted Milestone 6 baseline
+## Accepted Milestone 6 — Terraform evidence
 
-Terraform accepted reports through PR #76:
+Accepted reports:
 
 ```text
 docs/reports/2026-08-29-m6-terraform-declared-state-inventory.md
@@ -30,228 +31,165 @@ docs/reports/2026-08-29-m6-terraform-execution-declaration-discovery.md
 docs/reports/2026-08-29-m6-terraform-runtime-artifact-source-discovery.md
 docs/reports/2026-08-29-m6-terraform-local-state-safe-structure.md
 docs/reports/2026-08-29-m6-terraform-declared-to-local-state-structural-coverage.md
-```
-
-Accepted Terraform baseline:
-
-```text
-roots: terraform/environments/bm1, terraform/environments/bm2
-provider type: proxmox
-declared resource type: proxmox_vm_qemu
-local states parsed complete: 2/2 roots
-local-state managed resource blocks: 2
-local-state managed instances: 6
-declared-to-local-state structural relationship: DECLARED_TO_LOCAL_STATE_STRUCTURAL_MATCH
-matched declared/state resource-type blocks: 2/2
-latest accepted full suite before active slice: 399 passed in 2.11s
-```
-
-Preserve from prior slices:
-
-```text
-state_backed_coverage_status: UNKNOWN
-live_resource_coverage_status: UNKNOWN
-apply_result_status: UNKNOWN
-```
-
-Ansible/Jenkins path remains closed within current evidence boundary:
-
-```text
-relationship_source_status: NONE_OBSERVED_IN_BOUNDED_SOURCE
-Ansible execution outcome/success/idempotence/drift: UNKNOWN
-```
-
-Do not add more Jenkins-to-Ansible probes without materially stronger safe evidence.
-
-Rejected/failed observations not to reuse as negative evidence:
-
-```text
-Jenkins API first connection attempt: NOT_ATTEMPTED / FAILED_TO_OBSERVE
-Ansible-to-Jenkins first relationship scan: SOURCE_INCOMPLETE due one skipped candidate
-GitHub connector lookup of ben-edu/afpa-infra-rebuild returned 404 during gap reassessment; local /home/ben/projects/afpa-infra-rebuild remains the accepted bounded source
-Terraform read-only plan first attempt refresh_only_actions=NONE_OBSERVED: REJECTED AS ACTION-ABSENCE EVIDENCE because the parser did not yet classify resource_drift events; its successful rc=2 change signal remains accepted
-```
-
-## Active slice — Terraform read-only plan evidence
-
-Implementation:
-
-```text
-scripts/discovery/m6_terraform_readonly_plan_evidence.py
-tests/test_terraform_readonly_plan_evidence.py
-```
-
-Report:
-
-```text
 docs/reports/2026-08-29-m6-terraform-readonly-plan-evidence.md
 ```
 
-Two modes per root:
+Accepted bounded Terraform evidence:
 
 ```text
-configuration_vs_state: terraform plan -refresh=false
-refresh_only: terraform plan -refresh-only
+roots: terraform/environments/bm1, terraform/environments/bm2
+module directory: terraform/modules/proxmox_vm
+provider type: proxmox
+resource type: proxmox_vm_qemu
+workspace-state directories observed: 0
+workspace directories observed: 0
+backend metadata candidates observed: 0
+workspace-selection metadata candidates observed: 0
+local state artifacts observed: 2/2 roots
+local states parsed complete: 2/2 roots
+local-state managed resource blocks: 2
+local-state managed instances: 6
+local-state managed resource type counts: proxmox_vm_qemu=2
+declared-to-local-state structural relationship: DECLARED_TO_LOCAL_STATE_STRUCTURAL_MATCH
+matched declared/state resource-type blocks: 2/2
+Terraform execution signal files in bounded workflow/script source: 0
+configuration plan status: COMPLETE
+configuration action counts: NONE_OBSERVED
+destructive change status: NONE_OBSERVED_IN_COMPLETE_CONFIGURATION_PLAN
+state-tracked refresh drift status: STATE_TRACKED_DRIFT_CHANGE_SIGNAL_OBSERVED
+refresh-only drift actions: update=6 (bm1=2, bm2=4)
+latest accepted full suite: 405 passed in 1.79s
 ```
 
-Safety behavior:
-
-```text
--input=false
--lock=false
--detailed-exitcode
--json
-no -out
-no apply/import/state mutation command
-stdout/stderr captured process-locally only
-provider reads allowed only for refresh-only observation
-```
-
-Raw plan/diagnostics, resource identities, state/tfvars/provider values, endpoints, credentials, and sensitive connection strings are not projected.
-
-## Accepted validation and live evidence
-
-Focused tests after parser correction:
-
-```text
-6 passed in 0.07s
-```
-
-Accepted live retry:
-
-```text
-discovery_rc=0
-source_mode: TERRAFORM_READONLY_CONFIGURATION_AND_REFRESH_ONLY_PLAN_JSON
-source_status: COMPLETE
-roots_expected: 2
-roots_configuration_plan_complete: 2
-roots_refresh_only_plan_complete: 2
-```
-
-Per-root accepted evidence:
-
-```text
-bm1:
-  configuration_plan=COMPLETE_NO_CHANGES
-  configuration_exit_code=0
-  configuration_actions=NONE_OBSERVED
-  refresh_only_plan=COMPLETE_CHANGES_OBSERVED
-  refresh_only_exit_code=2
-  refresh_only_actions=update=2
-  destructive_change_status=NONE_OBSERVED_IN_COMPLETE_CONFIGURATION_PLAN
-  state_tracked_drift_signal_status=STATE_TRACKED_DRIFT_CHANGE_SIGNAL_OBSERVED
-
-bm2:
-  configuration_plan=COMPLETE_NO_CHANGES
-  configuration_exit_code=0
-  configuration_actions=NONE_OBSERVED
-  refresh_only_plan=COMPLETE_CHANGES_OBSERVED
-  refresh_only_exit_code=2
-  refresh_only_actions=update=4
-  destructive_change_status=NONE_OBSERVED_IN_COMPLETE_CONFIGURATION_PLAN
-  state_tracked_drift_signal_status=STATE_TRACKED_DRIFT_CHANGE_SIGNAL_OBSERVED
-```
-
-Aggregate accepted evidence:
-
-```text
-configuration_action_counts: NONE_OBSERVED
-refresh_only_action_counts: update=6
-configuration_plan_status: COMPLETE
-state_tracked_refresh_drift_status: STATE_TRACKED_DRIFT_CHANGE_SIGNAL_OBSERVED
-destructive_change_status: NONE_OBSERVED_IN_COMPLETE_CONFIGURATION_PLAN
-```
-
-Repository-wide regression gate:
-
-```text
-405 passed in 1.79s
-```
-
-Accepted interpretation:
-
-```text
-- configuration_vs_state has no changes for both roots;
-- no configuration-driven destructive proposal was observed in the complete bounded configuration plans;
-- refresh-only provider observation reported state-tracked drift update signals in both roots;
-- aggregate refresh-only drift actions: update=6 (bm1=2, bm2=4);
-- this is bounded state-tracked drift evidence only, not universal infrastructure drift;
-- resource/attribute identity is intentionally unknown/unprojected;
-- apply result, full live-resource coverage, and state-backed coverage remain UNKNOWN.
-```
-
-Terraform machine-readable UI event separation is respected:
-
-```text
-configuration action counts <- planned_change events only
-refresh-only drift action counts <- resource_drift events only
-```
-
-Resource identities are discarded before projection.
-
-## Trust boundary
-
-```text
-mutation_allowed: False
-terraform_apply_invoked: False
-terraform_state_locking_allowed: False
-saved_plan_written: False
-raw_plan_output_projected: False
-raw_diagnostics_projected: False
-resource_addresses_projected: False
-resource_names_projected: False
-state_values_projected: False
-tfvars_values_projected: False
-provider_read_observation_allowed: True
-```
-
-Terraform stdout/stderr remained process-local. No raw plan JSON, diagnostics, resource identity, state/tfvars/provider values, endpoints, credentials, or sensitive connection strings entered evidence.
-
-No Terraform apply/import/state mutation command, SSH connection, repository mutation, or infrastructure mutation was performed. Provider reads during refresh-only planning were observation-only.
-
-## Merge gate — READY
-
-Focused tests, accepted live retry, and full repository suite all passed.
-
-Before merge:
-
-1. inspect branch/PR scope and confirm exactly `HANDOFF.md`, report, implementation, and tests;
-2. ensure no temporary/debug/placeholder files exist;
-3. create a non-draft PR;
-4. verify changed filenames and mergeability;
-5. squash-merge;
-6. carry the new accepted `main` SHA into the next checkpoint.
-
-## Post-merge reassessment rule
-
-Do not automatically add another probe.
-
-Remaining stronger M6 gaps after this slice:
+Preserve:
 
 ```text
 Terraform apply outcome: UNKNOWN
-Terraform full live-resource coverage/state authority: UNKNOWN
-Ansible live managed-host coverage: UNKNOWN
-Ansible execution outcome/idempotence/drift: UNKNOWN
+Terraform full live-resource coverage: UNKNOWN
+Terraform state-backed coverage / state authority: UNKNOWN
+Terraform state freshness: UNKNOWN
 ```
 
-The accepted evidence already provides:
+The accepted drift finding is bounded to state-tracked resources in the two accepted roots. It is not universal infrastructure drift and does not expose resource/attribute identity.
+
+## Accepted Milestone 6 — Ansible evidence
+
+Accepted reports:
 
 ```text
-Terraform declared-state inventory and root/module coverage
-Terraform execution declaration discovery
-Terraform local runtime-artifact metadata
-Terraform local-state aggregate structure
-Terraform declared-to-local-state structural relationship
-Terraform bounded configuration plan metadata
-Terraform destructive-proposal detection
-Terraform bounded state-tracked refresh drift signal
-Ansible declared inventory/playbook/role coverage
-Ansible execution declaration/source discovery
-bounded Jenkins/Ansible relationship closure
+docs/reports/2026-08-29-m6-ansible-declared-state-inventory.md
+docs/reports/2026-08-29-m6-ansible-playbook-role-declared-coverage.md
+docs/reports/2026-08-29-m6-ansible-execution-declaration-discovery.md
+docs/reports/2026-08-29-m6-ansible-execution-outcome-source-discovery.md
+docs/reports/2026-08-29-m6-jenkins-ansible-outcome-capability.md
+docs/reports/2026-08-29-m6-jenkins-api-metadata-probe.md
+docs/reports/2026-08-29-m6-ansible-jenkins-relationship-source-discovery.md
 ```
 
-After merge, reassess Milestone 6 against `03_DELIVERY_ROADMAP.md` and the accepted reports. Prefer milestone closure with explicit preserved UNKNOWNs if the remaining gaps require mutation, unavailable authoritative sources, or materially stronger access. Do not add weak probes merely to force UNKNOWNs closed.
+Accepted bounded Ansible structure:
+
+```text
+operational inventory: ansible/inventories/lab/hosts.yml
+declared groups: 6
+declared hosts: 8
+playbooks observed: 10
+local role directories observed: 7
+all 7 local roles referenced by supported direct playbook references
+8/10 playbooks resolved local roles
+ansible-playbook declaration: NONE_OBSERVED_IN_BOUNDED_SOURCE
+ansible-runner run declaration: NONE_OBSERVED_IN_BOUNDED_SOURCE
+ansible-navigator run declaration: NONE_OBSERVED_IN_BOUNDED_SOURCE
+Ansible-to-Jenkins declared relationship source: NONE_OBSERVED_IN_BOUNDED_SOURCE
+```
+
+Preserve:
+
+```text
+managed_host_live_coverage: UNKNOWN
+execution_outcome_status: UNKNOWN
+execution_success_status: UNKNOWN
+idempotence_status: UNKNOWN
+configuration_drift_status: UNKNOWN
+```
+
+Do not add more Jenkins-to-Ansible probes without a materially stronger safe source.
+
+## Rejected / incomplete observations not to reuse
+
+```text
+Terraform execution-declaration initial false positive from gate-only vocabulary: REJECTED
+Jenkins API first connection attempt: FAILED_TO_OBSERVE / NOT_ATTEMPTED
+Ansible-to-Jenkins first relationship scan: SOURCE_INCOMPLETE due one skipped candidate
+Terraform read-only plan first attempt refresh_only_actions=NONE_OBSERVED: REJECTED AS ACTION-ABSENCE EVIDENCE; parser lacked resource_drift classification
+GitHub connector 404 for ben-edu/afpa-infra-rebuild: NOT source-absence evidence; accepted source remains local /home/ben/projects/afpa-infra-rebuild
+```
+
+## Active closure slice
+
+Closure report:
+
+```text
+docs/reports/2026-08-29-m6-read-only-governance-closure.md
+```
+
+Decision:
+
+```text
+Milestone 6 overall: NOT COMPLETE
+Milestone 6 current read-only governance phase: COMPLETE FOR CURRENT AUTHORITATIVE SOURCES AND SAFE OBSERVATION PATHS
+remaining stronger gaps: EXPLICITLY PRESERVED
+mutation/stronger-access work: DEFERRED
+```
+
+Why the phase stops here:
+
+```text
+Terraform apply outcome requires authoritative execution evidence not currently available.
+Terraform full live-resource coverage/state authority requires stronger live identity/ownership evidence.
+Ansible live managed-host coverage requires stronger authoritative runtime relationship evidence.
+Ansible execution outcomes/idempotence/configuration drift require actual execution or a stronger trusted execution source and may cross the current mutation boundary.
+```
+
+No additional weak source-name or indirect relationship probe should be added merely to force an UNKNOWN closed.
+
+## Transition direction
+
+After this docs-only closure is merged, the project may proceed to Milestone 7 — Operational Intelligence Layer without pretending M6 is fully complete.
+
+The smallest useful Milestone 7 slice should remain read-only and reuse existing evidence. It should reduce operator cognitive load by projecting a compact prioritized operational view from already accepted artifacts rather than introducing a new datastore or replacing specialized tools.
+
+A good first M7 slice is an evidence-only **operator attention summary contract** that answers, from existing artifacts only:
+
+```text
+what needs attention now
+what changed
+what is unknown or stale
+where bounded drift exists
+what requires live verification before action
+```
+
+Do not build a broad dashboard/platform layer yet. Define and test the smallest projection contract first.
+
+## Closure branch merge rule
+
+This branch is docs-only:
+
+```text
+HANDOFF.md
+README.md
+docs/reports/2026-08-29-m6-read-only-governance-closure.md
+```
+
+No new implementation/tests are introduced, so no additional full-suite run is required beyond the accepted `405 passed in 1.79s` from PR #77.
+
+Before merge:
+
+1. verify branch scope is exactly the three docs above;
+2. ensure no temporary/debug/placeholder files exist;
+3. create/inspect a non-draft PR;
+4. verify mergeability;
+5. squash-merge;
+6. carry the new accepted `main` SHA into the first M7 branch handoff.
 
 ## Trust invariants
 
