@@ -6,7 +6,8 @@ from pathlib import Path
 from typing import Any
 
 INFRA_REPO = Path("/home/ben/projects/afpa-infra-rebuild")
-MAX_SOURCE_BYTES = 512 * 1024
+MAX_SCAN_BYTES = 8 * 1024 * 1024
+STREAM_CARRY_CHARS = 256
 SAFE_SUFFIXES = {".groovy", ".jenkins", ".yml", ".yaml", ".sh", ".py", ".json"}
 SAFE_BASENAMES = {"jenkinsfile"}
 SENSITIVE_PARTS = {
@@ -66,6 +67,34 @@ def _relationship_signal(relative: str, text: str) -> bool:
     return _jenkins_context(relative, text) and _ansible_entrypoint_signal(text)
 
 
+def _scan_candidate_file(relative: str, path: Path) -> tuple[str, bool, bool]:
+    """Stream a bounded safe text candidate without retaining or projecting content."""
+    try:
+        size = path.stat().st_size
+    except OSError:
+        return "READ_FAILED", False, False
+    if size > MAX_SCAN_BYTES:
+        return "OVERSIZE", False, False
+
+    jenkins = Path(relative).name.lower() in SAFE_BASENAMES
+    ansible = False
+    carry = ""
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            for chunk in iter(lambda: handle.read(64 * 1024), ""):
+                window = carry + chunk
+                if not jenkins and any(pattern.search(window) for pattern in JENKINS_CONTEXT_PATTERNS):
+                    jenkins = True
+                if not ansible and _ansible_entrypoint_signal(window):
+                    ansible = True
+                if jenkins and ansible:
+                    return "COMPLETE", True, True
+                carry = window[-STREAM_CARRY_CHARS:]
+    except (OSError, UnicodeError):
+        return "READ_FAILED", False, False
+    return "COMPLETE", jenkins, ansible
+
+
 def _tracked_files(repo: Path) -> tuple[str, list[str]]:
     try:
         proc = subprocess.run(
@@ -122,24 +151,15 @@ def discover(repo: Path = INFRA_REPO) -> dict[str, Any]:
             result["excluded_or_unsafe_paths"] += 1
             continue
         result["candidate_files_selected"] += 1
-        path = repo / relative
-        try:
-            size = path.stat().st_size
-        except OSError:
-            result["read_or_decode_skips"] += 1
-            continue
-        if size > MAX_SOURCE_BYTES:
+        scan_status, jenkins, ansible = _scan_candidate_file(relative, repo / relative)
+        if scan_status == "OVERSIZE":
             result["oversize_skips"] += 1
             continue
-        try:
-            text = path.read_text(encoding="utf-8")
-        except (OSError, UnicodeError):
+        if scan_status != "COMPLETE":
             result["read_or_decode_skips"] += 1
             continue
 
         result["candidate_files_scanned"] += 1
-        jenkins = _jenkins_context(relative, text)
-        ansible = _ansible_entrypoint_signal(text)
         if jenkins:
             result["jenkins_context_files"] += 1
         if ansible:
@@ -209,6 +229,7 @@ def main() -> int:
     print()
     print("===== TRUST BOUNDARY =====")
     print("Only safe Git-tracked workflow/script-like text was inspected; sensitive path classes, Terraform state/tfvars, Ansible variable directories, credentials, tokens, private keys, and env files were excluded.")
+    print("Safe candidate files are streamed with a hard byte ceiling; raw file content is neither retained as evidence nor printed.")
     print("Raw source lines, Jenkins job names, build numbers, commands, arguments, inventory values, host targets, credentials, endpoints, console logs, job configuration bodies, build parameters, and Vault material were not printed or persisted.")
     print("No Jenkins API, Ansible CLI, SSH connection, or infrastructure mutation was performed.")
 
