@@ -37,7 +37,7 @@ remaining stronger gaps: EXPLICITLY PRESERVED
 mutation/stronger-access work: DEFERRED
 ```
 
-Important preserved gaps:
+Preserve:
 
 ```text
 Terraform apply outcome: UNKNOWN
@@ -46,9 +46,7 @@ Ansible live managed-host coverage: UNKNOWN
 Ansible execution outcome/success/idempotence/configuration drift: UNKNOWN
 ```
 
-Do not resume weak M6 probing merely to force UNKNOWNs closed.
-
-Accepted bounded Terraform drift evidence remains:
+Accepted bounded Terraform governance evidence includes:
 
 ```text
 configuration_plan_status: COMPLETE
@@ -74,7 +72,7 @@ Goal:
 Build the smallest read-only operator-facing projection that reduces cognitive load using existing evidence only.
 ```
 
-This first M7 slice is intentionally Kubernetes-existing-evidence only. It does not yet integrate M5 backup-assurance reports or M6 Terraform/Ansible report evidence into one cross-domain inbox.
+This first M7 slice is intentionally Kubernetes-existing-evidence only. It does not yet integrate M5 backup-assurance or M6 Terraform/Ansible evidence into one cross-domain inbox.
 
 Implementation:
 
@@ -96,7 +94,7 @@ No new infrastructure query, collector identity, datastore, or source of truth i
 
 ### Projection contract
 
-The derived summary contains four sections:
+Derived sections:
 
 ```text
 attention_now
@@ -116,7 +114,7 @@ unknowns_total
 required_live_verification_total
 ```
 
-The projection is fail-closed when source artifacts do not resolve to exactly one matching cluster.
+The projection fails closed if required source artifacts cannot be read or do not resolve to exactly one matching cluster.
 
 ### Trust boundary
 
@@ -128,30 +126,23 @@ source artifact write: none
 new datastore: none
 ```
 
-Only allowlisted metadata is projected from existing derived artifacts.
-
-Do not introduce:
-
-```text
-raw Kubernetes evidence values
-raw diagnostics
-Secret values
-credentials
-Terraform state
-sensitive connection strings
-```
+Only allowlisted metadata is projected. Do not project raw Kubernetes evidence values, raw diagnostics, Secret values, credentials, Terraform state, or sensitive connection strings.
 
 Unknown/stale/failed evidence remains explicit; absence in the operator projection is not universal absence.
 
-## First live attempt — FAILED TO OBSERVE due execution identity
+## Validation status
 
-Focused tests:
+Focused tests under normal user context:
 
 ```text
 5 passed in 0.05s
 ```
 
-First live probe as interactive user `ben`:
+This focused result is accepted and does not need to be rerun for the current retry.
+
+## Live attempt 1 — FAILED_TO_OBSERVE
+
+Interactive user `ben` executed the probe from the repository.
 
 ```text
 source_status: FAILED_TO_OBSERVE
@@ -159,22 +150,58 @@ failure_category: PermissionError
 discovery_rc=2
 ```
 
-Interpretation:
+Accepted interpretation:
 
 ```text
-- this is NOT zero-attention evidence;
-- this is NOT source-artifact absence evidence;
-- the probe failed before a valid operator-attention projection could be built;
-- the failure is consistent with the evidence artifacts being owned/readable through the dedicated infra-assurance service identity rather than the interactive user;
-- do not change artifact permissions merely to make the probe pass;
-- retry with privilege scoped to the existing `infra-assurance` service identity, not root.
+- NOT zero-attention evidence;
+- NOT source-artifact absence evidence;
+- the interactive user could not read at least one protected evidence artifact;
+- no operator-attention conclusion is allowed.
 ```
 
-No report or PR may be created from this failed observation.
+## Live attempt 2 — FAILED_TO_OBSERVE before source loading
+
+The probe was retried under the dedicated `infra-assurance` service identity:
+
+```text
+sudo -u infra-assurance env PYTHONPATH="$PWD/src" python3 "$PWD/scripts/discovery/m7_operator_attention_summary_probe.py"
+```
+
+Observed result:
+
+```text
+python3: can't open file '/home/ben/projects/infrastructure-intelligence-assurance/scripts/discovery/m7_operator_attention_summary_probe.py': [Errno 13] Permission denied
+discovery_rc=2
+```
+
+Accepted interpretation:
+
+```text
+- NOT zero-attention evidence;
+- NOT source-artifact absence evidence;
+- this attempt failed before the probe code could execute;
+- `infra-assurance` cannot traverse/read the repository source tree under `/home/ben`;
+- do not weaken `/home/ben` or repository permissions;
+- do not copy/install temporary code merely to make this validation pass.
+```
+
+The service-identity attempt is therefore an execution-packaging failure, not an evidence-source failure.
+
+No accepted M7 report or PR may be created from either failed attempt.
 
 ## Exact next step
 
-On `mgmt-automation`, first pull the current branch handoff update:
+Use one narrowly scoped read-only privileged execution for validation only. This is justified because:
+
+```text
+- the repository code lives under a user-private path;
+- the evidence artifacts are protected;
+- the probe implementation has already been reviewed/tested to perform only reads of exactly the three bounded artifacts;
+- the probe performs no live infrastructure query and no write;
+- changing file permissions or copying/installing temporary code would create unnecessary state changes.
+```
+
+On `mgmt-automation`, first pull the handoff update:
 
 ```bash
 cd ~/projects/infrastructure-intelligence-assurance
@@ -182,10 +209,10 @@ cd ~/projects/infrastructure-intelligence-assurance
 git pull --ff-only origin agent/m7-operator-attention-summary-contract
 ```
 
-Then retry only the live probe under the existing read-only service identity:
+Then run only the live probe with `sudo`:
 
 ```bash
-sudo -u infra-assurance env \
+sudo env \
   PYTHONPATH="$PWD/src" \
   python3 "$PWD/scripts/discovery/m7_operator_attention_summary_probe.py"
 ```
@@ -196,32 +223,36 @@ Then capture the return code in the normal interactive shell:
 echo "discovery_rc=$?"
 ```
 
-Do not use strict interactive shell mode. Do not run the focused tests under sudo; their accepted result is already `5 passed in 0.05s` under the normal user context.
+Do not use strict interactive shell mode.
 
-Acceptance rules for retry:
+Do not rerun the focused tests under sudo. Do not change artifact/repository permissions. Do not add ACLs. Do not create temporary copies of the code.
 
-- all three existing artifacts must load successfully;
+This root execution is a one-time validation packaging workaround only; it is not the intended long-term M7 runtime model. If the contract is later integrated into the installed five-minute runtime, it must run from the normal installed package/runtime path under the existing `infra-assurance` identity.
+
+Acceptance rules for the privileged retry:
+
+- all three bounded artifacts must load successfully;
 - all three artifacts must resolve to one matching cluster;
 - no live infrastructure query or mutation may occur;
 - only allowlisted summary/metadata may be projected;
-- source failures must be `FAILED_TO_OBSERVE`, not zero-attention evidence;
-- live output must be interpreted only within `KUBERNETES_EXISTING_EVIDENCE_ONLY` scope;
-- executing the live read under `infra-assurance` is an identity-scoped file-read boundary only and must not add root access or change artifact permissions.
+- source failures must remain `FAILED_TO_OBSERVE`, never zero-attention evidence;
+- live output is valid only within `KUBERNETES_EXISTING_EVIDENCE_ONLY` scope;
+- successful root execution does not expand future runtime privileges.
 
-If the service identity cannot traverse/read the repository code path, preserve `FAILED_TO_OBSERVE`; do not weaken file permissions. Use the failure only to choose a narrower execution packaging path in the next revision.
+If the retry succeeds, create an accepted report, run the full repository suite because reusable implementation/tests changed, inspect exact five-file scope after report creation (`HANDOFF.md`, report, implementation, probe, tests), then PR/squash-merge.
 
-If the retry succeeds, create a report, run the full repository suite because reusable implementation/tests changed, inspect exact five-file scope after the report is added (`HANDOFF.md`, report, implementation, probe, tests), then PR/squash-merge.
+If it still fails, preserve `FAILED_TO_OBSERVE` and fix only the specific packaging/source assumption revealed by the failure.
 
 ## Next M7 direction after this slice
 
 Do not jump directly to a dashboard.
 
-After this contract is accepted, the next decision should be whether to:
+After this contract is accepted, choose the smaller of:
 
 1. integrate the projection into the existing five-minute artifact generation path; or
 2. add one additional cross-domain evidence adapter for already accepted M5/M6 assurance signals.
 
-Choose only the smaller step that materially reduces operator cognitive load.
+Choose only a step that materially reduces operator cognitive load.
 
 ## Trust invariants
 
