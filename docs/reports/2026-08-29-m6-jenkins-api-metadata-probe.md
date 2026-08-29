@@ -30,7 +30,11 @@ jenkins_api_invoked: True
 api_observation_status: COMPLETE
 ```
 
-A repository-wide test suite remains required before merge because this slice adds reusable discovery implementation and tests.
+Repository-wide suite before merge:
+
+```text
+381 passed in 1.72s
+```
 
 ## First live attempt — failed observation
 
@@ -120,6 +124,6 @@ Console logs, `config.xml`, build parameters, environment values, raw commands, 
 
 Do not infer an Ansible outcome from Jenkins runtime metadata alone.
 
-After the repository-wide suite passes and this slice is merged, perform a bounded **Ansible-to-Jenkins relationship source discovery**. The goal is to determine whether any safe authoritative metadata source can relate an accepted Jenkins job/build to Ansible execution without reading console logs, job configuration bodies, build parameters, raw command bodies, credentials, or sensitive host/inventory data.
+After this slice is merged, perform a bounded **Ansible-to-Jenkins relationship source discovery**. The goal is to determine whether any safe authoritative metadata source can relate an accepted Jenkins job/build to Ansible execution without reading console logs, job configuration bodies, build parameters, raw command bodies, credentials, or sensitive host/inventory data.
 
 If no such safe relationship source exists, preserve Ansible execution outcome as `UNKNOWN` and stop widening this path merely to eliminate the unknown.
