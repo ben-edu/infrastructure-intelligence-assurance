@@ -60,7 +60,7 @@ docs/reports/2026-08-29-m6-terraform-root-module-declared-coverage.md
 docs/reports/2026-08-29-m6-terraform-execution-declaration-discovery.md
 ```
 
-Preserved unknowns:
+Preserve:
 
 ```text
 Terraform state-backed coverage: UNKNOWN
@@ -139,48 +139,59 @@ No supported direct role reference was observed in `ansible/playbooks/ping.yml` 
 
 ## Active Milestone 6 — Ansible execution-declaration discovery
 
-Implementation prepared on this branch:
+Implementation:
 
 ```text
 scripts/discovery/m6_ansible_execution_declaration_discovery.py
 tests/test_ansible_execution_declaration_discovery.py
 ```
 
-Goal:
+Report:
 
 ```text
-Determine whether safe Git-tracked workflow/script text explicitly declares tightly bounded Ansible execution entry points without executing Ansible or exposing raw commands/arguments.
+docs/reports/2026-08-29-m6-ansible-execution-declaration-discovery.md
 ```
 
-Accepted entry-point categories for this slice:
+Focused/live validation:
 
 ```text
-ansible_playbook       -> ansible-playbook
-ansible_runner_run     -> ansible-runner run
-ansible_navigator_run  -> ansible-navigator run
+focused tests: 4 passed in 0.09s
+discovery_rc: 0
+source_status: COMPLETE
+tracked_files_returned: 400
+candidate_files_selected: 156
+candidate_files_scanned: 156
+read_or_decode_skips: 0
+oversize_skips: 0
 ```
 
-The generic `ansible` command and tooling such as `ansible-lint` are intentionally excluded to reduce ambiguity and false positives.
-
-Safe projection:
+Accepted bounded result:
 
 ```text
-safe relative file identifier
-execution entry-point category only
-gate_signal true/false only on files that also contain an accepted execution entry point
-aggregate file/signal counts
+ansible_execution_signal_files: 0
+entrypoint_file_counts: NONE_OBSERVED
+entrypoint_signal_counts: NONE_OBSERVED
+files_with_gate_signal: 0
+ansible_playbook_declaration_status: NONE_OBSERVED_IN_BOUNDED_SOURCE
+ansible_runner_run_declaration_status: NONE_OBSERVED_IN_BOUNDED_SOURCE
+ansible_navigator_run_declaration_status: NONE_OBSERVED_IN_BOUNDED_SOURCE
 ```
 
-Do not print or persist:
+The accepted execution-entrypoint vocabulary is intentionally limited to:
 
 ```text
-raw command lines or arguments
-playbook/inventory argument values
-host targets/IPs
-runtime facts
-environment values
-credentials, keys, tokens, Vault password material
-connection strings
+ansible-playbook
+ansible-runner run
+ansible-navigator run
+```
+
+Generic `ansible` and `ansible-lint` are not execution evidence. Gate-only files are excluded.
+
+Interpretation:
+
+```text
+No accepted Ansible execution declaration was observed in the bounded safe Git source.
+This does NOT prove Ansible is never executed manually, through Jenkins, another repository, an operator workstation, or another automation system.
 ```
 
 Preserve:
@@ -191,45 +202,51 @@ execution_success_status: UNKNOWN
 idempotence_status: UNKNOWN
 live_managed_host_coverage_status: UNKNOWN
 configuration_drift_status: UNKNOWN
+successful_execution_claims: 0
+idempotence_claims: 0
+drift_claims: 0
 ```
 
-Gate-only files must not enter Ansible execution evidence. `NONE_OBSERVED_IN_BOUNDED_SOURCE` is bounded absence only.
+## Merge gate — PENDING
+
+Because this slice adds reusable discovery implementation and tests, the repository-wide suite must pass before PR/merge.
 
 ## Exact next step
 
-On `mgmt-automation`:
+On `mgmt-automation` run only:
 
 ```bash
 cd ~/projects/infrastructure-intelligence-assurance
-
-git fetch origin
-
-git switch --track origin/agent/m6-ansible-execution-declaration-discovery
-
-python3 -m pytest -q \
-  tests/test_ansible_execution_declaration_discovery.py
-
-PYTHONPATH=src python3 \
-  scripts/discovery/m6_ansible_execution_declaration_discovery.py
-
-echo "discovery_rc=$?"
+python3 -m pytest -q
 ```
 
-Acceptance rules:
+Do not wrap it in strict interactive shell mode.
 
-- focused tests must pass;
-- source status must be `COMPLETE`;
-- raw commands/arguments or sensitive values must not appear in evidence;
-- gate-only files must be excluded;
-- generic `ansible`/`ansible-lint` must not be promoted to accepted execution entry points;
-- no Ansible, Jenkins, GitHub Actions, SSH, or managed-host connection may be invoked;
-- no execution success, idempotence, reachability, runtime fact, or drift result may be inferred.
+If the full suite passes:
+
+1. record the exact pass count in this handoff/report/PR;
+2. inspect changed-file scope for `agent/m6-ansible-execution-declaration-discovery`;
+3. ensure no temporary/debug/placeholder files exist;
+4. create/inspect a non-draft PR and squash-merge when clean;
+5. carry the new accepted `main` SHA into the next branch handoff;
+6. start **Ansible execution-outcome source discovery**.
+
+Preferred next-source order after merge:
+
+```text
+1. Jenkins read-only job/build metadata if Ansible is orchestrated there
+2. otherwise bounded management-host scheduler/service metadata if an explicit Ansible execution unit exists
+3. preserve execution outcome as UNKNOWN if no authoritative source exists
+```
+
+The future outcome-source discovery must not print raw commands, arguments, environment values, credentials, inventory arguments, host targets, or Vault material.
 
 ## Trust invariants
 
 - infrastructure interaction remains read-only;
 - declared state is not observed state;
-- declared execution entry point is not execution outcome evidence;
+- absence of a declared execution entry point is not absence of execution;
+- a declared execution entry point would still not be execution-outcome evidence;
 - source artifacts and derived assurance remain separate;
 - Terraform state/real tfvars and Ansible Vault/credential material do not enter evidence/AI context;
 - host identifiers and sensitive inventory values are not projected;
