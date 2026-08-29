@@ -1,8 +1,6 @@
 # Project Handoff
 
-Project Sources remain authoritative for durable goals, roadmap, architecture/trust principles, and operating rules.
-
-For context-window-independent continuation, read `docs/PROJECT_CONTINUITY.md`, then this file, then only reports/ADRs relevant to the active slice.
+Project Sources remain authoritative. Read `docs/PROJECT_CONTINUITY.md`, then this file, then the reports relevant to the active slice.
 
 ## Active checkpoint
 
@@ -16,9 +14,10 @@ Milestone 5 read-only source discovery: COMPLETE FOR CURRENT AUTHORITATIVE SOURC
 Milestone 6 overall: NOT COMPLETE
 Milestone 6 current read-only governance phase: COMPLETE FOR CURRENT AUTHORITATIVE SOURCES AND SAFE OBSERVATION PATHS
 Milestone 7: ACTIVE
-infrastructure mutation allowed: false
-repository mutation allowed: true
 management host: mgmt-automation
+repository mutation allowed: true
+bounded management-host deployment authorized: true
+broader infrastructure mutation authorized: false
 ```
 
 ## Accepted M7 baseline
@@ -66,12 +65,12 @@ service-identity probe from /home/ben source tree: FAILED_TO_OBSERVE before code
 
 Do not reuse either failed attempt as zero-attention or source-absence evidence.
 
-## Active slice — runtime integration into the existing five-minute collector
+## Active slice — operator-attention runtime integration
 
 Goal:
 
 ```text
-Generate operator-attention.json and operator-attention.md from the installed package during the existing collector run, under the existing infra-assurance identity.
+Generate operator-attention.json and operator-attention.md during the existing five-minute collector run, from the installed package under the existing infra-assurance identity.
 ```
 
 Target artifacts:
@@ -81,30 +80,17 @@ Target artifacts:
 /var/lib/infra-assurance/evidence/operator-attention.md
 ```
 
-No new timer, service identity, datastore, infrastructure query, or source of truth is introduced.
-
 Prepared files:
 
 ```text
+HANDOFF.md
+scripts/deploy-operator-attention-runtime.sh
 src/infra_assurance/operator_attention.py
 systemd/infra-assurance-kubernetes.service
 tests/test_operator_attention.py
-scripts/deploy-operator-attention-runtime.sh
-HANDOFF.md
 ```
 
-The runtime module:
-
-```text
-python3 -m infra_assurance.operator_attention
-  --inventory <inventory.json>
-  --context <context.json>
-  --change-context <change-context.json>
-  --out <operator-attention.json>
-  --summary-out <operator-attention.md>
-```
-
-The service integration remains under:
+Runtime remains:
 
 ```text
 User=infra-assurance
@@ -115,97 +101,59 @@ ProtectHome=true
 ReadWritePaths includes /var/lib/infra-assurance/evidence
 ```
 
-No root runtime execution is introduced.
+No new service, timer, identity, datastore, infrastructure query, or source of truth is introduced.
 
 ## Repository validation — ACCEPTED
 
-Focused tests on the active branch:
-
 ```text
-7 passed in 0.21s
+focused tests on active branch: 7 passed in 0.21s
 ```
 
-This validates the projection contract, runtime JSON/Markdown writer, safe loader behavior, and systemd wiring under the `infra-assurance` identity.
-
-A repository-wide suite is still required after the live integration is accepted and before PR/merge.
-
-## Narrow deployment helper
-
-Prepared helper:
-
-```text
-scripts/deploy-operator-attention-runtime.sh
-```
-
-Without `--apply`, it makes no changes and prints the bounded mutation plan.
-
-With `--apply`, it performs only:
-
-```text
-1. install src/infra_assurance/operator_attention.py -> /opt/infra-assurance/src/infra_assurance/operator_attention.py
-2. install systemd/infra-assurance-kubernetes.service -> /etc/systemd/system/infra-assurance-kubernetes.service
-3. python compile-check of the installed module
-4. systemctl daemon-reload
-5. start the existing infra-assurance-kubernetes.service once
-6. verify service Result=success
-7. verify operator-attention.json and operator-attention.md exist and are owned by infra-assurance:infra-assurance
-```
-
-It explicitly does NOT:
-
-```text
-run bootstrap-observer.sh
-change Kubernetes RBAC
-change kubeconfig
-change Git source configuration
-add a service or timer
-broaden filesystem permissions
-run the operator-attention runtime as root
-```
-
-The existing collector run remains read-only against infrastructure, but deployment itself mutates the management-host installed code and systemd definition and writes derived evidence artifacts.
+The repository-wide suite is required after accepted live deployment and before PR/merge.
 
 ## Deployment dry-run — ACCEPTED / NO MUTATION
 
-The user pulled the active branch and ran the helper without `--apply`:
+The user ran:
 
 ```bash
 sudo bash scripts/deploy-operator-attention-runtime.sh
 ```
 
-Observed result:
+The helper printed the bounded plan and exited without mutation.
+
+Accepted dry-run scope:
 
 ```text
-This deployment helper performs only these bounded mutations:
-- installs src/infra_assurance/operator_attention.py into /opt/infra-assurance/src/infra_assurance/operator_attention.py
-- installs systemd/infra-assurance-kubernetes.service into /etc/systemd/system/infra-assurance-kubernetes.service
-- runs systemctl daemon-reload
-- starts the existing infra-assurance-kubernetes.service once
-- verifies operator-attention.json and operator-attention.md were produced
-
-It does not run bootstrap-observer.sh, change Kubernetes RBAC, change kubeconfig, change Git source configuration, add a new service/timer, or broaden filesystem permissions.
-
-Re-run with --apply only after explicit authorization.
+- install operator_attention.py into /opt/infra-assurance/src/infra_assurance/
+- install the existing collector unit definition into /etc/systemd/system/
+- compile-check installed module
+- systemctl daemon-reload
+- start the existing infra-assurance-kubernetes.service once
+- verify Result=success
+- verify operator-attention.json and operator-attention.md exist and are owned by infra-assurance:infra-assurance
 ```
 
-Accepted interpretation:
+Explicitly excluded:
 
 ```text
-- dry-run completed successfully;
-- no management-host runtime mutation occurred;
-- no Kubernetes mutation occurred;
-- no artifact was written by the helper;
-- the bounded deployment scope is now operator-reviewed;
-- live deployment remains blocked on explicit authorization.
+bootstrap-observer.sh
+Kubernetes RBAC changes
+kubeconfig changes
+Git source configuration changes
+new service/timer
+filesystem permission broadening
+root runtime execution of operator attention
 ```
 
-## Mutation boundary — WAITING FOR EXPLICIT AUTHORIZATION
+## Authorization — RECEIVED
 
-Do not run the deployment helper with `--apply` until the user explicitly authorizes this management-host runtime mutation.
+The user explicitly said to proceed to the next step after reviewing the remaining project work. Treat that as authorization for this exact bounded management-host deployment only.
 
-Repository preparation, focused tests, and no-op deployment review are complete. The next live gate is blocked only by authorization.
+Authorization does NOT extend to broader infrastructure mutation, Kubernetes mutation, permission broadening, remediation, or unrelated runtime changes.
 
-If authorized, execute only:
+## Exact next live gate
+
+On `mgmt-automation`:
 
 ```bash
 cd ~/projects/infrastructure-intelligence-assurance
@@ -213,11 +161,9 @@ git pull --ff-only origin agent/m7-operator-attention-runtime-integration
 sudo bash scripts/deploy-operator-attention-runtime.sh --apply
 ```
 
-After deployment, collect only safe verification metadata and operator-attention summary counts; do not print raw source artifacts or sensitive values.
+Do not use strict interactive shell mode.
 
-## Acceptance rules for the live integration
-
-Accept only if:
+Accept only if the helper reports:
 
 ```text
 deployment_status=COMPLETE
@@ -227,17 +173,21 @@ operator_attention_markdown=OBSERVED
 runtime_identity=infra-assurance
 ```
 
-Then verify the generated JSON only through an allowlisted safe summary projection. Preserve source failures as FAILED_TO_OBSERVE, never as zero-attention evidence.
+After deployment, inspect only safe allowlisted summary metadata. Do not print raw evidence or sensitive values.
 
-If live integration is accepted:
+If accepted:
 
 1. create `docs/reports/2026-08-29-m7-operator-attention-runtime-integration.md`;
 2. record exact safe live values and focused result;
-3. run the full repository suite;
-4. inspect exact branch scope and no temporary files;
-5. create/inspect a non-draft PR;
-6. verify mergeability and changed filenames;
-7. squash-merge and carry the new main SHA forward.
+3. run full repository suite;
+4. inspect exact branch scope/no temporary files;
+5. create/inspect non-draft PR;
+6. verify mergeability and filenames;
+7. squash-merge and carry new main SHA forward.
+
+## Remaining project direction
+
+Roadmap remaining milestones are M7 and M8. M7 is the unified operator experience; M8 is reliability/hardening. Current rough remaining effort is about 20–30% of the core roadmap, while explicitly deferred M5/M6 unknowns remain preserved rather than forced closed with weak evidence.
 
 ## Preserved M6 boundaries
 
@@ -252,25 +202,12 @@ Do not reopen weak M6 probes.
 
 ## Trust invariants
 
-- infrastructure interaction remains read-only unless separately authorized;
-- repository changes do not imply deployment authorization;
-- runtime integration remains under `infra-assurance`, not root;
-- deployment mutation is limited to the installed module, existing systemd unit, daemon reload, one existing collector run, and derived artifact writes;
+- infrastructure remains read-only except for this explicitly authorized management-host deployment;
+- runtime integration stays under `infra-assurance`, not root;
+- deployment mutation is limited to installed module, existing systemd unit, daemon reload, one existing collector run, and derived artifact writes;
 - derived operator projections do not replace source evidence;
 - stale/failed/unknown evidence remains explicit;
 - bounded absence is not universal absence;
 - no secret, credential, raw Terraform state, or raw Kubernetes Secret value enters the projection;
 - no remediation is implied by an attention item;
 - generated operational artifacts keep `mutation_allowed=false`.
-
-## Continuity rule
-
-At every accepted slice before merge:
-
-1. create/update the accepted report when reusable evidence changed;
-2. update `HANDOFF.md` with accepted SHA context, evidence, preserved unknowns, trust boundary, merge gate, and exact next step;
-3. update roadmap/current-state/README only when milestone status, architecture, or user-facing project status materially changes;
-4. ensure no temporary/debug/placeholder files remain;
-5. run focused tests and a full repository suite when reusable implementation/contracts change materially;
-6. inspect PR scope and mergeability and squash-merge when clean;
-7. carry the new accepted `main` SHA into the next checkpoint.
