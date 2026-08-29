@@ -90,7 +90,7 @@ Jenkins API first connection attempt: NOT_ATTEMPTED / FAILED_TO_OBSERVE
 Ansible-to-Jenkins first relationship scan: SOURCE_INCOMPLETE due one skipped candidate
 ```
 
-## Active Milestone 6 — Terraform runtime-artifact source discovery
+## Merge-ready Milestone 6 — Terraform runtime-artifact source discovery
 
 Implementation:
 
@@ -99,21 +99,13 @@ scripts/discovery/m6_terraform_runtime_artifact_source_discovery.py
 tests/test_terraform_runtime_artifact_source_discovery.py
 ```
 
-Report recorded on this branch:
+Report:
 
 ```text
 docs/reports/2026-08-29-m6-terraform-runtime-artifact-source-discovery.md
 ```
 
-Goal:
-
-```text
-Determine whether the two previously accepted Terraform root candidates expose local runtime-artifact metadata that can justify a later safe state/workspace/plan evidence source.
-```
-
-This slice is filesystem-metadata-only. It does not open Terraform runtime artifacts and does not invoke Terraform.
-
-### Accepted validation and live evidence
+Accepted validation and live evidence:
 
 ```text
 focused tests: 4 passed in 0.06s
@@ -147,6 +139,12 @@ saved_plan_artifact_candidates_observed: 0
 runtime_artifact_source_status: RUNTIME_ARTIFACT_METADATA_OBSERVED
 ```
 
+Repository-wide gate:
+
+```text
+391 passed in 5.58s
+```
+
 Interpretation boundary:
 
 ```text
@@ -158,7 +156,7 @@ working directory metadata != successful init/apply
 filesystem absence != absence of remote state or external CI execution
 ```
 
-Preserve regardless of this result:
+Preserve:
 
 ```text
 state_backed_coverage_status: UNKNOWN
@@ -185,33 +183,46 @@ provider_api_invoked: False
 
 Only filesystem metadata for the two accepted Terraform roots and generic runtime-artifact names was inspected. State/state-backup/backend/workspace/plan/tfvars contents, resource addresses, workspace names, provider values, endpoints, credentials, raw commands, and sensitive connection strings were not opened or projected.
 
-Relevant symlinks or metadata failures fail closed as incomplete observation.
+## Merge gate
 
-## Merge gate — PENDING
-
-Focused tests and live discovery passed. Because reusable implementation/tests changed, run the full repository suite before PR/merge.
+```text
+focused tests: PASS — 4 passed in 0.06s
+live discovery: PASS — discovery_rc=0
+full repository suite: PASS — 391 passed in 5.58s
+```
 
 ## Exact next step
 
-On `mgmt-automation` run only:
+1. Inspect changed-file scope and ensure no temporary/debug/placeholder files exist.
+2. Create/inspect a non-draft PR and squash-merge when clean.
+3. Carry the new accepted `main` SHA into a new branch.
+4. Start a tightly bounded **Terraform local-state safe structural aggregation** slice.
+5. That slice may parse `terraform.tfstate` only process-locally on `mgmt-automation` and project aggregate non-sensitive structure only.
 
-```bash
-cd ~/projects/infrastructure-intelligence-assurance
-python3 -m pytest -q
+Permitted future state projection should be limited to:
+
+```text
+per-root parse/schema status
+aggregate managed-resource block count
+aggregate data-resource block count
+aggregate instance count
+aggregate resource-type categories/counts
 ```
 
-Do not use strict interactive shell mode.
+Explicitly prohibit projection of:
 
-If the full suite passes:
+```text
+state values or raw JSON
+resource addresses or resource names
+instance keys/indexes
+outputs or output values
+serial/lineage identifiers
+provider configuration strings/aliases
+endpoints, credentials, sensitive attributes
+private connection data
+```
 
-1. record the exact pass count in this handoff/report/PR;
-2. inspect changed-file scope and ensure no temporary/debug/placeholder files exist;
-3. create/inspect a non-draft PR and squash-merge when clean;
-4. carry the new accepted `main` SHA into the next branch handoff;
-5. use the observed local state artifacts only to justify a separate tightly bounded **Terraform local-state safe structural aggregation** slice;
-6. that future slice may inspect state process-locally only if it projects aggregate non-sensitive structure and never exposes state values, resource addresses, instance names, outputs, provider configuration values, endpoints, credentials, or raw state.
-
-Until such a future slice is separately implemented and accepted, state-backed coverage and all live/plan/apply/drift/destructive statuses remain `UNKNOWN`.
+A successful structural state aggregation still does not establish live resource coverage, current state, plan/apply success, drift, or destructive-change status. Those remain `UNKNOWN` until separately verified.
 
 ## Trust invariants
 
@@ -220,7 +231,8 @@ Until such a future slice is separately implemented and accepted, state-backed c
 - runtime artifact metadata is not state-backed coverage;
 - bounded absence is not universal absence;
 - `FAILED_TO_OBSERVE`/`INCOMPLETE` is not negative evidence;
-- Terraform state/real tfvars and Ansible variable/Vault/credential material do not enter evidence/AI context;
+- raw Terraform state/real tfvars and Ansible variable/Vault/credential material do not enter evidence/AI context;
+- only explicitly safe aggregate state structure may enter evidence after a dedicated accepted collector projects it;
 - no raw commands, arguments, environment values, credentials, host targets, console logs, job configuration bodies, build parameters, or sensitive connection strings enter evidence/AI context;
 - no drift, execution success, idempotence, compliance, or destructive-change result is inferred without authoritative evidence;
 - unknowns are not forced closed;
