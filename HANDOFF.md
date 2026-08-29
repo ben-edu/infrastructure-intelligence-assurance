@@ -6,8 +6,8 @@ Project Sources remain authoritative. Read `docs/PROJECT_CONTINUITY.md`, then th
 
 ```text
 repository: ben-edu/infrastructure-intelligence-assurance
-accepted main after PR #80: 11a6b69ecc55c6f356153fa4f5689c717f9cf754
-active branch: agent/m7-backup-assurance-operator-adapter
+accepted main after PR #81: 27dad7917299b90688fd418b70bbec585c94ea7b
+active branch: agent/m7-backup-assurance-operator-integration
 Milestone 7: ACTIVE
 management host: mgmt-automation
 broader infrastructure mutation authorized: false
@@ -27,8 +27,7 @@ Accepted runtime state:
 ```text
 operator-attention runtime identity: infra-assurance
 operator-attention JSON/Markdown: generated in existing collector cycle
-focused tests: 7 passed in 0.21s
-full suite: 412 passed in 2.00s
+full suite at runtime integration: 412 passed in 2.00s
 cluster: k3s-main
 scope: KUBERNETES_EXISTING_EVIDENCE_ONLY
 workloads_total: 68
@@ -37,6 +36,16 @@ attention_now_total: 2
 recent_changes_total: 0
 unknowns_total: 0
 required_live_verification_total: 0
+```
+
+Accepted current Kubernetes attention items:
+
+```text
+Service/monitoring/loki-headless
+  SERVICE_SELECTOR_MULTIPLE_CONTROLLER_MATCHES / AMBIGUOUS
+
+Ingress/validation/nginx-validation
+  DECLARED_OBSERVED_DRIFT / DRIFT
 ```
 
 Preserve rejected/incomplete attempts:
@@ -48,7 +57,7 @@ service-identity probe from /home/ben source tree: FAILED_TO_OBSERVE before code
 
 Do not reuse either as negative evidence.
 
-## Active slice — compact backup-assurance operator adapter
+## Accepted compact backup-assurance adapter
 
 Accepted report:
 
@@ -56,52 +65,18 @@ Accepted report:
 docs/reports/2026-08-29-m7-backup-assurance-operator-adapter.md
 ```
 
-Source artifact:
+Accepted validation:
 
 ```text
-/var/lib/infra-assurance/evidence/backup-assurance.json
+focused tests: 6 passed in 0.05s
+live read-only probe: source_status=COMPLETE / discovery_rc=0
+full suite: 418 passed in 1.96s
 ```
 
-Prepared implementation:
-
-```text
-src/infra_assurance/backup_operator_adapter.py
-tests/test_backup_operator_adapter.py
-scripts/discovery/m7_backup_assurance_operator_adapter_probe.py
-```
-
-No runtime integration, service change, datastore, live infrastructure query, or management-host mutation is part of this contract slice.
-
-## Validation — ACCEPTED
-
-Focused tests:
-
-```text
-6 passed in 0.05s
-```
-
-Accepted live probe:
-
-```text
-source_status: COMPLETE
-backup_assurance_source_status: COMPLETE
-cluster_id: k3s-main
-scope: BACKUP_ASSURANCE_EXISTING_EVIDENCE_ONLY
-discovery_rc=0
-```
-
-Full repository suite:
-
-```text
-418 passed in 1.96s
-```
-
-Accepted compact summary:
+Accepted compact backup summary:
 
 ```text
 assets_total: 37
-assets_stale: 0
-assets_freshness_unknown: 0
 protection_unknown: 37
 restore_verification_unknown: 37
 unprotected_claims: 0
@@ -110,30 +85,7 @@ attention_total: 3
 required_verification_categories_total: 8
 ```
 
-Accepted attention projection:
-
-```text
-BACKUP_PROTECTION_UNKNOWN / UNKNOWN / count=37
-RESTORE_VERIFICATION_UNKNOWN / UNKNOWN / count=37
-AUTHORITATIVE_BACKUP_SOURCE_NOT_INTEGRATED / UNKNOWN
-```
-
-Accepted verification categories:
-
-```text
-OBSERVE_BACKUP_MECHANISM
-OBSERVE_LAST_SUCCESSFUL_BACKUP
-OBSERVE_BACKUP_RETENTION
-OBSERVE_BACKUP_FAILURE_DOMAIN
-OBSERVE_BACKUP_INTEGRITY_VERIFICATION
-OBSERVE_RESTORE_TEST
-OBSERVE_RPO_TARGET_AND_RESULT
-OBSERVE_RTO_TARGET_AND_RESULT
-```
-
-All require an authoritative source.
-
-## Trust semantics — MUST PRESERVE
+Trust semantics that must remain true:
 
 ```text
 UNKNOWN protection != UNPROTECTED
@@ -141,53 +93,94 @@ restore verification UNKNOWN != recovery test overdue
 unprotected claims require authoritative backup evidence
 ```
 
-Accepted probe trust checks:
+## Active slice — integrate compact backup assurance into operator attention
+
+Goal:
 
 ```text
-unknown_is_not_unprotected: True
-recovery_test_overdue_claimed: False
-authoritative_backup_evidence_required_for_unprotected: True
+Combine the accepted Kubernetes operator-attention projection with the accepted compact backup-assurance adapter into one bounded cross-domain operator summary, without changing the existing runtime yet.
 ```
 
-The source currently reports `unprotected_claims=0`. Do not infer unprotected assets from `protection_unknown=37`.
-
-Do not infer overdue restore testing from `restore_verification_unknown=37`.
-
-Safety boundary:
+Prepared implementation:
 
 ```text
-mutation_allowed: false
-live infrastructure query: false
-source artifact write: false
-raw source projection: false
-asset detail projection: false
-secrets/credentials projection: false
+src/infra_assurance/operator_attention_backup.py
+tests/test_operator_attention_backup.py
+scripts/discovery/m7_backup_assurance_operator_integration_probe.py
 ```
 
-## Merge gate — READY
-
-All required gates passed:
+Cross-domain scope:
 
 ```text
-focused tests: 6 passed in 0.05s
-live read-only probe: source_status=COMPLETE / discovery_rc=0
-full suite: 418 passed in 1.96s
+KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY
 ```
 
-Before merge:
+Expected semantics:
 
-1. verify branch scope is exactly five intended files:
-   - `HANDOFF.md`
-   - `docs/reports/2026-08-29-m7-backup-assurance-operator-adapter.md`
-   - `scripts/discovery/m7_backup_assurance_operator_adapter_probe.py`
-   - `src/infra_assurance/backup_operator_adapter.py`
-   - `tests/test_backup_operator_adapter.py`
-2. ensure no temporary/debug/placeholder files exist;
-3. create/inspect a non-draft PR;
-4. verify mergeability and changed filenames;
-5. squash-merge and carry the new accepted main SHA forward.
+```text
+- preserve the existing Kubernetes attention items;
+- add only compact aggregate backup attention items;
+- add the eight authoritative backup/recovery verification categories;
+- expose backup aggregate counts without per-asset backup details;
+- fail closed on cluster mismatch;
+- preserve exact total counts even when displayed sections are truncated;
+- preserve UNKNOWN != UNPROTECTED;
+- preserve restore verification UNKNOWN != recovery test overdue.
+```
 
-After merge, reassess whether integrating this compact adapter into the existing operator-attention runtime is the next smallest useful M7 step. Do not jump directly to a dashboard.
+The active branch does NOT change:
+
+```text
+systemd
+installed runtime under /opt
+collector timer/service
+infrastructure
+permissions
+datastores
+```
+
+No management-host or infrastructure mutation is authorized or required for this contract slice.
+
+## Exact next gate
+
+On `mgmt-automation`:
+
+```bash
+cd ~/projects/infrastructure-intelligence-assurance
+
+git fetch origin
+
+git switch --track origin/agent/m7-backup-assurance-operator-integration
+
+python3 -m pytest -q \
+  tests/test_operator_attention_backup.py
+
+sudo env \
+  PYTHONPATH="$PWD/src" \
+  python3 "$PWD/scripts/discovery/m7_backup_assurance_operator_integration_probe.py"
+
+echo "discovery_rc=$?"
+```
+
+Do not use strict interactive shell mode.
+
+The one-time `sudo` probe is validation-only because the repo remains under `/home/ben` while evidence artifacts are protected. It reads only existing derived artifacts and performs no infrastructure query or write.
+
+Acceptance rules:
+
+```text
+focused tests: PASS
+probe source_status: COMPLETE
+discovery_rc=0
+source_artifacts_loaded=4
+cluster_id=k3s-main
+scope=KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY
+backup_unprotected_claims=0
+unknown_is_not_unprotected=True
+recovery_test_overdue_claimed=False
+```
+
+If accepted, create the report, run the full repository suite, inspect exact scope, PR/squash-merge, and only then decide whether runtime integration is warranted.
 
 ## Preserved M6 boundaries
 
