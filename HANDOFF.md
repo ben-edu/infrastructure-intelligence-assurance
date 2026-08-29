@@ -28,15 +28,6 @@ Closure report:
 docs/reports/2026-08-29-m6-read-only-governance-closure.md
 ```
 
-Decision:
-
-```text
-Milestone 6 overall: NOT COMPLETE
-current read-only governance phase: COMPLETE FOR CURRENT AUTHORITATIVE SOURCES AND SAFE OBSERVATION PATHS
-remaining stronger gaps: EXPLICITLY PRESERVED
-mutation/stronger-access work: DEFERRED
-```
-
 Preserve:
 
 ```text
@@ -45,6 +36,8 @@ Terraform full live-resource coverage/state authority: UNKNOWN
 Ansible live managed-host coverage: UNKNOWN
 Ansible execution outcome/success/idempotence/configuration drift: UNKNOWN
 ```
+
+Do not resume weak M6 probing merely to force UNKNOWNs closed.
 
 Accepted bounded Terraform governance evidence includes:
 
@@ -56,9 +49,9 @@ state_tracked_refresh_drift_status: STATE_TRACKED_DRIFT_CHANGE_SIGNAL_OBSERVED
 refresh_only_action_counts: update=6 (bm1=2, bm2=4)
 ```
 
-This is bounded state-tracked drift only, not universal infrastructure drift.
+This remains bounded state-tracked drift only, not universal infrastructure drift.
 
-Latest accepted full suite before M7:
+Latest accepted full suite before the active M7 slice:
 
 ```text
 405 passed in 1.79s
@@ -72,14 +65,18 @@ Goal:
 Build the smallest read-only operator-facing projection that reduces cognitive load using existing evidence only.
 ```
 
-This first M7 slice is intentionally Kubernetes-existing-evidence only. It does not yet integrate M5 backup-assurance or M6 Terraform/Ansible evidence into one cross-domain inbox.
-
 Implementation:
 
 ```text
 src/infra_assurance/operator_attention.py
 scripts/discovery/m7_operator_attention_summary_probe.py
 tests/test_operator_attention.py
+```
+
+Accepted report:
+
+```text
+docs/reports/2026-08-29-m7-operator-attention-summary-contract.md
 ```
 
 Existing source artifacts only:
@@ -92,7 +89,11 @@ Existing source artifacts only:
 
 No new infrastructure query, collector identity, datastore, or source of truth is introduced.
 
-### Projection contract
+Projection scope:
+
+```text
+KUBERNETES_EXISTING_EVIDENCE_ONLY
+```
 
 Derived sections:
 
@@ -103,46 +104,17 @@ unknowns
 required_live_verification
 ```
 
-Top-level summary counts:
+## Validation — ACCEPTED PENDING FULL SUITE
 
-```text
-workloads_total
-workloads_with_attention
-attention_now_total
-recent_changes_total
-unknowns_total
-required_live_verification_total
-```
-
-The projection fails closed if required source artifacts cannot be read or do not resolve to exactly one matching cluster.
-
-### Trust boundary
-
-```text
-mutation_allowed: false
-scope: KUBERNETES_EXISTING_EVIDENCE_ONLY
-live infrastructure query: none
-source artifact write: none
-new datastore: none
-```
-
-Only allowlisted metadata is projected. Do not project raw Kubernetes evidence values, raw diagnostics, Secret values, credentials, Terraform state, or sensitive connection strings.
-
-Unknown/stale/failed evidence remains explicit; absence in the operator projection is not universal absence.
-
-## Validation status
-
-Focused tests under normal user context:
+Focused tests:
 
 ```text
 5 passed in 0.05s
 ```
 
-This focused result is accepted and does not need to be rerun for the current retry.
+### Rejected/incomplete live attempts
 
-## Live attempt 1 — FAILED_TO_OBSERVE
-
-Interactive user `ben` executed the probe from the repository.
+Attempt 1 as interactive user `ben`:
 
 ```text
 source_status: FAILED_TO_OBSERVE
@@ -150,109 +122,137 @@ failure_category: PermissionError
 discovery_rc=2
 ```
 
-Accepted interpretation:
+Do not reuse as zero-attention or source-absence evidence.
 
-```text
-- NOT zero-attention evidence;
-- NOT source-artifact absence evidence;
-- the interactive user could not read at least one protected evidence artifact;
-- no operator-attention conclusion is allowed.
-```
-
-## Live attempt 2 — FAILED_TO_OBSERVE before source loading
-
-The probe was retried under the dedicated `infra-assurance` service identity:
-
-```text
-sudo -u infra-assurance env PYTHONPATH="$PWD/src" python3 "$PWD/scripts/discovery/m7_operator_attention_summary_probe.py"
-```
-
-Observed result:
+Attempt 2 under `infra-assurance` from the repository under `/home/ben`:
 
 ```text
 python3: can't open file '/home/ben/projects/infrastructure-intelligence-assurance/scripts/discovery/m7_operator_attention_summary_probe.py': [Errno 13] Permission denied
 discovery_rc=2
 ```
 
-Accepted interpretation:
+This failed before the code executed because the service identity cannot traverse the user-private repository path. Do not weaken permissions or reuse this as evidence-source failure.
+
+### Accepted live attempt
+
+A one-time privileged read-only validation was used because the repository source tree and protected evidence artifacts are under incompatible Unix access boundaries. This is validation packaging only and is not the intended runtime model.
+
+Accepted output:
 
 ```text
-- NOT zero-attention evidence;
-- NOT source-artifact absence evidence;
-- this attempt failed before the probe code could execute;
-- `infra-assurance` cannot traverse/read the repository source tree under `/home/ben`;
-- do not weaken `/home/ben` or repository permissions;
-- do not copy/install temporary code merely to make this validation pass.
+discovery_rc=0
+source_status: COMPLETE
+source_artifacts_loaded: 3
+cluster_id: k3s-main
+scope: KUBERNETES_EXISTING_EVIDENCE_ONLY
+
+workloads_total: 68
+workloads_with_attention: 3
+attention_now_total: 2
+recent_changes_total: 0
+unknowns_total: 0
+required_live_verification_total: 0
 ```
 
-The service-identity attempt is therefore an execution-packaging failure, not an evidence-source failure.
-
-No accepted M7 report or PR may be created from either failed attempt.
-
-## Exact next step
-
-Use one narrowly scoped read-only privileged execution for validation only. This is justified because:
+Accepted attention projection:
 
 ```text
-- the repository code lives under a user-private path;
-- the evidence artifacts are protected;
-- the probe implementation has already been reviewed/tested to perform only reads of exactly the three bounded artifacts;
-- the probe performs no live infrastructure query and no write;
-- changing file permissions or copying/installing temporary code would create unnecessary state changes.
+source=topology
+code=SERVICE_SELECTOR_MULTIPLE_CONTROLLER_MATCHES
+severity=AMBIGUOUS
+subject=Service/monitoring/loki-headless
+
+source=drift
+code=DECLARED_OBSERVED_DRIFT
+severity=DRIFT
+subject=Ingress/validation/nginx-validation
 ```
 
-On `mgmt-automation`, first pull the handoff update:
+Truncation:
+
+```text
+max_items_per_section: 20
+attention_now_truncated: False
+recent_changes_truncated: False
+unknowns_truncated: False
+required_live_verification_truncated: False
+```
+
+Interpretation:
+
+```text
+- the three bounded source artifacts loaded successfully and target k3s-main;
+- the operator-facing projection contains two deduplicated current attention items;
+- workloads_with_attention=3 is the inventory-level workload count and is not required to equal attention_now_total=2;
+- recent_changes=0, unknowns=0, and required_live_verification=0 are bounded absence only within the currently loaded source artifacts and their freshness/trust boundaries;
+- no remediation or mutation is implied by an attention item.
+```
+
+## Trust boundary
+
+```text
+mutation_allowed: false
+live_infrastructure_query_performed: false
+source_artifacts_written: false
+new_datastore_used: false
+raw_source_artifacts_projected: false
+secrets_or_credentials_projected: false
+```
+
+Only allowlisted summary and compact metadata are projected. Raw Kubernetes evidence values, arbitrary resource values, raw diagnostics, credentials, Secret values, Terraform state, and sensitive connection strings do not enter the projection.
+
+The successful root execution is a one-time validation workaround only. Future runtime integration must use the installed package/runtime path under the existing `infra-assurance` service identity and must not broaden file permissions.
+
+## Merge gate — PENDING FULL SUITE
+
+Reusable implementation and tests changed, so run the repository-wide suite before PR/merge.
+
+Exact next step on `mgmt-automation`:
 
 ```bash
 cd ~/projects/infrastructure-intelligence-assurance
-
-git pull --ff-only origin agent/m7-operator-attention-summary-contract
-```
-
-Then run only the live probe with `sudo`:
-
-```bash
-sudo env \
-  PYTHONPATH="$PWD/src" \
-  python3 "$PWD/scripts/discovery/m7_operator_attention_summary_probe.py"
-```
-
-Then capture the return code in the normal interactive shell:
-
-```bash
-echo "discovery_rc=$?"
+python3 -m pytest -q
 ```
 
 Do not use strict interactive shell mode.
 
-Do not rerun the focused tests under sudo. Do not change artifact/repository permissions. Do not add ACLs. Do not create temporary copies of the code.
+If the full suite passes:
 
-This root execution is a one-time validation packaging workaround only; it is not the intended long-term M7 runtime model. If the contract is later integrated into the installed five-minute runtime, it must run from the normal installed package/runtime path under the existing `infra-assurance` identity.
+1. record the exact pass count/time in this handoff and the report;
+2. verify branch scope is exactly five files:
+   - `HANDOFF.md`
+   - `docs/reports/2026-08-29-m7-operator-attention-summary-contract.md`
+   - `src/infra_assurance/operator_attention.py`
+   - `scripts/discovery/m7_operator_attention_summary_probe.py`
+   - `tests/test_operator_attention.py`
+3. ensure no temporary/debug/placeholder files exist;
+4. create/inspect a non-draft PR;
+5. verify changed filenames and mergeability;
+6. squash-merge and carry the new accepted `main` SHA into the next checkpoint.
 
-Acceptance rules for the privileged retry:
+## Next smallest useful M7 step after merge
 
-- all three bounded artifacts must load successfully;
-- all three artifacts must resolve to one matching cluster;
-- no live infrastructure query or mutation may occur;
-- only allowlisted summary/metadata may be projected;
-- source failures must remain `FAILED_TO_OBSERVE`, never zero-attention evidence;
-- live output is valid only within `KUBERNETES_EXISTING_EVIDENCE_ONLY` scope;
-- successful root execution does not expand future runtime privileges.
+Prefer integration of this accepted contract into the existing five-minute artifact generation path before adding a dashboard or broad cross-domain inbox.
 
-If the retry succeeds, create an accepted report, run the full repository suite because reusable implementation/tests changed, inspect exact five-file scope after report creation (`HANDOFF.md`, report, implementation, probe, tests), then PR/squash-merge.
+Target derived artifacts:
 
-If it still fails, preserve `FAILED_TO_OBSERVE` and fix only the specific packaging/source assumption revealed by the failure.
+```text
+/var/lib/infra-assurance/evidence/operator-attention.json
+/var/lib/infra-assurance/evidence/operator-attention.md
+```
 
-## Next M7 direction after this slice
+The integration must:
 
-Do not jump directly to a dashboard.
+```text
+run from the installed package/runtime path under infra-assurance
+reuse existing generated evidence only
+remain read-only against infrastructure
+preserve failed/stale/unknown source semantics
+avoid a new datastore or source of truth
+avoid broad dashboard construction
+```
 
-After this contract is accepted, choose the smaller of:
-
-1. integrate the projection into the existing five-minute artifact generation path; or
-2. add one additional cross-domain evidence adapter for already accepted M5/M6 assurance signals.
-
-Choose only a step that materially reduces operator cognitive load.
+Only after this integration is accepted should the project decide whether a small cross-domain adapter for accepted M5/M6 assurance signals is the next useful step.
 
 ## Trust invariants
 
