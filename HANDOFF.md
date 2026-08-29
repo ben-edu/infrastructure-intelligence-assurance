@@ -46,9 +46,7 @@ docs/reports/2026-08-29-m6-terraform-root-module-declared-coverage.md
 docs/reports/2026-08-29-m6-terraform-execution-declaration-discovery.md
 ```
 
-Preserve Terraform state-backed coverage, live resource coverage, execution outcome, plan/apply result, drift, and destructive-change status as `UNKNOWN` unless stronger authoritative evidence is added.
-
-Do not reuse the rejected first Terraform execution scan that contained a gate-only false positive.
+Preserve Terraform state-backed coverage, live resource coverage, execution outcome, plan/apply result, drift, and destructive-change status as `UNKNOWN` unless stronger authoritative evidence is added. Do not reuse the rejected first Terraform execution scan containing the gate-only false positive.
 
 ## Accepted Milestone 6 — Ansible declared/source path
 
@@ -88,8 +86,6 @@ idempotence: UNKNOWN
 configuration drift: UNKNOWN
 ```
 
-Jenkins integration capability is not Jenkins runtime evidence. Jenkins runtime metadata is not automatically Ansible execution evidence.
-
 ## Active Milestone 6 — Jenkins API metadata-only probe
 
 Implementation:
@@ -99,107 +95,127 @@ scripts/discovery/m6_jenkins_api_metadata_probe.py
 tests/test_jenkins_api_metadata_probe.py
 ```
 
-### First live attempt — NOT ACCEPTED AS OUTCOME EVIDENCE
+Report recorded on this branch:
 
-Validation before attempt:
+```text
+docs/reports/2026-08-29-m6-jenkins-api-metadata-probe.md
+```
+
+### First attempt — failed observation, not negative evidence
 
 ```text
 focused tests: 4 passed in 0.08s
-```
-
-Observed attempt:
-
-```text
 connection_config_status: CONNECTION_CONFIG_UNAVAILABLE
 env_files_observed: 1
 env_files_read_for_approved_keys: 0
-credential_material_loaded_locally: False
 jenkins_api_invoked: False
 api_observation_status: NOT_ATTEMPTED
 jobs_total: 0
-jobs_with_last_build_metadata: 0
 discovery_rc: 2
 ```
 
-Interpretation:
+Do not interpret the first attempt's `jobs_total: 0` as Jenkins having zero jobs. No API call occurred.
+
+### Retry fix
+
+The parser now:
 
 ```text
-This is FAILED_TO_OBSERVE / NOT_ATTEMPTED, not negative Jenkins evidence.
-`jobs_total: 0` from this attempt MUST NOT be interpreted as Jenkins having zero jobs.
-No Jenkins API call occurred.
-No credential value or endpoint value was projected.
-```
-
-Likely issue: the first parser accepted only a short fixed list of Jenkins connection-key aliases while the bounded integration `.env` uses another Jenkins-scoped naming/format convention.
-
-### Retry fix prepared on active branch
-
-The connection parser now:
-
-```text
-accepts only keys with explicit JENKINS_ scope
-classifies URL/ENDPOINT, USER/USERNAME, TOKEN/PASSWORD/API_KEY roles
+accepts only explicit JENKINS_-scoped connection keys
+supports URL/ENDPOINT, USER/USERNAME, TOKEN/PASSWORD/API_KEY roles
 supports `export KEY=value`
 rejects generic URL/TOKEN/PASSWORD variables
-fails closed if multiple distinct values map to the same connection role
-never projects key names or values
+fails closed on multiple distinct values for one role
+never projects connection key names or values
 ```
 
-The permitted Jenkins runtime surface remains unchanged:
+### Successful live retry — accepted Jenkins runtime metadata
 
 ```text
+focused tests: 5 passed in 0.06s
+discovery_rc: 0
+connection_config_status: CONNECTION_CONFIG_READY
+env_files_observed: 1
+env_files_read_for_approved_keys: 1
+credential_material_loaded_locally: True
+credential_values_projected: False
+endpoint_value_projected: False
+jenkins_api_invoked: True
+api_observation_status: COMPLETE
+jobs_total: 25
+jobs_with_last_build_metadata: 11
+ansible_name_signal_jobs: 0
+ansible_name_signal_jobs_with_last_build_metadata: 0
+last_build_result_counts: SUCCESS=11
+ansible_name_signal_last_build_result_counts: NONE_OBSERVED
+```
+
+Interpretation boundary:
+
+```text
+This is accepted Jenkins runtime metadata evidence.
+It is NOT accepted Ansible execution-outcome evidence.
+The 11 SUCCESS values are Jenkins last-build result categories only.
+No weak `ansible` token was observed in in-memory job names; this is bounded weak-name absence only.
+Job names and build numbers were not projected.
+```
+
+Preserve:
+
+```text
+Ansible execution_outcome_status: UNKNOWN
+Ansible execution_success_status: UNKNOWN
+idempotence_status: UNKNOWN
+configuration_drift_status: UNKNOWN
+successful_execution_claims: 0
+idempotence_claims: 0
+drift_claims: 0
+```
+
+## Runtime trust boundary
+
+```text
+mutation_allowed: False
 HTTP method: GET only
-endpoint class: root /api/json only
+permitted endpoint class: root /api/json only
 restricted tree: jobs[name,color,lastBuild[number,result,timestamp,building]]
+console logs inspected: False
+job config bodies inspected: False
+build parameters inspected: False
+credential values projected: False
+endpoint value projected: False
+Ansible CLI invoked: False
+SSH performed: False
 ```
 
-Explicitly prohibited:
+No console log, `config.xml`, build parameter, environment value, raw command, inventory argument, host target, Vault material, job name, build number, endpoint value, or credential value entered evidence output.
 
-```text
-consoleText / console logs
-config.xml / job configuration bodies
-build parameters
-environment values
-credential/token values
-raw commands or arguments
-inventory arguments
-host targets
-Vault material
-job names
-build numbers
-endpoint URL value
-```
+## Merge gate — PENDING
 
-Even if Jenkins build result metadata is observed, preserve Ansible outcome/success/idempotence/drift as `UNKNOWN` until stronger safe relationship evidence exists.
+Focused tests and live retry passed. Because reusable implementation/tests changed, run the full repository suite before PR/merge.
 
 ## Exact next step
 
-On `mgmt-automation`:
+On `mgmt-automation` run only:
 
 ```bash
 cd ~/projects/infrastructure-intelligence-assurance
-
-git pull --ff-only origin agent/m6-jenkins-api-metadata-probe
-
-python3 -m pytest -q \
-  tests/test_jenkins_api_metadata_probe.py
-
-PYTHONPATH=src python3 \
-  scripts/discovery/m6_jenkins_api_metadata_probe.py
-
-echo "discovery_rc=$?"
+python3 -m pytest -q
 ```
 
-Acceptance rules:
+Do not use strict interactive shell mode.
 
-- focused tests must pass;
-- connection material must resolve without projecting key names or values;
-- only a GET metadata endpoint may be invoked;
-- no console/config/parameters/environment/command/host-target surfaces may be requested;
-- job names/build numbers must not be printed or persisted;
-- connection/API observation failure remains `FAILED_TO_OBSERVE`, never negative evidence;
-- Jenkins build metadata must not be promoted to Ansible execution success/idempotence/drift claims;
-- if retry succeeds, run the full repository suite before PR/merge.
+If the full suite passes:
+
+1. record the exact pass count in this handoff/report/PR;
+2. inspect changed-file scope and ensure no temporary/debug/placeholder files exist;
+3. create/inspect a non-draft PR and squash-merge when clean;
+4. carry the new accepted `main` SHA into the next branch handoff;
+5. start a bounded **Ansible-to-Jenkins relationship source discovery**.
+
+The next slice must determine whether any safe authoritative metadata source can relate a Jenkins job/build to Ansible execution without reading console logs, job configuration bodies, build parameters, raw command bodies, credentials, or sensitive host/inventory data.
+
+If no safe relationship source exists, preserve Ansible execution outcome as `UNKNOWN` and stop widening this evidence path merely to eliminate the unknown.
 
 ## Trust invariants
 
