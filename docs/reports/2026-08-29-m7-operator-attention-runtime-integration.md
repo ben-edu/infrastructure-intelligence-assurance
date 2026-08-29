@@ -1,7 +1,7 @@
 # Milestone 7 — Operator Attention Runtime Integration
 
 Date: 2026-08-29
-Status: ACCEPTED PENDING FULL-SUITE GATE
+Status: ACCEPTED
 Mode: installed read-only derived-artifact integration in the existing five-minute collector
 
 ## Scope
@@ -33,6 +33,12 @@ Focused tests:
 
 ```text
 7 passed in 0.21s
+```
+
+Full repository regression suite:
+
+```text
+412 passed in 2.00s
 ```
 
 ## Deployment validation
@@ -115,6 +121,8 @@ The two attention items are evidence-routing signals only. No remediation or mut
 - no raw Kubernetes Secret value, credential, raw Terraform state, sensitive connection string, or unallowlisted raw source content was projected;
 - `mutation_allowed=false` is preserved in the generated artifact.
 
-## Remaining gate
+## Acceptance
 
-A full repository regression suite is required before PR/merge because reusable implementation, systemd integration, and tests changed.
+This slice is accepted for merge. Repository, live runtime, generated-artifact, and full-suite gates all passed.
+
+Next step after merge: reassess the smallest remaining Milestone 7 gap before adding any dashboard or broad cross-domain layer. Prefer one small operator-facing integration over new infrastructure.
