@@ -38,6 +38,12 @@ Focused tests:
 4 passed in 0.09s
 ```
 
+Repository-wide suite:
+
+```text
+368 passed in 1.59s
+```
+
 Live discovery:
 
 ```text
@@ -49,8 +55,6 @@ candidate_files_scanned=156
 read_or_decode_skips=0
 oversize_skips=0
 ```
-
-A repository-wide test suite is required before merge because this slice adds reusable discovery implementation and tests.
 
 ## Accepted result
 
@@ -112,7 +116,7 @@ No repository or infrastructure mutation was performed by the discovery.
 
 ## Next smallest useful step
 
-After the full repository suite passes and this slice is merged, do not infer execution history from Git. The next useful read-only slice should identify an authoritative **Ansible execution-outcome source** outside this bounded declaration source.
+Do not infer execution history from Git. The next useful read-only slice should identify an authoritative **Ansible execution-outcome source** outside this bounded declaration source.
 
 Preferred order:
 
