@@ -51,13 +51,7 @@ refresh_only_action_counts: update=6 (bm1=2, bm2=4)
 
 This remains bounded state-tracked drift only, not universal infrastructure drift.
 
-Latest accepted full suite before the active M7 slice:
-
-```text
-405 passed in 1.79s
-```
-
-## Active Milestone 7 — operator attention summary contract
+## Active Milestone 7 slice — operator attention summary contract
 
 Goal:
 
@@ -87,8 +81,6 @@ Existing source artifacts only:
 /var/lib/infra-assurance/evidence/change-context.json
 ```
 
-No new infrastructure query, collector identity, datastore, or source of truth is introduced.
-
 Projection scope:
 
 ```text
@@ -104,12 +96,20 @@ unknowns
 required_live_verification
 ```
 
-## Validation — ACCEPTED PENDING FULL SUITE
+No new infrastructure query, collector identity, datastore, or source of truth is introduced.
+
+## Validation — ACCEPTED
 
 Focused tests:
 
 ```text
 5 passed in 0.05s
+```
+
+Repository-wide regression gate:
+
+```text
+410 passed in 1.83s
 ```
 
 ### Rejected/incomplete live attempts
@@ -131,7 +131,7 @@ python3: can't open file '/home/ben/projects/infrastructure-intelligence-assuran
 discovery_rc=2
 ```
 
-This failed before the code executed because the service identity cannot traverse the user-private repository path. Do not weaken permissions or reuse this as evidence-source failure.
+This failed before code execution because the service identity cannot traverse the user-private repository path. It is an execution-packaging failure, not an evidence-source failure. Do not weaken permissions.
 
 ### Accepted live attempt
 
@@ -184,7 +184,7 @@ Interpretation:
 - the three bounded source artifacts loaded successfully and target k3s-main;
 - the operator-facing projection contains two deduplicated current attention items;
 - workloads_with_attention=3 is the inventory-level workload count and is not required to equal attention_now_total=2;
-- recent_changes=0, unknowns=0, and required_live_verification=0 are bounded absence only within the currently loaded source artifacts and their freshness/trust boundaries;
+- recent_changes=0, unknowns=0, and required_live_verification=0 are bounded absence only within the loaded artifacts and their own freshness/trust boundaries;
 - no remediation or mutation is implied by an attention item.
 ```
 
@@ -203,36 +203,33 @@ Only allowlisted summary and compact metadata are projected. Raw Kubernetes evid
 
 The successful root execution is a one-time validation workaround only. Future runtime integration must use the installed package/runtime path under the existing `infra-assurance` service identity and must not broaden file permissions.
 
-## Merge gate — PENDING FULL SUITE
+## Merge gate — READY
 
-Reusable implementation and tests changed, so run the repository-wide suite before PR/merge.
+Accepted validations:
 
-Exact next step on `mgmt-automation`:
-
-```bash
-cd ~/projects/infrastructure-intelligence-assurance
-python3 -m pytest -q
+```text
+focused: 5 passed in 0.05s
+live: discovery_rc=0 / source_status=COMPLETE
+full suite: 410 passed in 1.83s
 ```
 
-Do not use strict interactive shell mode.
+Before merge:
 
-If the full suite passes:
-
-1. record the exact pass count/time in this handoff and the report;
-2. verify branch scope is exactly five files:
+1. verify branch scope is exactly five files:
    - `HANDOFF.md`
    - `docs/reports/2026-08-29-m7-operator-attention-summary-contract.md`
    - `src/infra_assurance/operator_attention.py`
    - `scripts/discovery/m7_operator_attention_summary_probe.py`
    - `tests/test_operator_attention.py`
-3. ensure no temporary/debug/placeholder files exist;
-4. create/inspect a non-draft PR;
-5. verify changed filenames and mergeability;
-6. squash-merge and carry the new accepted `main` SHA into the next checkpoint.
+2. ensure no temporary/debug/placeholder files exist;
+3. create/inspect a non-draft PR;
+4. verify changed filenames and mergeability;
+5. squash-merge;
+6. carry the new accepted `main` SHA into the next branch handoff.
 
-## Next smallest useful M7 step after merge
+## Exact next step after merge
 
-Prefer integration of this accepted contract into the existing five-minute artifact generation path before adding a dashboard or broad cross-domain inbox.
+Integrate the accepted contract into the existing five-minute artifact-generation path before adding a dashboard or broad cross-domain inbox.
 
 Target derived artifacts:
 
@@ -252,7 +249,7 @@ avoid a new datastore or source of truth
 avoid broad dashboard construction
 ```
 
-Only after this integration is accepted should the project decide whether a small cross-domain adapter for accepted M5/M6 assurance signals is the next useful step.
+Only after that integration is accepted should the project decide whether a small cross-domain adapter for accepted M5/M6 assurance signals is the next useful step.
 
 ## Trust invariants
 
