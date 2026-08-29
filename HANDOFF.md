@@ -15,8 +15,8 @@ Project Sources remain authoritative for durable goals, roadmap, trust principle
 
 ```text
 repository: ben-edu/infrastructure-intelligence-assurance
-accepted main after PR #63: 85301c6fa9725fc3439cbb13bd2c9325f5cfe458
-active branch: agent/m6-terraform-execution-declaration-discovery
+accepted main after PR #64: df6b85597a17068eb3b38dd3e83cc280af44c222
+active branch: agent/m6-ansible-declared-inventory
 package on accepted main: 0.27.0
 Milestone 5 overall: NOT COMPLETE
 Milestone 5 read-only source discovery: COMPLETE FOR CURRENT AUTHORITATIVE SOURCES
@@ -80,7 +80,7 @@ terraform/modules/proxmox_vm
   declared resource blocks: 0
 ```
 
-The local module relationships are declared structure only. Terraform state membership, runtime instance count, provider reachability, live resource existence, drift, and destructive-change status remain UNKNOWN.
+Terraform state membership, runtime instance count, provider reachability, live resource existence, drift, and destructive-change status remain UNKNOWN.
 
 ## Accepted Milestone 6 — Terraform execution declaration discovery
 
@@ -90,7 +90,7 @@ Report:
 docs/reports/2026-08-29-m6-terraform-execution-declaration-discovery.md
 ```
 
-Accepted corrected live result:
+Accepted corrected result:
 
 ```text
 focused tests: 4 passed in 0.09s
@@ -99,8 +99,6 @@ source_status: COMPLETE
 tracked_files_returned: 400
 candidate_files_selected: 160
 candidate_files_scanned: 160
-read_or_decode_skips: 0
-oversize_skips: 0
 terraform_execution_signal_files: NONE_OBSERVED
 terraform_signal_files: 0
 phase_file_counts: NONE_OBSERVED
@@ -108,17 +106,7 @@ phase_signal_counts: NONE_OBSERVED
 files_with_gate_signal: 0
 ```
 
-Phase declaration status:
-
-```text
-init: NONE_OBSERVED_IN_BOUNDED_SOURCE
-validate: NONE_OBSERVED_IN_BOUNDED_SOURCE
-plan: NONE_OBSERVED_IN_BOUNDED_SOURCE
-apply: NONE_OBSERVED_IN_BOUNDED_SOURCE
-destroy: NONE_OBSERVED_IN_BOUNDED_SOURCE
-refresh: NONE_OBSERVED_IN_BOUNDED_SOURCE
-import: NONE_OBSERVED_IN_BOUNDED_SOURCE
-```
+Phase declarations `init`, `validate`, `plan`, `apply`, `destroy`, `refresh`, and `import` are all `NONE_OBSERVED_IN_BOUNDED_SOURCE`.
 
 Preserve:
 
@@ -130,13 +118,16 @@ drift_status: UNKNOWN
 destructive_change_status: UNKNOWN
 ```
 
-The first live run exposed a gate-only false positive. The implementation was corrected so a file enters Terraform execution evidence only when at least one explicit Terraform phase token exists. Gate metadata is considered only for Terraform-signal files.
+Gate-only files are excluded from Terraform execution evidence. Bounded signal absence is not proof that Terraform execution never occurs elsewhere or manually.
 
-`NONE_OBSERVED_IN_BOUNDED_SOURCE` remains bounded negative evidence only; it is not proof that Terraform execution never occurs elsewhere or manually.
+## Active Milestone 6 slice — Ansible declared-state inventory
 
-## Exact next step
+Implementation:
 
-Start the smallest useful Ansible slice: **Git-tracked Ansible declared inventory** for the known infrastructure repository.
+```text
+scripts/discovery/m6_ansible_declared_inventory.py
+tests/test_ansible_declared_inventory.py
+```
 
 Bounded source:
 
@@ -145,30 +136,68 @@ Bounded source:
 Git-tracked safe Ansible source only
 ```
 
-First questions:
+Goal: create a safe structural inventory of declared Ansible inventory files, playbook candidates, role directories, and bounded host/group declaration counts without exposing host identifiers or sensitive variables.
+
+Safe projections:
 
 ```text
-Which inventory candidates are declared?
-Which playbook candidates are declared?
-Which role directories are declared?
-Which host/group identifiers can be safely counted without exposing addresses or secrets?
-What managed-host coverage can be stated from declarations only?
+inventory file identifier
+playbook file identifier
+role directory identifier
+inventory group declaration count
+inventory host declaration count
+aggregate inventory/playbook/role counts
 ```
 
-Exclude:
+Do not print or persist:
 
 ```text
+hostnames
+IP addresses
+inventory variable values
+group_vars / host_vars / vars contents
 Ansible Vault contents
 vault passwords
-inventory host addresses when sensitive
-ansible_password / become_password / private keys
-.env
-secret/credential/token material
-runtime facts
-Ansible execution or SSH connections
+ansible_password / become_password
+private keys
+credentials/tokens
+connection strings
 ```
 
-Do not call declared inventory hosts `OBSERVED` managed hosts. Keep configuration declarations separate from execution outcomes and live state.
+`group_vars`, `host_vars`, and `vars` contents are not read in this slice. Role-directory presence does not establish role invocation by a playbook.
+
+No Ansible CLI, SSH connection, runtime facts, execution result, idempotence result, or drift result is allowed in this slice.
+
+Expected semantics:
+
+```text
+managed_host_coverage_status: DECLARED_CONFIGURATION_ONLY
+live_managed_host_coverage_status: UNKNOWN
+execution_outcome_status: UNKNOWN
+configuration_drift_status: UNKNOWN
+```
+
+## Exact next step
+
+On `mgmt-automation`:
+
+```bash
+cd ~/projects/infrastructure-intelligence-assurance
+
+git fetch origin
+
+git switch --track origin/agent/m6-ansible-declared-inventory
+
+python3 -m pytest -q \
+  tests/test_ansible_declared_inventory.py
+
+PYTHONPATH=src python3 \
+  scripts/discovery/m6_ansible_declared_inventory.py
+
+echo "discovery_rc=$?"
+```
+
+Accept only declared-source structure and counts. Do not infer host reachability, configuration application, execution success, or drift.
 
 ## Trust invariants
 
@@ -178,8 +207,8 @@ Do not call declared inventory hosts `OBSERVED` managed hosts. Keep configuratio
 - source artifacts and derived assurance remain separate;
 - Terraform state and real tfvars do not enter evidence/AI context;
 - Ansible Vault and credential material do not enter evidence/AI context;
-- raw commands and sensitive runtime values are not projected;
-- no drift or destructive-change result is inferred without appropriate evidence;
+- host identifiers and inventory variable values are not projected;
+- no drift result is inferred without appropriate evidence;
 - unknowns are not forced closed without authoritative evidence;
 - no secrets, credentials, private keys, raw sensitive configuration, or sensitive connection strings enter evidence/AI context;
 - generated operational artifacts keep `mutation_allowed=false`.
