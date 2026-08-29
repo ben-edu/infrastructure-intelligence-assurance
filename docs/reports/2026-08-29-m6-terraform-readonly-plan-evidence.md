@@ -1,7 +1,7 @@
 # Milestone 6 — Terraform Read-Only Plan Evidence
 
 Date: 2026-08-29
-Status: ACCEPTED PENDING FULL-SUITE GATE
+Status: ACCEPTED
 Mode: read-only Terraform plan / provider observation / aggregate projection only
 
 ## Scope
@@ -67,7 +67,11 @@ state_tracked_refresh_drift_status: STATE_TRACKED_DRIFT_CHANGE_SIGNAL_OBSERVED
 destructive_change_status: NONE_OBSERVED_IN_COMPLETE_CONFIGURATION_PLAN
 ```
 
-A repository-wide test suite remains required before merge because this slice adds reusable discovery implementation and tests.
+Repository-wide regression gate:
+
+```text
+405 passed in 1.79s
+```
 
 ## Accepted interpretation
 
@@ -135,6 +139,6 @@ No Terraform apply/import/state mutation command, SSH connection, repository mut
 
 ## Next smallest useful step
 
-After the full repository suite passes and this slice is merged, reassess Milestone 6 rather than automatically adding another probe.
+Reassess Milestone 6 rather than automatically adding another probe.
 
 The accepted evidence now materially covers bounded Terraform plan metadata, destructive-proposal detection, and state-tracked refresh drift signal. Remaining stronger gaps include apply outcome, full live-resource coverage/state authority, and Ansible live execution/drift evidence. Those should remain UNKNOWN unless a materially stronger safe source or future authorized action justifies another slice.
