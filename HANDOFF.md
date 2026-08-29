@@ -8,8 +8,8 @@ For context-window-independent continuation, read `docs/PROJECT_CONTINUITY.md`, 
 
 ```text
 repository: ben-edu/infrastructure-intelligence-assurance
-accepted main after PR #74: b8e584689b7b88ea08e2729f7bd481942fee96bf
-active branch: agent/m6-terraform-local-state-structure
+accepted main after PR #75: 3fddcee38aa033d2ce97d2848e6c6e72aee18707
+active branch: agent/m6-terraform-declared-state-coverage
 package on accepted main: 0.27.0
 Milestone 5 overall: NOT COMPLETE
 Milestone 5 read-only source discovery: COMPLETE FOR CURRENT AUTHORITATIVE SOURCES
@@ -38,19 +38,12 @@ root candidates: terraform/environments/bm1, terraform/environments/bm2
 module directory: terraform/modules/proxmox_vm
 provider type: proxmox
 declared resource type: proxmox_vm_qemu
-execution declaration files in bounded workflow/script source: 0
-local top-level state artifacts observed by metadata: 2/2 roots
-local state-backup artifacts observed by metadata: 2/2 roots
-Terraform working directories observed: 2/2 roots
-workspace-state directories observed: 0
-backend metadata candidates observed: 0
-workspace-selection metadata candidates observed: 0
-saved plan candidates observed: 0
+local state artifacts observed: 2/2 roots
 local states parsed complete: 2/2 roots
 local-state managed resource blocks: 2
 local-state managed instances: 6
 local-state managed resource type counts: proxmox_vm_qemu=2
-latest accepted full suite for this branch: 395 passed in 1.74s
+latest accepted full suite: 395 passed in 1.74s
 ```
 
 Per-root local-state safe structure:
@@ -75,18 +68,6 @@ Local state structure is not current-state, authoritative-state, coverage, or li
 
 ## Accepted Milestone 6 — Ansible/Jenkins path
 
-Accepted reports include:
-
-```text
-docs/reports/2026-08-29-m6-ansible-declared-state-inventory.md
-docs/reports/2026-08-29-m6-ansible-playbook-role-declared-coverage.md
-docs/reports/2026-08-29-m6-ansible-execution-declaration-discovery.md
-docs/reports/2026-08-29-m6-ansible-execution-outcome-source-discovery.md
-docs/reports/2026-08-29-m6-jenkins-ansible-outcome-capability.md
-docs/reports/2026-08-29-m6-jenkins-api-metadata-probe.md
-docs/reports/2026-08-29-m6-ansible-jenkins-relationship-source-discovery.md
-```
-
 Jenkins-to-Ansible relationship path is closed within the current evidence boundary:
 
 ```text
@@ -103,62 +84,117 @@ Jenkins API first connection attempt: NOT_ATTEMPTED / FAILED_TO_OBSERVE
 Ansible-to-Jenkins first relationship scan: SOURCE_INCOMPLETE due one skipped candidate
 ```
 
-## Merge-ready Milestone 6 — Terraform local-state safe structural aggregation
+## Active Milestone 6 — Terraform declared-to-local-state structural coverage
 
 Implementation:
 
 ```text
-scripts/discovery/m6_terraform_local_state_structure.py
-tests/test_terraform_local_state_structure.py
+scripts/discovery/m6_terraform_declared_state_structural_coverage.py
+tests/test_terraform_declared_state_structural_coverage.py
 ```
 
-Validation:
+Goal:
 
 ```text
-focused tests: 4 passed in 0.05s
-live discovery: discovery_rc=0
-full repository suite: 395 passed in 1.74s
+Compare only aggregate non-sensitive declared resource-type block counts against aggregate local-state managed resource-type block counts per accepted Terraform root.
 ```
 
-Accepted live state structure:
+Relationship sources:
 
 ```text
-source_status: COMPLETE
-roots_parsed_complete: 2
-managed_resource_blocks: 2
-managed_instances: 6
-managed_resource_type_counts: proxmox_vm_qemu=2
-state_structure_status: STRUCTURAL_AGGREGATE_OBSERVED
+declared side: safe Git-tracked Terraform resource-type counts by root directory
+state side: process-local safe Terraform state resource-type block counts by root
 ```
 
-Trust boundary:
+Comparison rule:
 
 ```text
-raw_state_projected: False
-state_values_projected: False
-resource_addresses_projected: False
-resource_names_projected: False
-instance_keys_projected: False
-outputs_projected: False
-serial_or_lineage_projected: False
-provider_configuration_projected: False
-terraform_cli_invoked: False
-provider_api_invoked: False
-mutation_allowed: False
+per root, compare resource-type -> resource-block-count maps
+managed state instance count is NOT compared with declared resource-block count
 ```
 
-No raw Terraform state, state values, resource names/addresses, instance keys, outputs, serial/lineage, provider configuration, endpoints, credentials, or private connection data entered evidence output.
+Permitted projection:
+
+```text
+per-root declared resource block count
+per-root local-state managed resource block count
+per-root declared resource-type counts
+per-root local-state managed resource-type counts
+per-root structural match/mismatch status
+aggregate matched resource-type block count
+aggregate declared-to-local-state structural coverage status
+```
+
+Explicitly prohibited:
+
+```text
+raw HCL or raw Terraform state
+resource names or addresses
+instance keys/indexes or identities
+state attribute values
+outputs or output values
+serial/lineage identifiers
+provider configuration strings/aliases
+real tfvars
+endpoints, credentials, sensitive connection strings
+```
+
+Interpretation boundary:
+
+```text
+structural match != current or authoritative state
+structural match != state freshness
+structural match != live resource coverage
+structural mismatch != drift
+structural relationship != plan/apply result
+structural relationship != destructive-change evidence
+```
+
+Preserve regardless of result:
+
+```text
+state_backed_coverage_status: UNKNOWN
+live_resource_coverage_status: UNKNOWN
+plan_result_status: UNKNOWN
+apply_result_status: UNKNOWN
+drift_status: UNKNOWN
+destructive_change_status: UNKNOWN
+drift_claims: 0
+destructive_change_claims: 0
+```
+
+Fail closed if either declared or local-state structural source is incomplete or an expected root cannot be safely related.
 
 ## Exact next step
 
-1. Inspect branch/PR scope and ensure only `HANDOFF.md`, the accepted report, implementation, and tests changed.
-2. Create/inspect a non-draft PR and squash-merge when clean.
-3. Carry the new accepted `main` SHA into the next branch handoff.
-4. Start a bounded **Terraform declared-to-local-state structural coverage** slice.
-5. Compare only aggregate non-sensitive declared resource-type block counts against aggregate local-state managed resource-type block counts per accepted root.
-6. Do not expose resource names, addresses, instance identities, state values, tfvars, provider configuration, endpoints, credentials, or raw state.
+On `mgmt-automation`:
 
-A successful structural relationship may establish only limited declared-to-local-state structural coverage. It must not be promoted to live resource coverage, state freshness, plan/apply success, drift, or destructive-change evidence.
+```bash
+cd ~/projects/infrastructure-intelligence-assurance
+
+git fetch origin
+
+git switch --track origin/agent/m6-terraform-declared-state-coverage
+
+python3 -m pytest -q \
+  tests/test_terraform_declared_state_structural_coverage.py
+
+PYTHONPATH=src python3 \
+  scripts/discovery/m6_terraform_declared_state_structural_coverage.py
+
+echo "discovery_rc=$?"
+```
+
+Acceptance rules:
+
+- focused tests must pass;
+- both declared and state structural sources must be complete;
+- both accepted roots must compare completely;
+- only aggregate type/count relationships may be projected;
+- no resource/instance identity or raw configuration/state may enter evidence output;
+- mismatch must not be promoted to drift;
+- match must not be promoted to live/state freshness or authoritative-state claims;
+- no Terraform CLI/provider API/SSH/infrastructure mutation is allowed.
 
 ## Trust invariants
 
@@ -169,8 +205,7 @@ A successful structural relationship may establish only limited declared-to-loca
 - bounded absence is not universal absence;
 - `FAILED_TO_OBSERVE`/`INCOMPLETE` is not negative evidence;
 - raw Terraform state/real tfvars and Ansible variable/Vault/credential material do not enter evidence/AI context;
-- only explicitly safe aggregate state structure may enter evidence after collector projection;
-- no raw commands, arguments, environment values, credentials, host targets, console logs, job configuration bodies, build parameters, or sensitive connection strings enter evidence/AI context;
+- only explicitly safe aggregate structure/relationship data may enter evidence;
 - no drift, execution success, idempotence, compliance, or destructive-change result is inferred without authoritative evidence;
 - unknowns are not forced closed;
 - generated operational artifacts keep `mutation_allowed=false`.
