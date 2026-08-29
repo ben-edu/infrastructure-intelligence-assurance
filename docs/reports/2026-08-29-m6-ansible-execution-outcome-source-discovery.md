@@ -22,7 +22,11 @@ Live discovery:
 discovery_rc=0
 ```
 
-A repository-wide test suite remains required before merge because this slice adds reusable discovery implementation and tests.
+Repository-wide regression suite:
+
+```text
+372 passed in 1.66s
+```
 
 ## Jenkins read-only source capability
 
@@ -97,8 +101,10 @@ Scheduler projection was limited to safe unit/timer names and cron filenames wit
 
 ## Next smallest useful step
 
-After the repository-wide suite passes and this slice is merged, perform a bounded **Jenkins read-only Ansible outcome capability probe**.
+This slice is merge-ready after PR scope/mergeability inspection.
 
-That future slice must first establish whether the observed Jenkins integration can safely enumerate job/build metadata without reading console logs, job configuration bodies, environment values, credentials, or command arguments.
+After merge, perform a bounded **Jenkins read-only Ansible outcome capability probe**.
+
+That future slice must first establish whether the observed Jenkins integration can safely enumerate job/build metadata without reading console logs, job configuration bodies, environment values, credentials, command arguments, inventory arguments, or host targets.
 
 If safe job/build metadata cannot be obtained, keep Ansible execution outcome `UNKNOWN` rather than expanding into unsafe or weak sources.
