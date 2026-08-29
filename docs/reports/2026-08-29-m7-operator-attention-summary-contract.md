@@ -1,7 +1,7 @@
 # Milestone 7 — Operator Attention Summary Contract
 
 Date: 2026-08-29
-Status: ACCEPTED PENDING FULL-SUITE GATE
+Status: ACCEPTED
 Mode: derived read-only projection over existing Kubernetes evidence artifacts
 
 ## Scope
@@ -37,6 +37,12 @@ Focused tests:
 
 ```text
 5 passed in 0.05s
+```
+
+Repository-wide regression gate:
+
+```text
+410 passed in 1.83s
 ```
 
 Two earlier live attempts failed closed and are not reusable as negative evidence.
@@ -98,8 +104,6 @@ unknowns_truncated: False
 required_live_verification_truncated: False
 ```
 
-A repository-wide test suite remains required before merge because this slice adds reusable implementation and tests.
-
 ## Accepted interpretation
 
 The operator projection successfully condensed the currently loaded existing evidence into two distinct current attention items while retaining the underlying workload-level summary count.
@@ -144,6 +148,8 @@ The one-time privileged validation is not an accepted runtime design. If this co
 
 ## Next smallest useful step
 
-After the full repository suite passes and this slice is merged, prefer integrating this accepted contract into the existing five-minute artifact generation path before adding a dashboard or cross-domain inbox.
+This contract is merge-ready after focused, live, and full-suite validation.
 
-That integration should generate a derived `operator-attention.json` / `operator-attention.md` artifact from already-generated evidence, remain read-only, run as the existing `infra-assurance` identity, and preserve source failure/unknown semantics.
+After merge, prefer integrating this accepted contract into the existing five-minute artifact generation path before adding a dashboard or cross-domain inbox.
+
+That integration should generate derived `operator-attention.json` / `operator-attention.md` artifacts from already-generated evidence, remain read-only, run as the existing `infra-assurance` identity, and preserve source failure/unknown semantics.
