@@ -1,7 +1,7 @@
 # Milestone 6 — Terraform Runtime-Artifact Source Discovery
 
 Date: 2026-08-29
-Status: ACCEPTED PENDING FULL-SUITE GATE
+Status: ACCEPTED / MERGE READY
 Mode: read-only / filesystem-metadata-only
 
 ## Scope
@@ -58,7 +58,11 @@ saved_plan_artifact_candidates_observed: 0
 runtime_artifact_source_status: RUNTIME_ARTIFACT_METADATA_OBSERVED
 ```
 
-A repository-wide test suite remains required before merge because this slice adds reusable discovery implementation and tests.
+Repository-wide regression gate:
+
+```text
+391 passed in 5.58s
+```
 
 ## Accepted interpretation
 
@@ -109,8 +113,8 @@ Relevant symlinks or metadata lookup failures fail closed as incomplete observat
 
 ## Next smallest useful step
 
-After the repository-wide suite passes and this slice is merged, the existence of local state artifacts justifies a separate, tightly bounded **Terraform local-state safe structural aggregation** design review/probe.
+The observed local state artifacts justify a separate, tightly bounded **Terraform local-state safe structural aggregation** slice.
 
-That future slice may only proceed if it can inspect state process-locally while projecting aggregate non-sensitive structure only, for example safe counts and resource-type categories, with no state values, resource addresses, instance names, provider configuration values, outputs, sensitive attributes, endpoints, credentials, or raw state entering evidence/AI context.
+That future slice may inspect local state process-locally only to project aggregate non-sensitive structure, such as state parse status, aggregate managed/data resource counts, aggregate instance counts, and resource-type categories. It must not project state values, resource addresses, resource names, instance keys, outputs, serial/lineage identifiers, provider configuration values, endpoints, credentials, sensitive attributes, or raw state.
 
-Until such a probe is implemented and accepted, keep state-backed coverage and all live/plan/apply/drift/destructive statuses `UNKNOWN`.
+A successful structural aggregation still does not establish live resource coverage, current state, plan/apply success, drift, or destructive-change status. Those remain `UNKNOWN` until separately verified by authoritative evidence.
