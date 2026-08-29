@@ -8,8 +8,8 @@ For context-window-independent continuation, read `docs/PROJECT_CONTINUITY.md`, 
 
 ```text
 repository: ben-edu/infrastructure-intelligence-assurance
-accepted main after PR #72: 2ca3faeae0ad29c142ee7c24a019b43e61f84971
-active branch: agent/m6-ansible-jenkins-relationship-source
+accepted main after PR #73: ad652d64d6206b0e4ff33ea511f0499447d8c45f
+active branch: agent/m6-terraform-runtime-artifact-source
 package on accepted main: 0.27.0
 Milestone 5 overall: NOT COMPLETE
 Milestone 5 read-only source discovery: COMPLETE FOR CURRENT AUTHORITATIVE SOURCES
@@ -19,191 +19,189 @@ management host: mgmt-automation
 bounded infrastructure repository: /home/ben/projects/afpa-infra-rebuild
 ```
 
-## Accepted Milestone 6 reports
+## Accepted Milestone 6 — Terraform
+
+Reports:
 
 ```text
 docs/reports/2026-08-29-m6-terraform-declared-state-inventory.md
 docs/reports/2026-08-29-m6-terraform-root-module-declared-coverage.md
 docs/reports/2026-08-29-m6-terraform-execution-declaration-discovery.md
+```
+
+Accepted bounded Terraform structure:
+
+```text
+root candidates: terraform/environments/bm1, terraform/environments/bm2
+module directory: terraform/modules/proxmox_vm
+backend blocks observed in Git-tracked .tf: 0
+provider type: proxmox
+resource type: proxmox_vm_qemu
+execution declaration files in bounded workflow/script source: 0
+managed_resource_coverage_status: DECLARED_CONFIGURATION_ONLY
+```
+
+Preserve:
+
+```text
+Terraform state-backed coverage: UNKNOWN
+Terraform live resource coverage: UNKNOWN
+Terraform plan result: UNKNOWN
+Terraform apply result: UNKNOWN
+Terraform drift: UNKNOWN
+Terraform destructive-change status: UNKNOWN
+```
+
+No Terraform state or real tfvars content has entered evidence/AI context.
+
+## Accepted Milestone 6 — Ansible/Jenkins path
+
+Accepted reports include:
+
+```text
 docs/reports/2026-08-29-m6-ansible-declared-state-inventory.md
 docs/reports/2026-08-29-m6-ansible-playbook-role-declared-coverage.md
 docs/reports/2026-08-29-m6-ansible-execution-declaration-discovery.md
 docs/reports/2026-08-29-m6-ansible-execution-outcome-source-discovery.md
 docs/reports/2026-08-29-m6-jenkins-ansible-outcome-capability.md
 docs/reports/2026-08-29-m6-jenkins-api-metadata-probe.md
-```
-
-Accepted bounded state before this active slice:
-
-```text
-Ansible declared inventory files: 5
-Ansible playbooks: 10
-Ansible role directories: 7
-referenced local role directories: 7/7
-accepted Ansible execution declaration files in bounded safe Git source: 0
-Jenkins API observation: COMPLETE
-Jenkins jobs observed: 25
-jobs with last-build metadata: 11
-Jenkins last-build categories: SUCCESS=11
-weak in-memory ansible-name-signal jobs: 0
-latest accepted full suite before PR #72: 381 passed in 1.72s
-```
-
-Rejected Jenkins API observation that must not be reused:
-
-```text
-first connection attempt: CONNECTION_CONFIG_UNAVAILABLE
-jenkins_api_invoked: False
-api_observation_status: NOT_ATTEMPTED
-zero job values from that attempt are FAILED_TO_OBSERVE, not negative evidence
-```
-
-Preserve:
-
-```text
-Terraform live/state-backed coverage: UNKNOWN
-Terraform execution outcome/plan/apply/drift/destructive status: UNKNOWN
-live Ansible managed-host coverage: UNKNOWN
-Ansible execution outcome: UNKNOWN
-Ansible execution success: UNKNOWN
-idempotence: UNKNOWN
-configuration drift: UNKNOWN
-```
-
-The eleven Jenkins `SUCCESS` values are Jenkins last-build metadata only and are not Ansible success evidence.
-
-## Merge-ready Milestone 6 — Ansible-to-Jenkins relationship source discovery
-
-Implementation:
-
-```text
-scripts/discovery/m6_ansible_jenkins_relationship_source_discovery.py
-tests/test_ansible_jenkins_relationship_source_discovery.py
-```
-
-Report:
-
-```text
 docs/reports/2026-08-29-m6-ansible-jenkins-relationship-source-discovery.md
 ```
 
-Relationship acceptance rule:
-
-```text
-explicit Jenkins context
-AND one accepted Ansible execution entry point in the same safe tracked text file:
-  ansible-playbook
-  ansible-runner run
-  ansible-navigator run
-```
-
-Generic `jenkins` / `ansible` token co-occurrence does not count.
-
-### Rejected first attempt
-
-```text
-focused tests: 4 passed in 0.06s
-source_status: INCOMPLETE
-candidate_files_selected: 158
-candidate_files_scanned: 157
-read_or_decode_skips: 0
-oversize_skips: 1
-explicit_relationship_signal_files: 0
-relationship_source_status: SOURCE_INCOMPLETE
-discovery_rc: 2
-```
-
-This is `FAILED_TO_OBSERVE / INCOMPLETE`. Do not reuse its zero relationship count as negative evidence.
-
-### Accepted retry
-
-```text
-focused tests: 6 passed in 0.14s
-discovery_rc: 0
-source_status: COMPLETE
-tracked_files_returned: 400
-candidate_files_selected: 158
-candidate_files_scanned: 158
-excluded_or_unsafe_paths: 242
-read_or_decode_skips: 0
-oversize_skips: 0
-jenkins_context_files: 11
-ansible_entrypoint_signal_files: 0
-explicit_relationship_signal_files: 0
-relationship_source_status: NONE_OBSERVED_IN_BOUNDED_SOURCE
-```
-
-Repository-wide gate:
+Latest accepted full suite before PR #73:
 
 ```text
 387 passed in 1.76s
 ```
 
-Interpretation:
+Jenkins-to-Ansible relationship path is closed within the current evidence boundary:
 
 ```text
-No explicit declared Jenkins-to-Ansible relationship was observed in the complete bounded safe Git source.
-This is bounded declared-source absence only, not universal absence.
-Previously accepted Jenkins build SUCCESS metadata cannot be promoted to Ansible execution-success evidence.
+relationship_source_status: NONE_OBSERVED_IN_BOUNDED_SOURCE
+Ansible execution outcome/success/idempotence/drift: UNKNOWN
 ```
 
-## Jenkins-to-Ansible evidence-path closure
+Do not add more Jenkins-to-Ansible relationship probes without materially stronger safe evidence.
 
-Do not add more Jenkins-to-Ansible relationship probes merely to eliminate the unknown.
-
-Within the current accepted read-only evidence boundary, no safe authoritative source was found that relates accepted Jenkins job/build metadata to Ansible execution.
-
-Preserve:
+Rejected observations that must not be reused:
 
 ```text
-Ansible execution_outcome_status: UNKNOWN
-Ansible execution_success_status: UNKNOWN
-idempotence_status: UNKNOWN
-configuration_drift_status: UNKNOWN
-successful_execution_claims: 0
-idempotence_claims: 0
-drift_claims: 0
+Jenkins API first connection attempt: NOT_ATTEMPTED / FAILED_TO_OBSERVE
+Ansible-to-Jenkins first relationship scan: SOURCE_INCOMPLETE due one skipped candidate
 ```
 
-This question may be reopened only if a materially stronger safe authoritative source becomes available.
+## Active Milestone 6 — Terraform runtime-artifact source discovery
 
-## Trust boundary
+Implementation prepared on this branch:
 
 ```text
-mutation_allowed: False
-jenkins_api_invoked: False
-jenkins_console_logs_inspected: False
-jenkins_job_config_bodies_inspected: False
-jenkins_build_parameters_inspected: False
-ansible_cli_invoked: False
-ssh_connections_performed: False
+scripts/discovery/m6_terraform_runtime_artifact_source_discovery.py
+tests/test_terraform_runtime_artifact_source_discovery.py
 ```
 
-Only safe Git-tracked workflow/script-like text was inspected. Sensitive paths, `.env`, Ansible variable directories, Terraform state/tfvars, credentials, tokens, private keys, and Vault material were excluded.
-
-No raw source lines, commands, arguments, credentials, host/inventory values, job names, build numbers, endpoints, console logs, config bodies, or build parameters entered evidence output.
-
-## Merge gate
+Goal:
 
 ```text
-focused tests: PASS — 6 passed in 0.14s
-live retry: PASS — discovery_rc=0
-full repository suite: PASS — 387 passed in 1.76s
+Determine whether the two previously accepted Terraform root candidates expose local runtime-artifact metadata that could qualify a later safe state/workspace/plan evidence source.
+```
+
+This slice is filesystem-metadata-only. It does not open Terraform runtime artifacts and does not invoke Terraform.
+
+Bounded roots:
+
+```text
+terraform/environments/bm1
+terraform/environments/bm2
+```
+
+Generic metadata classes only:
+
+```text
+.terraform working directory existence
+terraform.tfstate existence
+terraform.tfstate.backup existence
+terraform.tfstate.d existence
+aggregate workspace-directory count without workspace names
+.terraform/terraform.tfstate backend-metadata candidate existence
+.terraform/environment workspace-selection metadata candidate existence
+narrow top-level saved-plan candidates: tfplan / *.tfplan
+```
+
+Explicitly prohibited:
+
+```text
+opening or parsing state/state-backup/backend/workspace/plan files
+reading real tfvars
+printing workspace names
+printing artifact-specific filenames beyond generic Terraform conventions
+printing resource addresses, provider values, endpoints, credentials, commands, or connection strings
+Terraform CLI/provider API invocation
+```
+
+Interpretation boundary:
+
+```text
+runtime artifact metadata != state-backed coverage
+runtime artifact metadata != current/authoritative Terraform state
+saved plan metadata != plan outcome
+working directory metadata != successful init/apply
+filesystem absence != absence of remote state or external CI execution
+```
+
+Preserve regardless of result:
+
+```text
+state_backed_coverage_status: UNKNOWN
+live_resource_coverage_status: UNKNOWN
+plan_result_status: UNKNOWN
+apply_result_status: UNKNOWN
+drift_status: UNKNOWN
+destructive_change_status: UNKNOWN
+```
+
+Fail closed:
+
+```text
+missing expected root => SOURCE_INCOMPLETE
+metadata lookup failure => SOURCE_INCOMPLETE
+relevant symlink => SOURCE_INCOMPLETE
 ```
 
 ## Exact next step
 
-1. Inspect branch/PR changed-file scope and ensure no temporary/debug/placeholder files exist.
-2. Create/inspect a non-draft PR and squash-merge when clean.
-3. Carry the new accepted `main` SHA into the next branch handoff.
-4. Do not continue the Jenkins-to-Ansible relationship path without new evidence.
-5. Return to remaining Milestone 6 gaps and choose the smallest independent read-only slice that can add authoritative evidence.
+On `mgmt-automation`:
+
+```bash
+cd ~/projects/infrastructure-intelligence-assurance
+
+git fetch origin
+
+git switch --track origin/agent/m6-terraform-runtime-artifact-source
+
+python3 -m pytest -q \
+  tests/test_terraform_runtime_artifact_source_discovery.py
+
+PYTHONPATH=src python3 \
+  scripts/discovery/m6_terraform_runtime_artifact_source_discovery.py
+
+echo "discovery_rc=$?"
+```
+
+Acceptance rules:
+
+- focused tests must pass;
+- bounded roots must be observed completely for bounded absence to be accepted;
+- no Terraform artifact contents may be opened;
+- no Terraform CLI/provider API may be invoked;
+- symlink/metadata failures remain incomplete observation, not negative evidence;
+- runtime artifact metadata must not be promoted to state-backed coverage, plan/apply result, drift, or destructive-change evidence.
+
+If a safe local runtime-artifact candidate is observed, use the result only to decide whether a later aggregate read-only verification is justified. If none is observed in a complete scan, record bounded local-artifact absence and do not infer that remote/external Terraform state does not exist.
 
 ## Trust invariants
 
 - infrastructure interaction remains read-only;
 - declared state is not observed state;
-- Jenkins runtime metadata is not automatically Ansible execution evidence;
 - bounded absence is not universal absence;
 - `FAILED_TO_OBSERVE`/`INCOMPLETE` is not negative evidence;
 - Terraform state/real tfvars and Ansible variable/Vault/credential material do not enter evidence/AI context;
