@@ -32,7 +32,7 @@ docs/reports/2026-08-29-m6-terraform-local-state-safe-structure.md
 docs/reports/2026-08-29-m6-terraform-declared-to-local-state-structural-coverage.md
 ```
 
-Accepted bounded Terraform evidence before this slice:
+Accepted bounded Terraform evidence:
 
 ```text
 root candidates: terraform/environments/bm1, terraform/environments/bm2
@@ -44,7 +44,16 @@ local states parsed complete: 2/2 roots
 local-state managed resource blocks: 2
 local-state managed instances: 6
 local-state managed resource type counts: proxmox_vm_qemu=2
-latest accepted full suite before this slice: 395 passed in 1.74s
+declared-to-local-state structural relationship: DECLARED_TO_LOCAL_STATE_STRUCTURAL_MATCH
+matched declared/state resource-type blocks: 2/2
+latest accepted full suite: 399 passed in 2.11s
+```
+
+Per-root accepted relationship:
+
+```text
+bm1: declared proxmox_vm_qemu blocks=1, state managed proxmox_vm_qemu blocks=1, comparison=DECLARED_TO_LOCAL_STATE_STRUCTURAL_MATCH
+bm2: declared proxmox_vm_qemu blocks=1, state managed proxmox_vm_qemu blocks=1, comparison=DECLARED_TO_LOCAL_STATE_STRUCTURAL_MATCH
 ```
 
 Preserve:
@@ -57,6 +66,20 @@ Terraform apply result: UNKNOWN
 Terraform drift: UNKNOWN
 Terraform destructive-change status: UNKNOWN
 ```
+
+Interpretation boundary:
+
+```text
+structural match = limited declared-to-local-state structural relationship only
+structural match != state freshness or authoritative state
+structural match != live resource existence/coverage
+structural match != plan/apply result
+structural match != drift
+structural match != destructive-change evidence
+structural mismatch, if later observed, != drift without authoritative live verification
+```
+
+Managed state instance counts are intentionally not compared with declared resource-block counts.
 
 ## Accepted Milestone 6 — Ansible/Jenkins path
 
@@ -76,7 +99,7 @@ Jenkins API first connection attempt: NOT_ATTEMPTED / FAILED_TO_OBSERVE
 Ansible-to-Jenkins first relationship scan: SOURCE_INCOMPLETE due one skipped candidate
 ```
 
-## Active Milestone 6 — Terraform declared-to-local-state structural coverage
+## Active Milestone 6 slice — merge ready
 
 Implementation:
 
@@ -91,65 +114,15 @@ Report:
 docs/reports/2026-08-29-m6-terraform-declared-to-local-state-structural-coverage.md
 ```
 
-Accepted focused/live validation:
+Validation:
 
 ```text
 focused tests: 4 passed in 0.06s
-discovery_rc: 0
-source_mode: DECLARED_GIT_TF_TO_LOCAL_STATE_SAFE_TYPE_COUNT_RELATIONSHIP
-source_status: COMPLETE
-declared_source_status: COMPLETE
-state_source_status: COMPLETE
-roots_expected: 2
-roots_compared_complete: 2
+live discovery: discovery_rc=0
+full repository suite: 399 passed in 2.11s
 ```
 
-Accepted per-root relationship:
-
-```text
-bm1: comparison_status=DECLARED_TO_LOCAL_STATE_STRUCTURAL_MATCH, declared_resource_blocks=1, state_managed_resource_blocks=1, declared_resource_type_counts=proxmox_vm_qemu=1, state_managed_resource_type_counts=proxmox_vm_qemu=1, matched_resource_type_block_count=1
-bm2: comparison_status=DECLARED_TO_LOCAL_STATE_STRUCTURAL_MATCH, declared_resource_blocks=1, state_managed_resource_blocks=1, declared_resource_type_counts=proxmox_vm_qemu=1, state_managed_resource_type_counts=proxmox_vm_qemu=1, matched_resource_type_block_count=1
-```
-
-Aggregate accepted relationship:
-
-```text
-declared_resource_blocks: 2
-state_managed_resource_blocks: 2
-matched_resource_type_block_count: 2
-declared_to_local_state_structural_coverage_status: DECLARED_TO_LOCAL_STATE_STRUCTURAL_MATCH
-```
-
-Interpretation boundary:
-
-```text
-structural match = limited declared-to-local-state structural relationship evidence only
-structural match != current or authoritative state
-structural match != state freshness
-structural match != state-backed coverage
-structural match != live resource existence/coverage
-structural match != plan/apply outcome
-structural match != drift
-structural match != destructive-change evidence
-structural mismatch, if later observed, != drift without separate authoritative verification
-```
-
-Managed state instance counts are intentionally not compared with declared resource-block counts.
-
-Preserve:
-
-```text
-state_backed_coverage_status: UNKNOWN
-live_resource_coverage_status: UNKNOWN
-plan_result_status: UNKNOWN
-apply_result_status: UNKNOWN
-drift_status: UNKNOWN
-destructive_change_status: UNKNOWN
-drift_claims: 0
-destructive_change_claims: 0
-```
-
-## Trust boundary
+Trust boundary:
 
 ```text
 mutation_allowed: False
@@ -163,45 +136,31 @@ state_values_projected: False
 tfvars_inspected: False
 ```
 
-Only aggregate declared resource-type block counts and aggregate local-state managed resource-type block counts entered evidence.
-
-Raw HCL/state, resource names/addresses, instance keys/identities, state values, outputs, serial/lineage, provider configuration, real tfvars, endpoints, credentials, and sensitive connection strings did not enter evidence output.
-
-No Terraform CLI, provider API, SSH connection, repository mutation, or infrastructure mutation was performed.
-
-## Merge gate — PENDING FULL SUITE
-
-Focused tests and live relationship discovery passed. Because reusable implementation/tests changed, run the full repository suite before PR/merge.
+Only aggregate declared resource-type block counts and aggregate local-state managed resource-type block counts entered evidence. Raw HCL/state, resource or instance identity, state values, provider configuration, real tfvars, endpoints, credentials, and sensitive connection strings did not enter evidence output.
 
 ## Exact next step
 
-On `mgmt-automation` run only:
+1. Inspect changed-file scope and ensure no temporary/debug/placeholder files exist.
+2. Create/inspect a non-draft PR and squash-merge when clean.
+3. Carry the new accepted `main` SHA forward.
+4. Reassess Milestone 6 against `03_DELIVERY_ROADMAP.md` and accepted evidence before creating another implementation branch.
+5. Prefer a next slice only if it adds materially stronger independent read-only governance evidence.
+6. Do not add probes merely to force state/live/plan/apply/drift/destructive or Ansible execution unknowns closed.
 
-```bash
-cd ~/projects/infrastructure-intelligence-assurance
-python3 -m pytest -q
+Potential remaining M6 gaps to evaluate, not automatically implement:
+
+```text
+Terraform: authoritative live/provider observation, plan/apply metadata, drift, destructive-change detection
+Ansible: managed-host live coverage, execution outcomes, measurable configuration drift
+Milestone-level closure: determine which gaps require future authorized runtime actions or evidence sources not currently available
 ```
-
-Do not use strict interactive shell mode.
-
-If the full suite passes:
-
-1. record the exact pass count in this handoff/report/PR;
-2. inspect changed-file scope and ensure no temporary/debug/placeholder files exist;
-3. create/inspect a non-draft PR and squash-merge when clean;
-4. carry the new accepted `main` SHA into the next branch handoff;
-5. reassess remaining Milestone 6 gaps before adding another probe;
-6. do not promote this structural match to state freshness, authoritative ownership, live coverage, plan/apply, drift, or destructive-change evidence.
-
-Prefer a next slice only if it adds materially stronger independent read-only evidence. Do not add weak probes merely to force remaining unknowns closed.
 
 ## Trust invariants
 
 - infrastructure interaction remains read-only;
 - declared state is not observed/live state;
-- runtime artifact metadata is not state-backed coverage;
 - local state structure is not live resource evidence;
-- declared-to-local-state structural match is not live/state freshness evidence;
+- declared-to-local-state structural match is not freshness/live/drift evidence;
 - bounded absence is not universal absence;
 - `FAILED_TO_OBSERVE`/`INCOMPLETE` is not negative evidence;
 - raw Terraform state/real tfvars and Ansible variable/Vault/credential material do not enter evidence/AI context;
@@ -220,4 +179,4 @@ At every accepted slice before merge:
 4. ensure no temporary/debug/placeholder files remain;
 5. run focused tests and a full repository suite when reusable implementation/contracts change materially;
 6. inspect PR scope and mergeability and squash-merge when clean;
-7. carry the new accepted `main` SHA into the next branch handoff.
+7. carry the new accepted `main` SHA into the next checkpoint.
