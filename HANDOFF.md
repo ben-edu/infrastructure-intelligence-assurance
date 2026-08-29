@@ -13,7 +13,7 @@ docs/PROJECT_CONTINUITY.md
 1. Read Project Sources.
 2. Read `docs/PROJECT_CONTINUITY.md`.
 3. Read `HANDOFF.md` from `main`.
-4. Check open PRs and active project branches. If an active branch has a newer `HANDOFF.md`, prefer it for in-flight state.
+4. Check active branches/PRs; prefer a newer branch `HANDOFF.md` for in-flight state.
 5. Read only reports/ADRs relevant to the active slice.
 6. Prefer repository state and fresh evidence over chat reconstruction.
 7. Continue the `Exact next step` unless new evidence invalidates it.
@@ -22,8 +22,8 @@ docs/PROJECT_CONTINUITY.md
 
 ```text
 repository: ben-edu/infrastructure-intelligence-assurance
-accepted main after PR #66: 24b7b14924c6f2217666a4b18766bc3b4cd81d9d
-active branch: agent/m6-ansible-playbook-role-coverage
+accepted main after PR #68: aca9eb51913a319a1b0945d491a0e4d28b265a3b
+active branch: agent/m6-ansible-execution-declaration-discovery
 package on accepted main: 0.27.0
 Milestone 5 overall: NOT COMPLETE
 Milestone 5 read-only source discovery: COMPLETE FOR CURRENT AUTHORITATIVE SOURCES
@@ -48,7 +48,7 @@ Accepted closure report:
 docs/reports/2026-08-23-m5-read-only-discovery-closure.md
 ```
 
-Do not create additional M5 probes merely to force preserved unknowns closed. Controlled restore/integrity work remains deferred until explicitly authorized.
+Controlled restore/integrity work remains deferred until explicitly authorized. Do not add M5 probes merely to force preserved unknowns closed.
 
 ## Accepted Milestone 6 — Terraform
 
@@ -60,22 +60,7 @@ docs/reports/2026-08-29-m6-terraform-root-module-declared-coverage.md
 docs/reports/2026-08-29-m6-terraform-execution-declaration-discovery.md
 ```
 
-Accepted bounded state:
-
-```text
-Git-tracked .tf files scanned: 15/15
-root candidates: 2
-module directories: 1
-provider types: proxmox=2
-resource types: proxmox_vm_qemu=2
-bm1 direct proxmox_vm_qemu blocks: 1
-bm2 direct proxmox_vm_qemu blocks: 1
-resolved local module for both roots: terraform/modules/proxmox_vm
-resource blocks in that local module: 0
-Terraform execution-declaration files in bounded workflow/script source: 0
-```
-
-Preserve:
+Preserved unknowns:
 
 ```text
 Terraform state-backed coverage: UNKNOWN
@@ -96,22 +81,11 @@ Report:
 docs/reports/2026-08-29-m6-ansible-declared-state-inventory.md
 ```
 
-Accepted validation:
+Accepted state:
 
 ```text
 focused tests: 3 passed in 0.09s
-full suite before PR #66 merge: 360 passed in 3.52s
-discovery_rc: 0
-source_status: COMPLETE
-tracked_files_returned: 400
-ansible_scope_files: 57
-files_read: 41
-excluded_sensitive_ansible_data_files: 8
-```
-
-Accepted structure:
-
-```text
+full suite before PR #66: 360 passed in 3.52s
 inventory files: 5
 playbooks: 10
 role directories: 7
@@ -125,14 +99,7 @@ configuration_drift_status: UNKNOWN
 
 The 8 host declarations are not verified/reachable managed hosts.
 
-## Merge-ready Milestone 6 — Ansible playbook-to-role declared coverage
-
-Implementation:
-
-```text
-scripts/discovery/m6_ansible_playbook_role_coverage.py
-tests/test_ansible_playbook_role_coverage.py
-```
+## Accepted Milestone 6 — Ansible playbook-to-role declared coverage
 
 Report:
 
@@ -140,40 +107,17 @@ Report:
 docs/reports/2026-08-29-m6-ansible-playbook-role-declared-coverage.md
 ```
 
-Validation:
+Accepted validation:
 
 ```text
 focused tests: 4 passed in 0.10s
 full repository suite: 364 passed in 1.51s
 discovery_rc: 0
 source_status: COMPLETE
-tracked_files_returned: 400
 playbook_files_scanned: 10
-read_or_decode_skips: 0
-oversize_skips: 0
 ```
 
-Accepted direct declared relationships:
-
-```text
-baseline.yml -> ansible/roles/baseline
-common.yml -> ansible/roles/common
-harbor-service.yml -> ansible/roles/harbor_service
-jenkins-service.yml -> ansible/roles/jenkins_service
-platform-audit.yml -> ansible/roles/platform_audit
-services-stack.yml -> ansible/roles/harbor_service + ansible/roles/jenkins_service
-ssh-hardening.yml -> ansible/roles/ssh_hardening
-ssh-users.yml -> ansible/roles/ssh_users
-```
-
-Direct role reference not observed in bounded playbook structure:
-
-```text
-ansible/playbooks/ping.yml
-ansible/playbooks/vault-check.yml
-```
-
-Summary:
+Accepted summary:
 
 ```text
 declared_role_directories_total: 7
@@ -186,50 +130,109 @@ resolved_role_reference_signals: 9
 unresolved_role_reference_signals: 0
 unparsed_role_structures: 0
 declared_role_coverage_status: STRUCTURAL_CONFIGURATION_ONLY
-live_managed_host_coverage_status: UNKNOWN
 execution_outcome_status: UNKNOWN
 idempotence_status: UNKNOWN
 configuration_drift_status: UNKNOWN
 ```
 
-`NONE_OBSERVED` here is bounded direct-reference absence only. It does not prove the playbook cannot reach roles indirectly through dependencies, nested includes, dynamic expressions, or other entry points.
+No supported direct role reference was observed in `ansible/playbooks/ping.yml` or `ansible/playbooks/vault-check.yml`. This is bounded direct-reference absence only.
 
-## Merge gate
+## Active Milestone 6 — Ansible execution-declaration discovery
+
+Implementation prepared on this branch:
 
 ```text
-focused tests: PASS
-live discovery: PASS
-full repository suite: PASS — 364 passed in 1.51s
+scripts/discovery/m6_ansible_execution_declaration_discovery.py
+tests/test_ansible_execution_declaration_discovery.py
 ```
 
-This slice is merge-ready after PR scope/mergeability inspection.
+Goal:
+
+```text
+Determine whether safe Git-tracked workflow/script text explicitly declares tightly bounded Ansible execution entry points without executing Ansible or exposing raw commands/arguments.
+```
+
+Accepted entry-point categories for this slice:
+
+```text
+ansible_playbook       -> ansible-playbook
+ansible_runner_run     -> ansible-runner run
+ansible_navigator_run  -> ansible-navigator run
+```
+
+The generic `ansible` command and tooling such as `ansible-lint` are intentionally excluded to reduce ambiguity and false positives.
+
+Safe projection:
+
+```text
+safe relative file identifier
+execution entry-point category only
+gate_signal true/false only on files that also contain an accepted execution entry point
+aggregate file/signal counts
+```
+
+Do not print or persist:
+
+```text
+raw command lines or arguments
+playbook/inventory argument values
+host targets/IPs
+runtime facts
+environment values
+credentials, keys, tokens, Vault password material
+connection strings
+```
+
+Preserve:
+
+```text
+execution_outcome_status: UNKNOWN
+execution_success_status: UNKNOWN
+idempotence_status: UNKNOWN
+live_managed_host_coverage_status: UNKNOWN
+configuration_drift_status: UNKNOWN
+```
+
+Gate-only files must not enter Ansible execution evidence. `NONE_OBSERVED_IN_BOUNDED_SOURCE` is bounded absence only.
 
 ## Exact next step
 
-1. Create/inspect the PR for `agent/m6-ansible-playbook-role-coverage`.
-2. Ensure changed-file scope is exactly the intended implementation, tests, report, and handoff.
-3. Squash-merge when mergeable.
-4. Carry the new accepted `main` SHA into the next branch handoff.
-5. Start **Ansible execution-declaration discovery**.
+On `mgmt-automation`:
 
-Next-slice goal:
+```bash
+cd ~/projects/infrastructure-intelligence-assurance
 
-```text
-Determine whether safe Git-tracked workflow/script files explicitly declare ansible-playbook or another tightly bounded Ansible execution entry point.
+git fetch origin
+
+git switch --track origin/agent/m6-ansible-execution-declaration-discovery
+
+python3 -m pytest -q \
+  tests/test_ansible_execution_declaration_discovery.py
+
+PYTHONPATH=src python3 \
+  scripts/discovery/m6_ansible_execution_declaration_discovery.py
+
+echo "discovery_rc=$?"
 ```
 
-Future execution-declaration evidence must remain declaration-only. It must not infer execution history, success, host reachability, idempotence, or drift.
+Acceptance rules:
+
+- focused tests must pass;
+- source status must be `COMPLETE`;
+- raw commands/arguments or sensitive values must not appear in evidence;
+- gate-only files must be excluded;
+- generic `ansible`/`ansible-lint` must not be promoted to accepted execution entry points;
+- no Ansible, Jenkins, GitHub Actions, SSH, or managed-host connection may be invoked;
+- no execution success, idempotence, reachability, runtime fact, or drift result may be inferred.
 
 ## Trust invariants
 
 - infrastructure interaction remains read-only;
 - declared state is not observed state;
-- declared playbook/role relationship is not execution evidence;
+- declared execution entry point is not execution outcome evidence;
 - source artifacts and derived assurance remain separate;
-- Terraform state and real tfvars do not enter evidence/AI context;
-- Ansible Vault and credential material do not enter evidence/AI context;
+- Terraform state/real tfvars and Ansible Vault/credential material do not enter evidence/AI context;
 - host identifiers and sensitive inventory values are not projected;
-- play names, host target patterns, role/task argument values, and handler contents are not projected;
 - `NONE_OBSERVED_IN_BOUNDED_SOURCE` is not universal absence;
 - `FAILED_TO_OBSERVE` is not negative evidence;
 - no drift, execution success, idempotence, compliance, or destructive-change result is inferred without authoritative evidence;
