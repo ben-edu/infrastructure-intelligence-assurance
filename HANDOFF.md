@@ -127,16 +127,11 @@ Report:
 docs/reports/2026-08-29-m6-ansible-declared-state-inventory.md
 ```
 
-Validation:
+Focused/live validation completed:
 
 ```text
 focused tests: 3 passed in 0.09s
 discovery_rc: 0
-```
-
-Accepted bounded source result:
-
-```text
 source_mode: GIT_TRACKED_SAFE_ANSIBLE_SOURCE_ONLY
 source_status: COMPLETE
 tracked_files_returned: 400
@@ -209,15 +204,32 @@ The 8 host declarations are not 8 verified/reachable managed hosts. Role-directo
 
 ## Exact next step
 
-Start the smallest useful Ansible relationship slice: **playbook-to-role declared coverage**.
+The Ansible slice is not merge-ready until the repository-wide test suite passes after the script, tests, report, continuity document, handoff, and README changes.
 
-Goal:
+On `mgmt-automation` run:
+
+```bash
+cd ~/projects/infrastructure-intelligence-assurance
+python3 -m pytest -q
+```
+
+Do not run strict shell mode around this command.
+
+If the full suite passes:
+
+1. treat the Ansible declared-state slice as merge-ready;
+2. inspect the PR changed-file scope and mergeability;
+3. squash-merge the PR;
+4. record the new accepted `main` SHA in the next branch handoff;
+5. start **Ansible playbook-to-role declared coverage** as the next smallest read-only slice.
+
+Planned next-slice goal after merge:
 
 ```text
 For each accepted playbook candidate, determine whether safe Git-tracked playbook structure directly references one of the accepted local role directories.
 ```
 
-Allowed projection:
+Allowed future projection:
 
 ```text
 playbook file identifier
@@ -227,22 +239,7 @@ relationship status: RESOLVED_LOCAL_ROLE / NONE_OBSERVED / UNKNOWN
 aggregate referenced/unreferenced role counts
 ```
 
-Do not project or read into evidence:
-
-```text
-play names
-hosts/target patterns
-hostnames/IPs
-inventory variable values
-group_vars/host_vars/vars contents
-role/task argument values
-handler contents
-Ansible Vault contents
-credentials/private keys/tokens
-connection strings
-```
-
-Do not run `ansible`, `ansible-playbook`, SSH, or managed-host connections. Do not infer execution outcome, idempotence, runtime facts, managed-host coverage, or drift.
+Do not project play names, host target patterns, hostnames/IPs, inventory variable values, group_vars/host_vars/vars contents, role/task argument values, handler contents, Vault data, credentials, private keys, tokens, or connection strings. Do not execute Ansible or SSH.
 
 ## Continuity rule
 
