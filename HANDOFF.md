@@ -137,7 +137,7 @@ configuration_drift_status: UNKNOWN
 
 No supported direct role reference was observed in `ansible/playbooks/ping.yml` or `ansible/playbooks/vault-check.yml`. This is bounded direct-reference absence only.
 
-## Active Milestone 6 — Ansible execution-declaration discovery
+## Merge-ready Milestone 6 — Ansible execution-declaration discovery
 
 Implementation:
 
@@ -152,10 +152,11 @@ Report:
 docs/reports/2026-08-29-m6-ansible-execution-declaration-discovery.md
 ```
 
-Focused/live validation:
+Validation:
 
 ```text
 focused tests: 4 passed in 0.09s
+full repository suite: 368 passed in 1.59s
 discovery_rc: 0
 source_status: COMPLETE
 tracked_files_returned: 400
@@ -177,7 +178,7 @@ ansible_runner_run_declaration_status: NONE_OBSERVED_IN_BOUNDED_SOURCE
 ansible_navigator_run_declaration_status: NONE_OBSERVED_IN_BOUNDED_SOURCE
 ```
 
-The accepted execution-entrypoint vocabulary is intentionally limited to:
+Accepted entry-point vocabulary is intentionally limited to:
 
 ```text
 ansible-playbook
@@ -207,29 +208,23 @@ idempotence_claims: 0
 drift_claims: 0
 ```
 
-## Merge gate — PENDING
+## Merge gate
 
-Because this slice adds reusable discovery implementation and tests, the repository-wide suite must pass before PR/merge.
+```text
+focused tests: PASS
+live discovery: PASS
+full repository suite: PASS — 368 passed in 1.59s
+```
+
+This slice is merge-ready after PR scope/mergeability inspection.
 
 ## Exact next step
 
-On `mgmt-automation` run only:
-
-```bash
-cd ~/projects/infrastructure-intelligence-assurance
-python3 -m pytest -q
-```
-
-Do not wrap it in strict interactive shell mode.
-
-If the full suite passes:
-
-1. record the exact pass count in this handoff/report/PR;
-2. inspect changed-file scope for `agent/m6-ansible-execution-declaration-discovery`;
-3. ensure no temporary/debug/placeholder files exist;
-4. create/inspect a non-draft PR and squash-merge when clean;
-5. carry the new accepted `main` SHA into the next branch handoff;
-6. start **Ansible execution-outcome source discovery**.
+1. Inspect changed-file scope for `agent/m6-ansible-execution-declaration-discovery`.
+2. Ensure no temporary/debug/placeholder files exist.
+3. Create/inspect a non-draft PR and squash-merge when clean.
+4. Carry the new accepted `main` SHA into the next branch handoff.
+5. Start **Ansible execution-outcome source discovery**.
 
 Preferred next-source order after merge:
 
