@@ -6,28 +6,29 @@ Project Sources remain authoritative. Read `docs/PROJECT_CONTINUITY.md`, then th
 
 ```text
 repository: ben-edu/infrastructure-intelligence-assurance
-accepted main after PR #79: d089fdd241fcf27437f96b36a6f112b38be49608
-active branch: agent/m7-operator-attention-runtime-integration
+accepted main after PR #80: 11a6b69ecc55c6f356153fa4f5689c717f9cf754
+active branch: agent/m7-backup-assurance-operator-adapter
 Milestone 7: ACTIVE
 management host: mgmt-automation
-repository mutation allowed: true
-bounded management-host deployment authorized and completed: true
 broader infrastructure mutation authorized: false
 ```
 
-## Accepted M7 baseline
+## Accepted M7 operator-attention runtime baseline
 
-Report:
+Accepted reports:
 
 ```text
 docs/reports/2026-08-29-m7-operator-attention-summary-contract.md
+docs/reports/2026-08-29-m7-operator-attention-runtime-integration.md
 ```
 
-Accepted baseline:
+Accepted runtime state:
 
 ```text
-focused tests: 5 passed in 0.05s
-full suite: 410 passed in 1.83s
+operator-attention runtime identity: infra-assurance
+operator-attention JSON/Markdown: generated in existing collector cycle
+focused tests: 7 passed in 0.21s
+full suite: 412 passed in 2.00s
 cluster: k3s-main
 scope: KUBERNETES_EXISTING_EVIDENCE_ONLY
 workloads_total: 68
@@ -38,169 +39,155 @@ unknowns_total: 0
 required_live_verification_total: 0
 ```
 
-Rejected/incomplete attempts preserved:
+Preserve rejected/incomplete attempts:
 
 ```text
-interactive-user probe: FAILED_TO_OBSERVE / PermissionError
+interactive-user operator-attention probe: FAILED_TO_OBSERVE / PermissionError
 service-identity probe from /home/ben source tree: FAILED_TO_OBSERVE before code execution
 ```
 
-Do not reuse either failed attempt as negative evidence.
+Do not reuse either as negative evidence.
 
-## Active slice — operator-attention runtime integration
+## Active slice — compact backup-assurance operator adapter
 
-Goal:
+Accepted report:
 
 ```text
-Generate operator-attention.json and operator-attention.md during the existing five-minute collector run, from the installed package under the existing infra-assurance identity.
+docs/reports/2026-08-29-m7-backup-assurance-operator-adapter.md
 ```
 
-Runtime report:
+Source artifact:
 
 ```text
-docs/reports/2026-08-29-m7-operator-attention-runtime-integration.md
+/var/lib/infra-assurance/evidence/backup-assurance.json
 ```
 
-Changed files expected for this slice:
+Prepared implementation:
 
 ```text
-HANDOFF.md
-docs/reports/2026-08-29-m7-operator-attention-runtime-integration.md
-scripts/deploy-operator-attention-runtime.sh
-src/infra_assurance/operator_attention.py
-systemd/infra-assurance-kubernetes.service
-tests/test_operator_attention.py
+src/infra_assurance/backup_operator_adapter.py
+tests/test_backup_operator_adapter.py
+scripts/discovery/m7_backup_assurance_operator_adapter_probe.py
 ```
 
-Runtime boundary remains:
+No runtime integration, service change, datastore, live infrastructure query, or management-host mutation is part of this contract slice.
+
+## Validation — ACCEPTED
+
+Focused tests:
 
 ```text
-User=infra-assurance
-Group=infra-assurance
-PYTHONPATH=/opt/infra-assurance/src
-NoNewPrivileges=true
-ProtectHome=true
-ReadWritePaths includes /var/lib/infra-assurance/evidence
+6 passed in 0.05s
 ```
 
-No new service, timer, identity, datastore, infrastructure query, or source of truth is introduced.
-
-## Repository validation — ACCEPTED
+Accepted live probe:
 
 ```text
-focused tests: 7 passed in 0.21s
-full repository suite: 412 passed in 2.00s
-```
-
-## Deployment dry-run — ACCEPTED / NO MUTATION
-
-The helper was run without `--apply` and printed only the bounded plan. No mutation occurred.
-
-## Live deployment — ACCEPTED
-
-After explicit authorization, the bounded helper was run with `--apply`.
-
-Accepted result:
-
-```text
-deployment_status=COMPLETE
-service_result=success
-operator_attention_json=OBSERVED
-operator_attention_markdown=OBSERVED
-runtime_identity=infra-assurance
-```
-
-Accepted interpretation:
-
-```text
-- installed runtime integration completed successfully;
-- existing collector service completed successfully;
-- both target derived artifacts were generated;
-- runtime identity remained infra-assurance;
-- no root runtime design was introduced;
-- broader infrastructure mutation remains unauthorized.
-```
-
-## Safe generated-artifact verification — ACCEPTED
-
-The generated JSON was inspected only through an allowlisted safe projection. Raw artifact content was not printed.
-
-Accepted metadata:
-
-```text
-operator_attention_version: 0.1
+source_status: COMPLETE
+backup_assurance_source_status: COMPLETE
 cluster_id: k3s-main
-mutation_allowed: False
-scope: KUBERNETES_EXISTING_EVIDENCE_ONLY
-source_artifacts: inventory.json,context.json,change-context.json
+scope: BACKUP_ASSURANCE_EXISTING_EVIDENCE_ONLY
+discovery_rc=0
 ```
 
-Accepted summary:
+Full repository suite:
 
 ```text
-workloads_total: 68
-workloads_with_attention: 3
-attention_now_total: 2
-recent_changes_total: 0
-unknowns_total: 0
-required_live_verification_total: 0
+418 passed in 1.96s
 ```
 
-Accepted attention items:
+Accepted compact summary:
 
 ```text
-source=topology code=SERVICE_SELECTOR_MULTIPLE_CONTROLLER_MATCHES severity=AMBIGUOUS subject=Service/monitoring/loki-headless
-source=drift code=DECLARED_OBSERVED_DRIFT severity=DRIFT subject=Ingress/validation/nginx-validation
+assets_total: 37
+assets_stale: 0
+assets_freshness_unknown: 0
+protection_unknown: 37
+restore_verification_unknown: 37
+unprotected_claims: 0
+authoritative_backup_sources_integrated: 0
+attention_total: 3
+required_verification_categories_total: 8
 ```
 
-Truncation:
+Accepted attention projection:
 
 ```text
-attention_now_truncated: False
-recent_changes_truncated: False
-unknowns_truncated: False
-required_live_verification_truncated: False
+BACKUP_PROTECTION_UNKNOWN / UNKNOWN / count=37
+RESTORE_VERIFICATION_UNKNOWN / UNKNOWN / count=37
+AUTHORITATIVE_BACKUP_SOURCE_NOT_INTEGRATED / UNKNOWN
 ```
 
-Interpretation:
+Accepted verification categories:
 
 ```text
-- runtime output matches the previously accepted M7 contract for current loaded evidence;
-- zero recent-change/unknown/verification counts are bounded absence only;
-- no remediation or mutation is implied by attention items;
-- generated artifact preserves mutation_allowed=false.
+OBSERVE_BACKUP_MECHANISM
+OBSERVE_LAST_SUCCESSFUL_BACKUP
+OBSERVE_BACKUP_RETENTION
+OBSERVE_BACKUP_FAILURE_DOMAIN
+OBSERVE_BACKUP_INTEGRITY_VERIFICATION
+OBSERVE_RESTORE_TEST
+OBSERVE_RPO_TARGET_AND_RESULT
+OBSERVE_RTO_TARGET_AND_RESULT
+```
+
+All require an authoritative source.
+
+## Trust semantics — MUST PRESERVE
+
+```text
+UNKNOWN protection != UNPROTECTED
+restore verification UNKNOWN != recovery test overdue
+unprotected claims require authoritative backup evidence
+```
+
+Accepted probe trust checks:
+
+```text
+unknown_is_not_unprotected: True
+recovery_test_overdue_claimed: False
+authoritative_backup_evidence_required_for_unprotected: True
+```
+
+The source currently reports `unprotected_claims=0`. Do not infer unprotected assets from `protection_unknown=37`.
+
+Do not infer overdue restore testing from `restore_verification_unknown=37`.
+
+Safety boundary:
+
+```text
+mutation_allowed: false
+live infrastructure query: false
+source artifact write: false
+raw source projection: false
+asset detail projection: false
+secrets/credentials projection: false
 ```
 
 ## Merge gate — READY
 
-All required gates for this slice passed:
+All required gates passed:
 
 ```text
-focused tests: PASS
-bounded deployment: PASS
-service result: success
-runtime identity: infra-assurance
-operator-attention JSON/Markdown: observed
-safe artifact verification: PASS
-full suite: 412 passed in 2.00s
+focused tests: 6 passed in 0.05s
+live read-only probe: source_status=COMPLETE / discovery_rc=0
+full suite: 418 passed in 1.96s
 ```
 
 Before merge:
 
-1. verify branch scope is exactly the six intended files listed above;
+1. verify branch scope is exactly five intended files:
+   - `HANDOFF.md`
+   - `docs/reports/2026-08-29-m7-backup-assurance-operator-adapter.md`
+   - `scripts/discovery/m7_backup_assurance_operator_adapter_probe.py`
+   - `src/infra_assurance/backup_operator_adapter.py`
+   - `tests/test_backup_operator_adapter.py`
 2. ensure no temporary/debug/placeholder files exist;
 3. create/inspect a non-draft PR;
-4. verify changed filenames and mergeability;
-5. squash-merge;
-6. carry the new accepted main SHA into the next checkpoint.
+4. verify mergeability and changed filenames;
+5. squash-merge and carry the new accepted main SHA forward.
 
-## Next smallest useful step after merge
-
-Reassess Milestone 7 against the roadmap before adding anything else. Do not jump directly to a dashboard. Prefer the smallest remaining operator-facing slice that materially reduces cognitive load, potentially a bounded cross-domain adapter for already accepted M5/M6 assurance signals if that provides more value than additional Kubernetes-only presentation.
-
-## Remaining project direction
-
-Roadmap remaining milestones are M7 and M8. Roughly 20–30% of the core roadmap remains. Explicitly deferred M5/M6 unknowns remain preserved rather than forced closed with weak evidence.
+After merge, reassess whether integrating this compact adapter into the existing operator-attention runtime is the next smallest useful M7 step. Do not jump directly to a dashboard.
 
 ## Preserved M6 boundaries
 
@@ -215,11 +202,12 @@ Do not reopen weak M6 probes.
 
 ## Trust invariants
 
-- infrastructure remains read-only except for the explicitly authorized management-host deployment already performed;
-- runtime integration stays under `infra-assurance`, not root;
+- existing infrastructure observation remains read-only;
 - derived operator projections do not replace source evidence;
 - stale/failed/unknown evidence remains explicit;
 - bounded absence is not universal absence;
+- UNKNOWN protection is never treated as UNPROTECTED;
+- restore verification UNKNOWN is never treated as overdue restore testing;
 - no secret, credential, raw Terraform state, or raw Kubernetes Secret value enters the projection;
 - no remediation is implied by an attention item;
 - generated operational artifacts keep `mutation_allowed=false`.
