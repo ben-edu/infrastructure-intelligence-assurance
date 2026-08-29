@@ -49,7 +49,11 @@ explicit_relationship_signal_files: 0
 relationship_source_status: NONE_OBSERVED_IN_BOUNDED_SOURCE
 ```
 
-A repository-wide test suite remains required before merge because this slice adds reusable discovery implementation and tests.
+Repository-wide regression gate:
+
+```text
+387 passed in 1.76s
+```
 
 ## First live attempt — rejected for bounded absence
 
@@ -130,6 +134,6 @@ Raw source lines, Jenkins job names, build numbers, commands, arguments, invento
 
 ## Next smallest useful step
 
-After the repository-wide suite passes and this slice is merged, do not add another Jenkins-to-Ansible relationship probe without new evidence.
+This slice passed focused, live, and repository-wide validation and is merge-ready after PR scope/mergeability inspection.
 
-Return to the remaining Milestone 6 gaps and select the smallest read-only slice that can add independent authoritative evidence, while preserving the closed Jenkins relationship path and all remaining `UNKNOWN` states.
+After merge, do not add another Jenkins-to-Ansible relationship probe without new evidence. Return to the remaining Milestone 6 gaps and select the smallest read-only slice that can add independent authoritative evidence, while preserving the closed Jenkins relationship path and all remaining `UNKNOWN` states.
