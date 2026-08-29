@@ -21,20 +21,38 @@ def test_metadata_url_rejects_userinfo_and_query_values():
     assert "config.xml" not in safe.lower()
 
 
-def test_env_reader_keeps_only_approved_keys(tmp_path):
+def test_env_reader_accepts_only_jenkins_scoped_connection_roles(tmp_path):
     env_file = tmp_path / ".env"
     env_file.write_text(
-        "JENKINS_URL=https://jenkins.local\n"
-        "JENKINS_USER=reader\n"
-        "JENKINS_API_TOKEN=super-secret\n"
-        "OTHER_SECRET=must-not-be-loaded\n",
+        "export JENKINS_READONLY_URL=https://jenkins.local\n"
+        "JENKINS_API_USERNAME=reader\n"
+        "JENKINS_READONLY_TOKEN=super-secret\n"
+        "OTHER_SECRET=must-not-be-loaded\n"
+        "SERVICE_URL=https://must-not-be-loaded.local\n",
         encoding="utf-8",
     )
 
     values = MODULE._read_approved_env_file(env_file)
 
-    assert set(values) == {"JENKINS_URL", "JENKINS_USER", "JENKINS_API_TOKEN"}
+    assert set(values) == {
+        "JENKINS_READONLY_URL",
+        "JENKINS_API_USERNAME",
+        "JENKINS_READONLY_TOKEN",
+    }
     assert "OTHER_SECRET" not in values
+    assert "SERVICE_URL" not in values
+
+
+def test_role_value_fails_closed_on_distinct_ambiguous_values():
+    state, value = MODULE._role_value(
+        {
+            "JENKINS_URL": "https://one.local",
+            "JENKINS_API_URL": "https://two.local",
+        },
+        "url",
+    )
+    assert state == "AMBIGUOUS"
+    assert value is None
 
 
 def test_aggregate_metadata_does_not_return_job_names_or_build_numbers():
