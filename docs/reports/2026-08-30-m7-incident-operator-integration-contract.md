@@ -1,7 +1,7 @@
 # Milestone 7 — Incident Operator Integration Contract
 
 Date: 2026-08-30
-Status: CORRECTIVE FOCUSED VALIDATION PENDING
+Status: CORRECTIVE FOCUSED VALIDATION ACCEPTED / LIVE NO-WRITE PROBE PENDING
 Mode: repository-only integration over existing operator-attention and incident-candidate artifacts
 
 ## Goal
@@ -90,7 +90,7 @@ Projection truncation must not alter the pre-truncation combined total.
 
 The incident adapter now uses its independent accepted verification bound, while the integration layer applies `max_items` only to the final projected list. This follows the same separation already used by the Kubernetes+backup integration.
 
-Expected corrected semantics for the failing fixture:
+Corrected semantics for the failing fixture:
 
 ```text
 existing required verification total: 8
@@ -102,31 +102,37 @@ required_live_verification_truncated: True
 
 The non-blocking Python regex warning was also corrected by using a raw regex string. No contract assertion was removed.
 
-## Prepared validation
+## Corrective focused validation — ACCEPTED
 
-Focused tests:
+Executed on `mgmt-automation` after pulling the corrective branch head:
 
 ```text
-tests/test_operator_attention_incident.py
+6 passed in 0.06s
 ```
 
-Coverage includes:
+Accepted interpretation:
 
-- combined attention/verification totals;
-- preservation of compact-only incident projection;
-- explicit PARTIAL incident source semantics;
-- cluster mismatch fail-closed behavior;
-- rejection of unaccepted operator scope/mutation semantics;
-- truncation while retaining total counts;
-- Markdown trust language.
+```text
+combined totals preserved before final projection truncation: true
+required_live_verification_total fixture value: 11
+final max_items truncation remains independent: true
+unaccepted scope and mutation semantics still fail closed: true
+cluster mismatch still fails closed: true
+incident trust language preserved: true
+regex deprecation warning observed: false
+```
 
-Safe no-write live probe:
+No deployment, systemd change, installed-runtime change, or infrastructure mutation occurred during this corrective validation.
+
+## Safe no-write live probe
 
 ```text
 scripts/discovery/m7_incident_operator_integration_probe.py
 ```
 
 The probe reads only the two existing derived artifacts, calls the integration builder in memory, prints allowlisted compact fields, writes nothing, and performs no live infrastructure query.
+
+A failed read, invalid scope, cluster mismatch, or failed builder execution must remain an observation/contract failure and must not be converted into zero counts or absence evidence.
 
 ## Mutation boundary
 
@@ -146,4 +152,4 @@ No deployment authorization is requested or implied.
 
 ## Next gate
 
-Rerun the focused integration tests on the corrected branch head. If they pass, run the safe no-write probe against the protected current artifacts. Do not deploy or replace the installed operator-attention runtime in this slice.
+Run only the safe no-write integration probe against the current protected `operator-attention.json` and `incident-candidates.json` artifacts. Do not deploy or replace the installed operator-attention runtime in this slice.
