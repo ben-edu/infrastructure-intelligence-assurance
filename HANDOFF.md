@@ -12,7 +12,7 @@ Milestone 7: ACTIVE
 management host: mgmt-automation
 broader infrastructure mutation authorized: false
 cross-domain runtime deployment previously authorized/performed: true
-corrective redeployment authorized: false
+corrective redeployment authorized/performed: true
 ```
 
 ## Accepted cross-domain contract baseline
@@ -164,18 +164,10 @@ prometheus_rule_context_integration < backup_assurance_foundation
 backup_assurance_foundation < operator_attention_backup
 ```
 
-Corrective focused gate executed on `mgmt-automation`:
+Corrective focused gate:
 
 ```text
 14 passed in 0.26s
-```
-
-Covered tests:
-
-```text
-tests/test_backup_assurance_foundation_wiring.py
-tests/test_operator_attention.py
-tests/test_operator_attention_cross_domain_runtime_integration.py
 ```
 
 Accepted interpretation:
@@ -185,57 +177,27 @@ established backup ordering invariant preserved: true
 cross-domain backup-before-operator dependency preserved: true
 existing operator-attention behavior remains green: true
 corrective repository wiring accepted: true
-corrective unit deployed: false
 ```
 
 ## Corrective deployment dry run — ACCEPTED
 
-Executed on `mgmt-automation` without `--apply`:
+Executed without `--apply` and performed no mutation. The helper reconfirmed the same bounded deployment plan and again excluded `bootstrap-observer.sh`, Kubernetes RBAC changes, kubeconfig changes, Git source changes, new services/timers, and permission broadening.
+
+## Fresh corrective authorization — ACCEPTED
+
+The user explicitly authorized only the reviewed corrective redeployment of the corrected existing unit and the same bounded installed-runtime modules.
+
+Authorization did not extend to broader infrastructure mutation, Kubernetes RBAC/kubeconfig changes, permission broadening, new services/timers/datastores, remediation, or unrelated changes.
+
+## Corrective bounded redeployment — ACCEPTED
+
+Executed on `mgmt-automation`:
 
 ```bash
-sudo bash scripts/deploy-operator-attention-runtime.sh
-```
-
-Accepted dry-run output reconfirmed the exact bounded mutation plan:
-
-```text
-- install the accepted operator-attention modules into /opt/infra-assurance/src/infra_assurance/;
-- install the corrected existing infra-assurance-kubernetes.service unit definition;
-- run systemctl daemon-reload;
-- start the existing infra-assurance-kubernetes.service once;
-- verify operator-attention.json and operator-attention.md with the accepted cross-domain scope.
-```
-
-The helper explicitly reconfirmed it will not run `bootstrap-observer.sh`, change Kubernetes RBAC, kubeconfig, Git source configuration, add a new service/timer, or broaden filesystem permissions.
-
-Corrective dry-run interpretation:
-
-```text
-management-host mutation performed: false
-Kubernetes mutation performed: false
-systemd mutation performed: false
-installed runtime mutation performed: false
-artifact write performed by helper: false
-corrective deployment scope operator-reviewed: true
-```
-
-The currently installed unit still reflects the earlier deployed ordering until corrective redeployment occurs.
-
-## Exact next gate — FRESH CORRECTIVE DEPLOYMENT AUTHORIZATION
-
-Because the systemd unit content changed after the original authorization, the previous authorization does not automatically cover the corrected unit.
-
-Corrective `--apply` is NOT authorized yet.
-
-If fresh explicit authorization is provided, run only:
-
-```bash
-cd ~/projects/infrastructure-intelligence-assurance
-git pull --ff-only origin agent/m7-cross-domain-runtime-integration
 sudo bash scripts/deploy-operator-attention-runtime.sh --apply
 ```
 
-Acceptance requires:
+Accepted helper output:
 
 ```text
 deployment_status=COMPLETE
@@ -246,17 +208,36 @@ runtime_identity=infra-assurance
 runtime_scope=KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY
 ```
 
-After corrective deployment succeeds:
+Accepted interpretation:
 
-1. verify safe allowlisted cross-domain artifact content again;
+```text
+corrected existing unit installed: true
+existing oneshot collector completed successfully: true
+operator-attention JSON produced: true
+operator-attention Markdown produced: true
+runtime identity remains infra-assurance: true
+cross-domain runtime scope observed: true
+broader infrastructure mutation authorized/performed by this gate: false
+```
+
+## Exact next gate — SAFE CONTENT REVERIFICATION
+
+Read only allowlisted fields from:
+
+```text
+/var/lib/infra-assurance/evidence/operator-attention.json
+```
+
+Acceptance requires the cross-domain contract/trust fields to remain valid. Current counts may legitimately differ if source evidence changed; changed counts alone are not a failure.
+
+After safe content reverification succeeds:
+
+1. record exact current content in this handoff/report;
 2. rerun the full repository suite;
-3. PR/squash-merge only if all gates pass.
-
-## Authorization boundary
-
-Fresh corrective authorization, if provided, applies only to the same bounded management-host deployment with the corrected unit content.
-
-It does not authorize broader infrastructure mutation, Kubernetes RBAC/kubeconfig changes, permission broadening, new services/timers/datastores, remediation, or unrelated changes.
+3. verify exact five-file branch scope and no temporary/debug files;
+4. create/inspect a non-draft PR;
+5. verify changed filenames and mergeability;
+6. squash-merge and carry the new accepted main SHA forward.
 
 ## Preserved M6 boundaries
 
