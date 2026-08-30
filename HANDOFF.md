@@ -11,7 +11,7 @@ active branch: agent/m7-cross-domain-runtime-integration
 Milestone 7: ACTIVE
 management host: mgmt-automation
 broader infrastructure mutation authorized: false
-cross-domain runtime deployment authorized: false
+cross-domain runtime deployment authorized: true
 ```
 
 ## Accepted M7 cross-domain contract
@@ -126,7 +126,7 @@ Accepted interpretation:
 
 `scripts/deploy-operator-attention-runtime.sh` remains dry-run unless `--apply` is supplied.
 
-If later explicitly authorized, it will only:
+When run with the now-authorized `--apply`, it is limited to:
 
 ```text
 - install operator_attention.py;
@@ -173,23 +173,35 @@ artifact write performed by helper: false
 deployment scope operator-reviewed: true
 ```
 
-## Mutation boundary
+## Deployment authorization — ACCEPTED
 
-Repository preparation, tests, and dry-run are accepted. Actual deployment is NOT yet authorized.
+The user explicitly authorized the exact bounded cross-domain runtime deployment described above.
 
-Do not run:
+Authorization scope:
 
 ```text
-scripts/deploy-operator-attention-runtime.sh --apply
+management-host installed runtime modules: authorized
+existing infra-assurance-kubernetes.service unit replacement: authorized
+systemctl daemon-reload: authorized
+one start of existing oneshot service: authorized
+cross-domain artifact verification: authorized
 ```
 
-until explicit authorization is obtained.
+Authorization does NOT extend to:
 
-## Exact next gate — EXPLICIT DEPLOYMENT AUTHORIZATION
+```text
+broader infrastructure mutation
+Kubernetes RBAC or kubeconfig changes
+filesystem permission broadening
+new service or timer creation
+new datastore
+remediation
+unrelated runtime or platform changes
+```
 
-The next gate is explicit authorization for this exact bounded management-host deployment only.
+## Exact next gate — AUTHORIZED DEPLOYMENT
 
-If authorized, run on `mgmt-automation`:
+Run on `mgmt-automation`:
 
 ```bash
 cd ~/projects/infrastructure-intelligence-assurance
@@ -208,7 +220,7 @@ runtime_identity=infra-assurance
 runtime_scope=KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY
 ```
 
-Authorization for this deployment does not authorize broader infrastructure mutation, Kubernetes RBAC/kubeconfig changes, permission broadening, remediation, new services/timers, or unrelated changes.
+If the helper fails, preserve the failure as a deployment/observation failure and diagnose the exact failure only. Do not broaden permissions, rerun bootstrap, or infer missing evidence as zero.
 
 ## Preserved M6 boundaries
 
@@ -223,7 +235,7 @@ Do not reopen weak M6 probes.
 
 ## Trust invariants
 
-- infrastructure observation remains read-only except separately authorized bounded management-host deployment;
+- infrastructure observation remains read-only except this separately authorized bounded management-host deployment;
 - runtime identity stays `infra-assurance`, not root;
 - derived operator projections do not replace source evidence;
 - stale/failed/unknown evidence remains explicit;
