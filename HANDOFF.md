@@ -6,14 +6,16 @@ Project Sources remain authoritative. Read `docs/PROJECT_CONTINUITY.md`, then th
 
 ```text
 repository: ben-edu/infrastructure-intelligence-assurance
-accepted main after PR #81: 27dad7917299b90688fd418b70bbec585c94ea7b
-active branch: agent/m7-backup-assurance-operator-integration
+accepted main after PR #82: 0649699dfcd09828fce6937fcc27ec870daf057a
+active branch: agent/m7-cross-domain-runtime-contract
 Milestone 7: ACTIVE
 management host: mgmt-automation
 broader infrastructure mutation authorized: false
 ```
 
-## Accepted M7 operator-attention runtime baseline
+## Accepted M7 runtime baseline
+
+The installed five-minute collector currently produces Kubernetes-only operator-attention JSON/Markdown under `infra-assurance`.
 
 Accepted reports:
 
@@ -22,30 +24,18 @@ docs/reports/2026-08-29-m7-operator-attention-summary-contract.md
 docs/reports/2026-08-29-m7-operator-attention-runtime-integration.md
 ```
 
-Accepted runtime state:
+Current installed runtime scope remains:
 
 ```text
-operator-attention runtime identity: infra-assurance
-operator-attention JSON/Markdown: generated in existing collector cycle
-full suite at runtime integration: 412 passed in 2.00s
-cluster: k3s-main
-scope: KUBERNETES_EXISTING_EVIDENCE_ONLY
-workloads_total: 68
-workloads_with_attention: 3
-attention_now_total: 2
-recent_changes_total: 0
-unknowns_total: 0
-required_live_verification_total: 0
+KUBERNETES_EXISTING_EVIDENCE_ONLY
 ```
 
-Accepted Kubernetes attention items:
+Accepted Kubernetes attention baseline:
 
 ```text
-Service/monitoring/loki-headless
-  SERVICE_SELECTOR_MULTIPLE_CONTROLLER_MATCHES / AMBIGUOUS
-
-Ingress/validation/nginx-validation
-  DECLARED_OBSERVED_DRIFT / DRIFT
+attention_now_total: 2
+Service/monitoring/loki-headless -> SERVICE_SELECTOR_MULTIPLE_CONTROLLER_MATCHES / AMBIGUOUS
+Ingress/validation/nginx-validation -> DECLARED_OBSERVED_DRIFT / DRIFT
 ```
 
 Preserve rejected/incomplete attempts:
@@ -57,32 +47,30 @@ service-identity probe from /home/ben source tree: FAILED_TO_OBSERVE before code
 
 Do not reuse either as negative evidence.
 
-## Accepted compact backup-assurance adapter
+## Accepted backup-assurance operator evidence
 
-Accepted report:
+Accepted reports:
 
 ```text
 docs/reports/2026-08-29-m7-backup-assurance-operator-adapter.md
+docs/reports/2026-08-30-m7-backup-assurance-operator-integration.md
 ```
 
-Accepted validation:
+Accepted cross-domain contract validation:
 
 ```text
-focused tests: 6 passed in 0.05s
+focused tests: 6 passed in 0.06s
 live read-only probe: source_status=COMPLETE / discovery_rc=0
-full suite: 418 passed in 1.96s
-```
-
-Accepted compact backup summary:
-
-```text
-assets_total: 37
-protection_unknown: 37
-restore_verification_unknown: 37
-unprotected_claims: 0
-authoritative_backup_sources_integrated: 0
-attention_total: 3
-required_verification_categories_total: 8
+full suite: 424 passed in 2.13s
+source_artifacts_loaded: 4
+cluster_id: k3s-main
+scope: KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY
+attention_now_total: 5
+required_live_verification_total: 8
+backup_assets_total: 37
+backup_protection_unknown: 37
+backup_restore_verification_unknown: 37
+backup_unprotected_claims: 0
 ```
 
 Trust semantics that must remain true:
@@ -93,116 +81,94 @@ restore verification UNKNOWN != recovery test overdue
 unprotected claims require authoritative backup evidence
 ```
 
-## Active slice — integrate backup assurance into operator attention
-
-Accepted report:
-
-```text
-docs/reports/2026-08-30-m7-backup-assurance-operator-integration.md
-```
+## Active slice — cross-domain runtime contract
 
 Goal:
 
 ```text
-Combine the accepted Kubernetes operator-attention projection with the accepted compact backup-assurance adapter into one bounded cross-domain operator summary, without changing the existing runtime yet.
+Make the already-accepted cross-domain operator projection executable as a file-writing runtime command, without changing the installed collector or systemd yet.
 ```
 
-Prepared implementation:
+Prepared changes:
 
 ```text
 src/infra_assurance/operator_attention_backup.py
-tests/test_operator_attention_backup.py
-scripts/discovery/m7_backup_assurance_operator_integration_probe.py
-```
-
-Cross-domain scope:
-
-```text
-KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY
-```
-
-The active branch does NOT change systemd, installed runtime under `/opt`, collector timer/service, infrastructure, permissions, or datastores.
-
-## Validation — ACCEPTED
-
-```text
-focused tests: 6 passed in 0.06s
-live read-only probe: source_status=COMPLETE / discovery_rc=0
-full suite: 424 passed in 2.13s
-```
-
-Accepted live source state:
-
-```text
-source_artifacts_loaded: 4
-cluster_id: k3s-main
-scope: KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY
-```
-
-Accepted combined summary:
-
-```text
-workloads_total: 68
-workloads_with_attention: 3
-attention_now_total: 5
-recent_changes_total: 0
-unknowns_total: 0
-required_live_verification_total: 8
-backup_assets_total: 37
-backup_protection_unknown: 37
-backup_restore_verification_unknown: 37
-backup_unprotected_claims: 0
-```
-
-Accepted combined attention:
-
-```text
-topology / SERVICE_SELECTOR_MULTIPLE_CONTROLLER_MATCHES / AMBIGUOUS / Service/monitoring/loki-headless
-drift / DECLARED_OBSERVED_DRIFT / DRIFT / Ingress/validation/nginx-validation
-backup_assurance / BACKUP_PROTECTION_UNKNOWN / UNKNOWN / count=37
-backup_assurance / RESTORE_VERIFICATION_UNKNOWN / UNKNOWN / count=37
-backup_assurance / AUTHORITATIVE_BACKUP_SOURCE_NOT_INTEGRATED / UNKNOWN
-```
-
-Accepted authoritative backup/recovery verification categories:
-
-```text
-OBSERVE_BACKUP_MECHANISM
-OBSERVE_LAST_SUCCESSFUL_BACKUP
-OBSERVE_BACKUP_RETENTION
-OBSERVE_BACKUP_FAILURE_DOMAIN
-OBSERVE_BACKUP_INTEGRITY_VERIFICATION
-OBSERVE_RESTORE_TEST
-OBSERVE_RPO_TARGET_AND_RESULT
-OBSERVE_RTO_TARGET_AND_RESULT
-```
-
-Trust checks:
-
-```text
-unknown_is_not_unprotected: True
-recovery_test_overdue_claimed: False
-authoritative_backup_evidence_required_for_unprotected: True
-```
-
-Do not infer unprotected assets from `backup_protection_unknown=37`.
-Do not infer overdue restore testing from `backup_restore_verification_unknown=37`.
-
-## Merge gate — READY
-
-Expected branch scope is exactly five files:
-
-```text
+tests/test_operator_attention_backup_runtime.py
 HANDOFF.md
-docs/reports/2026-08-30-m7-backup-assurance-operator-integration.md
-scripts/discovery/m7_backup_assurance_operator_integration_probe.py
-src/infra_assurance/operator_attention_backup.py
-tests/test_operator_attention_backup.py
 ```
 
-Before merge, verify exact scope, no temporary/debug/placeholder files, non-draft PR, changed filenames, and mergeability; then squash-merge and carry the new accepted main SHA forward.
+The cross-domain module now provides a CLI contract:
 
-Only after this contract slice is merged should runtime integration be considered. Any runtime/systemd deployment remains a separate management-host mutation gate requiring explicit authorization.
+```text
+python3 -m infra_assurance.operator_attention_backup
+  --inventory <inventory.json>
+  --context <context.json>
+  --change-context <change-context.json>
+  --backup-assurance <backup-assurance.json>
+  --out <operator-attention.json>
+  --summary-out <operator-attention.md>
+```
+
+The writer:
+
+```text
+- reads only the four accepted derived artifacts;
+- uses the accepted cross-domain builder;
+- writes JSON and Markdown atomically using existing io_utils;
+- performs no live infrastructure query;
+- projects no per-asset backup details;
+- preserves mutation_allowed=false;
+- preserves UNKNOWN != UNPROTECTED;
+- preserves restore verification UNKNOWN != recovery test overdue.
+```
+
+The Markdown renderer adds only aggregate backup-assurance counts and explicitly describes the trust boundary as Kubernetes plus backup-assurance evidence.
+
+This branch does NOT change:
+
+```text
+systemd
+/opt installed runtime
+collector service/timer
+infrastructure
+permissions
+datastores
+```
+
+No management-host mutation is authorized or required for this contract gate.
+
+## Exact next gate
+
+On `mgmt-automation`:
+
+```bash
+cd ~/projects/infrastructure-intelligence-assurance
+
+git fetch origin
+
+git switch --track origin/agent/m7-cross-domain-runtime-contract
+
+python3 -m pytest -q \
+  tests/test_operator_attention_backup.py \
+  tests/test_operator_attention_backup_runtime.py
+```
+
+Do not use strict interactive shell mode.
+
+Expected focused test count from the branch definition is 8, but accept only the actual test output.
+
+Acceptance rules:
+
+```text
+- all focused tests pass;
+- existing builder semantics remain unchanged;
+- runtime writer produces cross-domain JSON and Markdown in tests;
+- per-asset backup details are absent from both outputs;
+- non-positive max-items fails closed;
+- no systemd/runtime/infrastructure mutation occurs.
+```
+
+If focused tests pass, the next gate is a bounded live no-deploy execution contract check. Do not modify systemd or `/opt` until that contract is accepted and a separate deployment mutation is explicitly authorized.
 
 ## Preserved M6 boundaries
 
