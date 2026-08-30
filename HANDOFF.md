@@ -15,16 +15,9 @@ broader infrastructure mutation authorized: false
 
 ## Accepted M7 runtime baseline
 
-The installed five-minute collector currently produces Kubernetes-only operator-attention JSON/Markdown under `infra-assurance`.
+The installed five-minute collector still produces Kubernetes-only operator-attention JSON/Markdown under `infra-assurance`.
 
-Accepted reports:
-
-```text
-docs/reports/2026-08-29-m7-operator-attention-summary-contract.md
-docs/reports/2026-08-29-m7-operator-attention-runtime-integration.md
-```
-
-Current installed runtime scope remains:
+Installed runtime scope remains:
 
 ```text
 KUBERNETES_EXISTING_EVIDENCE_ONLY
@@ -56,7 +49,7 @@ docs/reports/2026-08-29-m7-backup-assurance-operator-adapter.md
 docs/reports/2026-08-30-m7-backup-assurance-operator-integration.md
 ```
 
-Accepted cross-domain contract validation:
+Accepted cross-domain evidence:
 
 ```text
 focused tests: 6 passed in 0.06s
@@ -95,7 +88,7 @@ Goal:
 Make the already-accepted cross-domain operator projection executable as a file-writing runtime command, without changing the installed collector or systemd yet.
 ```
 
-Prepared changes:
+Changed files expected for this slice:
 
 ```text
 HANDOFF.md
@@ -104,7 +97,7 @@ src/infra_assurance/operator_attention_backup.py
 tests/test_operator_attention_backup_runtime.py
 ```
 
-The cross-domain module provides a CLI contract:
+Accepted CLI contract:
 
 ```text
 python3 -m infra_assurance.operator_attention_backup
@@ -114,19 +107,6 @@ python3 -m infra_assurance.operator_attention_backup
   --backup-assurance <backup-assurance.json>
   --out <operator-attention.json>
   --summary-out <operator-attention.md>
-```
-
-The writer:
-
-```text
-- reads only the four accepted derived artifacts;
-- uses the accepted cross-domain builder;
-- writes JSON and Markdown atomically using existing io_utils;
-- performs no live infrastructure query;
-- projects no per-asset backup details;
-- preserves mutation_allowed=false;
-- preserves UNKNOWN != UNPROTECTED;
-- preserves restore verification UNKNOWN != recovery test overdue.
 ```
 
 This branch does NOT change:
@@ -140,17 +120,24 @@ permissions
 datastores
 ```
 
-## Repository validation — ACCEPTED
+## Validation — ACCEPTED / MERGE-READY
 
-Focused tests executed on `mgmt-automation`:
+Repository validation:
 
 ```text
-8 passed in 0.46s
+focused tests: 8 passed in 0.46s
+full repository suite: 426 passed in 2.48s
 ```
 
-## Live no-deploy runtime contract check — ACCEPTED
+Live no-deploy contract check:
 
-The one-time privileged projection used repository code only to read the four protected existing artifacts. It did not write output files, modify systemd, modify `/opt`, or query live infrastructure.
+```text
+source_status: COMPLETE
+source_artifacts_loaded: 4
+cluster_id: k3s-main
+scope: KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY
+discovery_rc=0
+```
 
 Accepted safety:
 
@@ -162,16 +149,6 @@ systemd_modified: False
 installed_runtime_modified: False
 raw_source_artifacts_projected: False
 backup_asset_details_projected: False
-```
-
-Accepted source state:
-
-```text
-source_status: COMPLETE
-source_artifacts_loaded: 4
-cluster_id: k3s-main
-scope: KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY
-discovery_rc=0
 ```
 
 Accepted summary:
@@ -197,34 +174,24 @@ recovery_test_overdue_claimed: False
 authoritative_backup_evidence_required_for_unprotected: True
 ```
 
-The one-time `sudo` execution is validation-only because repository code remains under `/home/ben` while the evidence artifacts are protected. It is not the target runtime privilege model.
+The one-time `sudo` execution was validation-only because repository code is under `/home/ben` while evidence artifacts are protected. It is not the target runtime privilege model.
 
-## Exact next gate — FULL REPOSITORY SUITE
+## Merge gate
 
-On `mgmt-automation`:
+All contract gates passed. Before merge:
 
-```bash
-cd ~/projects/infrastructure-intelligence-assurance
-git pull --ff-only origin agent/m7-cross-domain-runtime-contract
-python3 -m pytest -q
-```
+1. verify branch scope is exactly the four intended files listed above;
+2. ensure no temporary/debug/placeholder files exist;
+3. create/inspect a non-draft PR;
+4. verify changed filenames and mergeability;
+5. squash-merge;
+6. carry the new accepted main SHA into the next checkpoint.
 
-Do not use strict interactive shell mode.
+## Exact next useful step after merge
 
-If the full suite passes:
+The next smallest useful M7 step is a separate installed-runtime integration slice: replace the currently installed Kubernetes-only operator command with the accepted cross-domain command in the existing five-minute collector path.
 
-1. record exact pass count/time in this handoff and the runtime-contract report;
-2. verify exact branch scope is four intended files:
-   - `HANDOFF.md`
-   - `docs/reports/2026-08-30-m7-cross-domain-runtime-contract.md`
-   - `src/infra_assurance/operator_attention_backup.py`
-   - `tests/test_operator_attention_backup_runtime.py`
-3. ensure no temporary/debug/placeholder files exist;
-4. create/inspect a non-draft PR;
-5. verify changed filenames and mergeability;
-6. squash-merge and carry the new accepted main SHA forward.
-
-Only after merge should installed runtime/systemd integration be considered. That remains a separate management-host mutation gate requiring explicit authorization.
+That step is a management-host mutation because it changes installed code/systemd/runtime behavior. It must remain separately authorized and bounded; do not broaden Kubernetes RBAC, kubeconfig, permissions, services, timers, or datastores.
 
 ## Preserved M6 boundaries
 
@@ -239,7 +206,7 @@ Do not reopen weak M6 probes.
 
 ## Trust invariants
 
-- existing infrastructure observation remains read-only;
+- existing infrastructure observation remains read-only except separately authorized bounded management-host deployment;
 - derived operator projections do not replace source evidence;
 - stale/failed/unknown evidence remains explicit;
 - bounded absence is not universal absence;
