@@ -7,7 +7,7 @@ This document exists to make project continuation independent of any single chat
 When resuming work, use this order of authority:
 
 1. Project Sources for durable goals, roadmap, architecture/trust principles, and operating model.
-2. `HANDOFF.md` on `main` for the latest accepted execution checkpoint.
+2. `HANDOFF.md` on current `main` for the latest accepted execution checkpoint.
 3. If an active project branch/PR contains a newer `HANDOFF.md`, prefer that branch version for in-flight execution state.
 4. The report/ADR/milestone document referenced by the active handoff.
 5. Repository implementation and tests.
@@ -21,7 +21,7 @@ Repository and live evidence take precedence over remembered chat state.
 Before an accepted slice is merged, `HANDOFF.md` must contain enough information for a new session to continue without prior conversation history:
 
 ```text
-accepted main SHA
+accepted functional main checkpoint or current-main instruction
 active branch or next branch
 current milestone status
 mutation boundary
@@ -35,6 +35,8 @@ exact next step
 pasteable commands when a live gate is pending
 ```
 
+At a milestone boundary with no active implementation branch, `HANDOFF.md` may identify the immediately preceding accepted functional checkpoint and instruct the next session to use current `main` as the closure checkpoint. A file cannot reliably contain the SHA of the commit that contains itself without creating a self-referential update loop. The next session should verify current `main` directly.
+
 If a live run reveals an implementation defect or false positive, record only the corrected accepted result. The rejected result may be mentioned as implementation history, but it must not be promoted to infrastructure evidence.
 
 ## Documentation update policy
@@ -46,6 +48,7 @@ Use the smallest durable artifact that prevents ambiguity:
 - ADRs: create only for durable architectural/trust decisions.
 - milestone/roadmap/current-state documents: update when milestone scope/status, architecture, or durable delivery direction changes.
 - `README.md`: update when the user-facing project status/runtime model becomes materially stale; do not churn it for every small discovery slice.
+- `docs/M8_START_HERE.md`: use as the explicit M7-to-M8 bootstrap document while M8 begins; later milestones should use an equivalent transition document only when it materially reduces resume ambiguity.
 
 Avoid redundant documentation that can diverge.
 
@@ -62,9 +65,15 @@ infrastructure recovery != application/database-consistent backup
 successful task/result != restore verification
 logical topology/coupling != physical failure-domain proof
 configuration declaration != execution outcome
+incident candidate != confirmed incident
+incident candidate != root cause
+SUPPRESSED != RESOLVED
+backup UNKNOWN != UNPROTECTED
+restore verification UNKNOWN != recovery test overdue
+recommendation != approval
 ```
 
-Never promote absence of a bounded signal into `UNPROTECTED`, drift, failure, compliance, RPO/RTO violation, or successful execution without the required authoritative evidence.
+Never promote absence of a bounded signal into `UNPROTECTED`, drift, failure, compliance, RPO/RTO violation, successful execution, confirmed incident, root-cause conclusion, or resolved state without the required authoritative evidence.
 
 ## Safety invariants
 
@@ -88,7 +97,7 @@ raw backup contents
 unnecessary raw VM/storage configuration
 ```
 
-Do not run restore, apply, destroy, import, state mutation, configuration changes, or other infrastructure mutation without explicit authorization and a reviewed mutation plan.
+Do not run restore, apply, destroy, import, state mutation, configuration changes, systemd/permission/scheduling changes, backup changes, or other infrastructure mutation without explicit authorization and a reviewed mutation plan.
 
 ## Shell safety
 
@@ -106,7 +115,21 @@ For an accepted repository slice:
 4. inspect the PR changed-file list/diff as needed;
 5. verify mergeability;
 6. squash-merge when clean;
-7. record the new accepted `main` SHA in the next active handoff.
+7. carry the new accepted functional checkpoint into the next active handoff or milestone-boundary documents.
+
+## Milestone 7 to Milestone 8 transition
+
+Milestone 7 is closed by `docs/reports/2026-08-30-m7-closure.md` within the accepted read-only operational-intelligence scope.
+
+For the first M8 session, read:
+
+```text
+docs/M8_START_HERE.md
+```
+
+The first M8 slice is a read-only runtime-hardening baseline. It must inspect current identity, sandbox, scheduling, failure semantics, writable paths, artifact ownership, and platform-backup evidence before proposing a concrete mutation.
+
+Do not reopen M5/M6/M7 UNKNOWN states merely because a new chat begins. Revisit them only when stronger authoritative evidence or a reviewed M8 hardening requirement makes that necessary.
 
 ## New-session bootstrap
 
@@ -115,8 +138,9 @@ A new session should be able to begin with:
 ```text
 Read Project Sources.
 Read docs/PROJECT_CONTINUITY.md.
-Read HANDOFF.md from main.
+Read HANDOFF.md from current main.
 Check for an active project PR/branch with a newer HANDOFF.md.
+Read the transition/start document named by HANDOFF.md.
 Continue only the Exact next step unless new evidence justifies changing it.
 ```
 
