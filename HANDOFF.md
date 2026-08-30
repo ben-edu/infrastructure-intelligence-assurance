@@ -164,19 +164,7 @@ The regex warning was also removed with a raw regex string. No assertion was wea
 
 The probe read only the protected current `operator-attention.json` and `incident-candidates.json`, performed no live infrastructure query, and wrote nothing.
 
-Safety:
-
-```text
-mutation_allowed: False
-live_infrastructure_query_performed: False
-source_artifacts_written: False
-systemd_modified: False
-installed_runtime_modified: False
-candidate_promoted_to_confirmed_incident: False
-root_cause_claimed: False
-```
-
-Integrated contract:
+Accepted contract:
 
 ```text
 source_status: COMPLETE
@@ -215,28 +203,6 @@ INCIDENT_SOURCE_INCOMPLETE / UNKNOWN / count=1
 ACTIVE_INCIDENT_CANDIDATES / SIGNAL / count=4
 ```
 
-Current incident groups:
-
-```text
-Namespace/keycloak / ACTIVE / alerts=2 / events=0 / checks=1
-Namespace/monitoring / ACTIVE / alerts=5 / events=0 / checks=1
-Namespace/moodle / ACTIVE / alerts=2 / events=1 / checks=2
-Platform/k3s-main / ACTIVE / alerts=2 / events=0 / checks=2
-```
-
-Incident live-verification entries:
-
-```text
-VERIFY_ALERT_CONDITION_CURRENT -> PROMETHEUS_ALERTMANAGER
-VERIFY_ALERT_CONDITION_CURRENT -> PROMETHEUS_ALERTMANAGER
-VERIFY_ALERT_CONDITION_CURRENT -> PROMETHEUS_ALERTMANAGER
-VERIFY_RELATED_EVENT_OBJECT_STATE -> KUBERNETES_OBJECT
-VERIFY_ALERT_CONDITION_CURRENT -> PROMETHEUS_ALERTMANAGER
-VERIFY_PROMETHEUS_RULE_INPUTS -> PROMETHEUS_RULE_INPUTS
-```
-
-The combined total of 14 is the accepted existing operator total of 8 plus six current incident verification entries. Repeated alert-condition checks are candidate-scoped, not proof of completed verification.
-
 Trust/truncation:
 
 ```text
@@ -249,33 +215,33 @@ required_live_verification_truncated: False
 incident_candidates_truncated: False
 ```
 
-The incident source remains PARTIAL. Four active candidate groupings are observed, but they are not confirmed incidents or root-cause conclusions, and the current set is not a universal absence statement about other possible incidents or signals.
+The incident source remains PARTIAL. Four active candidate groupings are observed, but they are not confirmed incidents or root-cause conclusions.
+
+## Full repository suite — ACCEPTED
+
+```text
+441 passed in 2.39s
+```
+
+The corrective integration behavior, existing Kubernetes+backup operator contract, accepted incident adapter, and all repository regression tests are green on the current branch head.
 
 ## Mutation boundary
 
 This slice remains repository-only plus a safe read-only in-memory probe. It does NOT change systemd, installed `/opt` runtime, collector service/timer, Kubernetes RBAC/kubeconfig, filesystem permissions, datastores, or infrastructure. No deployment authorization is requested or implied.
 
-## Exact next gate — FULL REPOSITORY SUITE
+## Merge gate — READY
 
-On `mgmt-automation`:
+Before merge:
 
-```bash
-cd ~/projects/infrastructure-intelligence-assurance
-git pull --ff-only origin agent/m7-incident-operator-integration-contract
-python3 -m pytest -q
-```
+1. compare branch against accepted main `1898072ef33a554dc1d4d86d82aa9030fd17b019`;
+2. verify exactly the five intended files listed above;
+3. ensure no temporary/debug/placeholder files exist;
+4. create a non-draft PR;
+5. verify changed filenames and mergeability;
+6. squash-merge;
+7. carry the new accepted main SHA forward.
 
-Do not use strict interactive shell mode.
-
-If the full suite passes:
-
-1. record exact pass count/time;
-2. verify exact five-file branch scope and no temporary/debug files;
-3. create/inspect a non-draft PR;
-4. verify changed filenames and mergeability;
-5. squash-merge and carry the new accepted main SHA forward.
-
-Do not deploy or replace installed operator attention in this slice.
+Do not deploy or replace installed operator attention in this slice. Any installed-runtime change requires a separately reviewed slice and explicit authorization.
 
 ## Preserved M6 boundaries
 
