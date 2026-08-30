@@ -14,18 +14,19 @@ broader infrastructure mutation authorized: false
 cross-domain runtime deployment authorized: true
 ```
 
-## Accepted M7 cross-domain contract
+## Accepted cross-domain contract baseline
 
-Accepted report:
+Accepted reports:
 
 ```text
+docs/reports/2026-08-30-m7-backup-assurance-operator-integration.md
 docs/reports/2026-08-30-m7-cross-domain-runtime-contract.md
 ```
 
-Accepted validation:
+Accepted contract validation:
 
 ```text
-focused tests: 8 passed in 0.46s
+focused runtime-contract tests: 8 passed in 0.46s
 live no-deploy contract check: source_status=COMPLETE / discovery_rc=0
 full suite: 426 passed in 2.48s
 cluster_id: k3s-main
@@ -46,17 +47,6 @@ restore verification UNKNOWN != recovery test overdue
 unprotected claims require authoritative backup evidence
 ```
 
-## Installed runtime before this slice
-
-The existing five-minute collector is still installed with Kubernetes-only operator attention:
-
-```text
-runtime identity: infra-assurance
-installed operator scope: KUBERNETES_EXISTING_EVIDENCE_ONLY
-```
-
-The existing unit generated `backup-assurance.json` after the Kubernetes-only operator-attention `ExecStartPost`, so cross-domain runtime wiring requires a bounded ordering change.
-
 ## Active slice — cross-domain installed-runtime integration
 
 Goal:
@@ -74,12 +64,12 @@ systemd/infra-assurance-kubernetes.service
 tests/test_operator_attention_cross_domain_runtime_integration.py
 ```
 
-Runtime wiring prepared:
+Prepared runtime order:
 
 ```text
 1. existing kubernetes_runtime ExecStart completes;
-2. backup_assurance_foundation runs as ExecStartPost and produces backup-assurance.json/md;
-3. operator_attention_backup runs next and consumes inventory/context/change-context/backup-assurance;
+2. backup_assurance_foundation produces backup-assurance.json/md;
+3. operator_attention_backup consumes inventory/context/change-context/backup-assurance;
 4. remaining existing ExecStartPost commands continue unchanged.
 ```
 
@@ -94,7 +84,7 @@ ProtectHome=true
 existing ReadWritePaths only
 ```
 
-No new service, timer, identity, datastore, Kubernetes RBAC, kubeconfig, Git source config, or filesystem permission is introduced.
+No new service, timer, identity, datastore, Kubernetes RBAC, kubeconfig, Git source config, or filesystem permission was introduced.
 
 ## Repository focused validation — ACCEPTED
 
@@ -104,65 +94,17 @@ Executed on `mgmt-automation`:
 10 passed in 0.21s
 ```
 
-Command:
-
-```bash
-python3 -m pytest -q \
-  tests/test_operator_attention.py \
-  tests/test_operator_attention_cross_domain_runtime_integration.py
-```
-
-Accepted interpretation:
-
-```text
-- existing operator-attention tests remain green;
-- cross-domain service wiring tests pass;
-- backup assurance is ordered before cross-domain operator projection;
-- runtime remains under infra-assurance;
-- no repository test required infrastructure mutation.
-```
-
-## Bounded deployment helper
-
-`scripts/deploy-operator-attention-runtime.sh` remains dry-run unless `--apply` is supplied.
-
-When run with the now-authorized `--apply`, it is limited to:
-
-```text
-- install operator_attention.py;
-- install backup_operator_adapter.py;
-- install operator_attention_backup.py;
-- install the existing infra-assurance-kubernetes.service unit definition;
-- python-compile those installed modules;
-- run systemctl daemon-reload;
-- start the existing oneshot service once;
-- verify operator-attention JSON/Markdown ownership;
-- verify runtime scope equals KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY.
-```
-
-It does not run `bootstrap-observer.sh` and does not broaden infrastructure access.
+This confirmed the existing operator-attention tests remain green, the backup assurance step precedes the cross-domain operator projection, and runtime wiring remains under `infra-assurance`.
 
 ## Deployment dry run — ACCEPTED
 
-Executed on `mgmt-automation` without `--apply`:
+Dry-run command:
 
 ```bash
 sudo bash scripts/deploy-operator-attention-runtime.sh
 ```
 
-Accepted dry-run output confirmed the exact bounded mutation plan:
-
-```text
-- install the accepted operator-attention modules into /opt/infra-assurance/src/infra_assurance/;
-- install the existing infra-assurance-kubernetes.service unit definition;
-- run systemctl daemon-reload;
-- start the existing infra-assurance-kubernetes.service once;
-- verify operator-attention.json and operator-attention.md with the accepted cross-domain scope.
-```
-
-The helper explicitly confirmed it will not run `bootstrap-observer.sh`, change Kubernetes RBAC, kubeconfig, Git source configuration, add a service/timer, or broaden filesystem permissions.
-
-Dry-run interpretation:
+Accepted dry-run interpretation:
 
 ```text
 management-host mutation performed: false
@@ -175,41 +117,29 @@ deployment scope operator-reviewed: true
 
 ## Deployment authorization — ACCEPTED
 
-The user explicitly authorized the exact bounded cross-domain runtime deployment described above.
-
-Authorization scope:
+The user explicitly authorized only this bounded management-host deployment:
 
 ```text
-management-host installed runtime modules: authorized
-existing infra-assurance-kubernetes.service unit replacement: authorized
-systemctl daemon-reload: authorized
-one start of existing oneshot service: authorized
-cross-domain artifact verification: authorized
+install operator_attention.py
+install backup_operator_adapter.py
+install operator_attention_backup.py
+replace existing infra-assurance-kubernetes.service unit definition
+systemctl daemon-reload
+start existing oneshot service once
+verify generated operator-attention artifacts and cross-domain scope
 ```
 
-Authorization does NOT extend to:
+Authorization does NOT extend to broader infrastructure mutation, Kubernetes RBAC/kubeconfig changes, filesystem permission broadening, new services/timers/datastores, remediation, or unrelated changes.
 
-```text
-broader infrastructure mutation
-Kubernetes RBAC or kubeconfig changes
-filesystem permission broadening
-new service or timer creation
-new datastore
-remediation
-unrelated runtime or platform changes
-```
+## Live bounded deployment — ACCEPTED
 
-## Exact next gate — AUTHORIZED DEPLOYMENT
-
-Run on `mgmt-automation`:
+Executed on `mgmt-automation`:
 
 ```bash
-cd ~/projects/infrastructure-intelligence-assurance
-git pull --ff-only origin agent/m7-cross-domain-runtime-integration
 sudo bash scripts/deploy-operator-attention-runtime.sh --apply
 ```
 
-Acceptance requires the helper to report:
+Accepted helper output:
 
 ```text
 deployment_status=COMPLETE
@@ -220,7 +150,53 @@ runtime_identity=infra-assurance
 runtime_scope=KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY
 ```
 
-If the helper fails, preserve the failure as a deployment/observation failure and diagnose the exact failure only. Do not broaden permissions, rerun bootstrap, or infer missing evidence as zero.
+Accepted interpretation:
+
+```text
+bounded management-host deployment completed: true
+existing oneshot collector completed successfully: true
+operator-attention JSON produced: true
+operator-attention Markdown produced: true
+runtime identity remains infra-assurance: true
+cross-domain runtime scope observed: true
+broader infrastructure mutation authorized/performed by this gate: false
+```
+
+This proves installed runtime deployment and artifact generation. It does not by itself validate every allowlisted content field inside the generated artifact.
+
+## Exact next gate — SAFE GENERATED-ARTIFACT CONTENT VERIFICATION
+
+Read only allowlisted fields from:
+
+```text
+/var/lib/infra-assurance/evidence/operator-attention.json
+```
+
+Acceptance requires:
+
+```text
+cluster_id: k3s-main
+mutation_allowed: False
+scope: KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY
+source_artifacts include inventory.json, context.json, change-context.json, backup-assurance.json
+summary counts are present integers
+backup_unprotected_claims: 0 unless authoritative evidence legitimately changed
+unknown_is_not_unprotected: True
+recovery_test_overdue_claimed: False
+no raw source data, per-asset backup details, secret, credential, raw Terraform state, or Kubernetes Secret value printed
+```
+
+Current prior accepted counts are a comparison baseline only, not immutable expected values. If current evidence changed legitimately, changed counts are not a failure by themselves.
+
+After safe content verification succeeds:
+
+1. create `docs/reports/2026-08-30-m7-cross-domain-runtime-integration.md` with exact accepted deployment/content evidence;
+2. update this handoff with the accepted content gate;
+3. run the full repository suite on the current branch head;
+4. verify exact intended branch scope and no temporary/debug files;
+5. create/inspect a non-draft PR;
+6. verify changed filenames and mergeability;
+7. squash-merge and carry the new accepted main SHA forward.
 
 ## Preserved M6 boundaries
 
@@ -235,7 +211,7 @@ Do not reopen weak M6 probes.
 
 ## Trust invariants
 
-- infrastructure observation remains read-only except this separately authorized bounded management-host deployment;
+- infrastructure observation remains read-only except the explicitly authorized bounded management-host deployment already performed;
 - runtime identity stays `infra-assurance`, not root;
 - derived operator projections do not replace source evidence;
 - stale/failed/unknown evidence remains explicit;
