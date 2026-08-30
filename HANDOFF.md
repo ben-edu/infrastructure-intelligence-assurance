@@ -6,176 +6,110 @@ Project Sources remain authoritative. Read `docs/PROJECT_CONTINUITY.md`, then th
 
 ```text
 repository: ben-edu/infrastructure-intelligence-assurance
-accepted main after PR #85: 1898072ef33a554dc1d4d86d82aa9030fd17b019
-active branch: agent/m7-incident-operator-integration-contract
+accepted main before this slice: 98cb3702faf6e23a15791ff32c36c7a7bd594c98
+active branch: agent/m7-incident-operator-runtime-integration
 Milestone 7: ACTIVE
 management host: mgmt-automation
 broader infrastructure mutation authorized: false
+incident operator runtime deployment authorized: true
+incident operator runtime deployment performed: true
+installed runtime verification accepted: true
+final repository suite accepted: true
 ```
 
-## Accepted installed operator baseline
-
-Installed runtime remains unchanged in this slice:
-
-```text
-runtime identity: infra-assurance
-scope: KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY
-prometheus_rule_context_integration < backup_assurance_foundation < operator_attention_backup
-final suite at accepted runtime integration: 429 passed in 2.15s
-```
-
-Accepted operator evidence:
-
-```text
-cluster_id: k3s-main
-attention_now_total: 5
-required_live_verification_total: 8
-backup_assets_total: 37
-backup_protection_unknown: 37
-backup_restore_verification_unknown: 37
-backup_unprotected_claims: 0
-```
-
-Preserve:
-
-```text
-UNKNOWN protection != UNPROTECTED
-restore verification UNKNOWN != recovery test overdue
-```
-
-## Accepted incident operator adapter
-
-Accepted main after PR #85 includes the compact read-only incident adapter.
-
-Accepted validation:
-
-```text
-focused tests: 6 passed in 0.05s; repeat 6 passed in 0.04s
-live read-only probe: source_status=COMPLETE
-incident_source_status=PARTIAL
-full suite: 435 passed in 2.24s
-```
-
-Accepted current incident evidence:
-
-```text
-incident_candidates: 4
-active_candidates: 4
-suppressed_candidates: 0
-unknown_candidates: 0
-candidates_with_related_warning_events: 1
-attention_total: 2
-required_verification_categories_total: 6
-candidate_groups_truncated: False
-required_live_verification_truncated: False
-```
-
-Trust semantics:
-
-```text
-candidate_is_confirmed_incident: False
-candidate_is_root_cause: False
-suppressed_means_resolved: False
-live_verification_required_before_action: True
-```
-
-The exact incomplete incident source domain was not printed by the allowlisted adapter probe and must not be guessed.
-
-## Active slice — incident operator integration contract
+## Active slice — incident operator installed-runtime integration
 
 Report:
 
 ```text
-docs/reports/2026-08-30-m7-incident-operator-integration-contract.md
-```
-
-Goal:
-
-```text
-Combine the accepted Kubernetes+backup operator-attention artifact with the accepted compact incident-candidate projection into one operator-facing contract without changing the installed runtime yet.
+docs/reports/2026-08-30-m7-incident-operator-runtime-integration.md
 ```
 
 Exact intended branch scope:
 
 ```text
 HANDOFF.md
-docs/reports/2026-08-30-m7-incident-operator-integration-contract.md
-scripts/discovery/m7_incident_operator_integration_probe.py
-src/infra_assurance/operator_attention_incident.py
-tests/test_operator_attention_incident.py
+docs/reports/2026-08-30-m7-incident-operator-runtime-integration.md
+scripts/deploy-operator-attention-runtime.sh
+systemd/infra-assurance-kubernetes.service
+tests/test_operator_attention_incident_runtime_integration.py
 ```
 
-Inputs:
+## Accepted repository preparation
+
+Focused wiring tests:
 
 ```text
-/var/lib/infra-assurance/evidence/operator-attention.json
-/var/lib/infra-assurance/evidence/incident-candidates.json
+11 passed in 0.09s
+11 passed in 0.10s
 ```
 
-Required accepted input scope:
+Dry-run accepted. It covered only bounded module/unit installation, `daemon-reload`, one execution of the existing oneshot service, and final artifact scope verification. It explicitly excluded bootstrap, Kubernetes RBAC/kubeconfig changes, Git source configuration changes, new services/timers, datastore changes, permission broadening, and remediation.
+
+## Authorization — ACCEPTED AND BOUNDED
+
+Fresh explicit user authorization was granted on 2026-08-30 for the bounded incident-operator runtime deployment only.
 
 ```text
-KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY
+broader infrastructure mutation authorized: false
+incident operator runtime deployment authorized: true
 ```
 
-Integrated scope:
+## Authorized bounded deployment — ACCEPTED
+
+Observed helper result:
 
 ```text
-KUBERNETES_BACKUP_AND_INCIDENT_EXISTING_EVIDENCE_ONLY
+deployment_status=COMPLETE
+service_result=success
+operator_attention_json=OBSERVED
+operator_attention_markdown=OBSERVED
+runtime_identity=infra-assurance
+runtime_scope=KUBERNETES_BACKUP_AND_INCIDENT_EXISTING_EVIDENCE_ONLY
 ```
 
-## Initial focused gate — FAILED AND PRESERVED
+## Installed order and artifact verification — ACCEPTED
+
+Installed order:
 
 ```text
-1 failed, 5 passed, 1 warning in 0.10s
+prometheus_rule_context_integration
+< backup_assurance_foundation
+< operator_attention_backup
+< operator_attention_incident
 ```
 
-Failure:
+Observed booleans:
 
 ```text
-test_combined_totals_survive_projection_truncation
-expected required_live_verification_total: 11
-observed: 10
+observability_before_backup: True
+backup_before_operator_backup: True
+operator_backup_before_incident: True
+correct_order: True
 ```
 
-Root cause: final `max_items=2` was incorrectly reused as the incident-adapter verification cap, truncating three incident verification entries to two before calculating the combined total. This was an implementation bug; the test was not weakened.
-
-## Corrective focused gate — ACCEPTED
-
-Corrected fixture semantics:
+Runtime identity/sandbox and artifact ownership:
 
 ```text
-existing required verification total: 8
-incident verification entries before final projection truncation: 3
-combined required_live_verification_total: 11
-final projected list at max_items=2: 2
-required_live_verification_truncated: True
+user_infra_assurance: True
+group_infra_assurance: True
+no_new_privileges: True
+protect_home: True
+artifact owner: infra-assurance
+artifact group: infra-assurance
 ```
 
-Corrective focused result:
+Current installed contract:
 
 ```text
-6 passed in 0.06s
-```
-
-The regex warning was also removed with a raw regex string. No assertion was weakened or removed.
-
-## Safe no-write integration probe — ACCEPTED
-
-The probe read only the protected current `operator-attention.json` and `incident-candidates.json`, performed no live infrastructure query, and wrote nothing.
-
-Accepted contract:
-
-```text
-source_status: COMPLETE
+operator_attention_version: 0.1
 cluster_id: k3s-main
-scope: KUBERNETES_BACKUP_AND_INCIDENT_EXISTING_EVIDENCE_ONLY
 mutation_allowed: False
-incident_source_status: PARTIAL
+scope: KUBERNETES_BACKUP_AND_INCIDENT_EXISTING_EVIDENCE_ONLY
 source_artifacts: inventory.json,context.json,change-context.json,backup-assurance.json,incident-candidates.json
 ```
 
-Current combined summary:
+Current observed summary:
 
 ```text
 workloads_total: 68
@@ -183,65 +117,56 @@ workloads_with_attention: 3
 attention_now_total: 7
 recent_changes_total: 0
 unknowns_total: 0
-required_live_verification_total: 14
+required_live_verification_total: 11
 backup_assets_total: 37
 backup_protection_unknown: 37
 backup_restore_verification_unknown: 37
 backup_unprotected_claims: 0
 incident_candidates_total: 4
-incident_active_candidates: 4
-incident_suppressed_candidates: 0
+incident_active_candidates: 1
+incident_suppressed_candidates: 3
 incident_unknown_candidates: 0
 incident_candidates_with_related_warning_events: 1
-incident_candidates_requiring_live_verification: 4
-```
-
-Incident attention added:
-
-```text
-INCIDENT_SOURCE_INCOMPLETE / UNKNOWN / count=1
-ACTIVE_INCIDENT_CANDIDATES / SIGNAL / count=4
+incident_candidates_requiring_live_verification: 2
 ```
 
 Trust/truncation:
 
 ```text
+incident_source_status: PARTIAL
 candidate_is_confirmed_incident: False
 candidate_is_root_cause: False
 suppressed_means_resolved: False
 live_verification_required_before_action: True
+unknown_is_not_unprotected: True
+recovery_test_overdue_claimed: False
+authoritative_backup_evidence_required_for_unprotected: True
 attention_now_truncated: False
 required_live_verification_truncated: False
 incident_candidates_truncated: False
 ```
 
-The incident source remains PARTIAL. Four active candidate groupings are observed, but they are not confirmed incidents or root-cause conclusions.
+The current counts differ from the earlier no-write snapshot: four candidates remain, but one is ACTIVE and three are SUPPRESSED. This is observed evidence change, not a regression. `SUPPRESSED != RESOLVED`; the incident source remains `PARTIAL`.
 
-## Full repository suite — ACCEPTED
+## Final full repository suite — ACCEPTED
+
+Executed without `sudo` after deployment and installed-content verification:
 
 ```text
-441 passed in 2.39s
+445 passed in 2.87s
 ```
-
-The corrective integration behavior, existing Kubernetes+backup operator contract, accepted incident adapter, and all repository regression tests are green on the current branch head.
-
-## Mutation boundary
-
-This slice remains repository-only plus a safe read-only in-memory probe. It does NOT change systemd, installed `/opt` runtime, collector service/timer, Kubernetes RBAC/kubeconfig, filesystem permissions, datastores, or infrastructure. No deployment authorization is requested or implied.
 
 ## Merge gate — READY
 
 Before merge:
 
-1. compare branch against accepted main `1898072ef33a554dc1d4d86d82aa9030fd17b019`;
-2. verify exactly the five intended files listed above;
-3. ensure no temporary/debug/placeholder files exist;
+1. compare branch against accepted main `98cb3702faf6e23a15791ff32c36c7a7bd594c98`;
+2. require exactly the five intended files listed above;
+3. verify no temporary/debug/placeholder files;
 4. create a non-draft PR;
 5. verify changed filenames and mergeability;
 6. squash-merge;
 7. carry the new accepted main SHA forward.
-
-Do not deploy or replace installed operator attention in this slice. Any installed-runtime change requires a separately reviewed slice and explicit authorization.
 
 ## Preserved M6 boundaries
 
@@ -256,13 +181,14 @@ Do not reopen weak M6 probes.
 
 ## Trust invariants
 
-- infrastructure observation remains read-only except separately authorized bounded management-host deployments already accepted;
 - derived operator projections do not replace source evidence;
 - stale/failed/unknown evidence remains explicit;
 - bounded absence is not universal absence;
-- incident candidates are not confirmed incidents;
-- incident candidates are not root-cause conclusions;
-- suppressed alerts/candidates are not treated as resolved conditions;
+- incident candidates are not confirmed incidents or root-cause conclusions;
+- suppressed candidates are not treated as resolved;
 - no secret, credential, raw Terraform state, or raw Kubernetes Secret value enters the projection;
+- backup UNKNOWN protection is not UNPROTECTED;
+- restore verification UNKNOWN is not a recovery-test-overdue claim;
 - no remediation is implied;
-- generated operational semantics keep `mutation_allowed=false`.
+- generated operational semantics keep `mutation_allowed=false`;
+- the recorded deployment authorization was bounded to this incident-operator runtime deployment only.
