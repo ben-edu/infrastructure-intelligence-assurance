@@ -1,7 +1,7 @@
 # Milestone 7 — Cross-Domain Installed Runtime Integration
 
 Date: 2026-08-30
-Status: CORRECTIVE ORDERING VALIDATED / DRY-RUN ACCEPTED / REDEPLOYMENT PENDING AUTHORIZATION
+Status: CORRECTIVE REDEPLOYMENT ACCEPTED / CONTENT REVERIFICATION PENDING
 Mode: bounded management-host runtime integration in the existing five-minute collector
 
 ## Scope
@@ -29,23 +29,9 @@ Initial focused integration tests:
 10 passed in 0.21s
 ```
 
-These tests covered existing operator-attention behavior, cross-domain systemd wiring, ordering of backup assurance before operator projection, and service identity constraints.
+## Initial deployment and content evidence
 
-## Initial deployment dry run and authorization
-
-The bounded dry-run was accepted. The user then explicitly authorized only the reviewed management-host deployment scope.
-
-The helper explicitly excluded `bootstrap-observer.sh`, Kubernetes RBAC changes, kubeconfig changes, Git source changes, new services/timers, and permission broadening.
-
-## Initial live bounded deployment
-
-Executed:
-
-```bash
-sudo bash scripts/deploy-operator-attention-runtime.sh --apply
-```
-
-Accepted helper output:
+The initial bounded deployment completed successfully and produced cross-domain operator artifacts under `infra-assurance`:
 
 ```text
 deployment_status=COMPLETE
@@ -56,11 +42,7 @@ runtime_identity=infra-assurance
 runtime_scope=KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY
 ```
 
-## Safe generated-artifact verification
-
-Only allowlisted fields from `/var/lib/infra-assurance/evidence/operator-attention.json` were printed.
-
-Accepted contract metadata:
+Initial safe generated-artifact verification established:
 
 ```text
 operator_attention_version: 0.1
@@ -68,11 +50,6 @@ cluster_id: k3s-main
 mutation_allowed: False
 scope: KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY
 source_artifacts: inventory.json,context.json,change-context.json,backup-assurance.json
-```
-
-Accepted summary:
-
-```text
 workloads_total: 68
 workloads_with_attention: 3
 attention_now_total: 5
@@ -83,49 +60,14 @@ backup_assets_total: 37
 backup_protection_unknown: 37
 backup_restore_verification_unknown: 37
 backup_unprotected_claims: 0
-```
-
-Accepted attention items:
-
-```text
-1. topology / SERVICE_SELECTOR_MULTIPLE_CONTROLLER_MATCHES / AMBIGUOUS / Service/monitoring/loki-headless
-2. drift / DECLARED_OBSERVED_DRIFT / DRIFT / Ingress/validation/nginx-validation
-3. backup_assurance / BACKUP_PROTECTION_UNKNOWN / UNKNOWN / count=37
-4. backup_assurance / RESTORE_VERIFICATION_UNKNOWN / UNKNOWN / count=37
-5. backup_assurance / AUTHORITATIVE_BACKUP_SOURCE_NOT_INTEGRATED / UNKNOWN
-```
-
-Accepted required verification categories:
-
-```text
-OBSERVE_BACKUP_MECHANISM -> BACKUP_MECHANISM
-OBSERVE_LAST_SUCCESSFUL_BACKUP -> LAST_SUCCESSFUL_BACKUP
-OBSERVE_BACKUP_RETENTION -> BACKUP_RETENTION
-OBSERVE_BACKUP_FAILURE_DOMAIN -> BACKUP_FAILURE_DOMAIN
-OBSERVE_BACKUP_INTEGRITY_VERIFICATION -> BACKUP_INTEGRITY_VERIFICATION
-OBSERVE_RESTORE_TEST -> RESTORE_TEST
-OBSERVE_RPO_TARGET_AND_RESULT -> RPO_TARGET_AND_RESULT
-OBSERVE_RTO_TARGET_AND_RESULT -> RTO_TARGET_AND_RESULT
-```
-
-All eight require an authoritative source.
-
-Accepted trust checks:
-
-```text
 unknown_is_not_unprotected: True
 recovery_test_overdue_claimed: False
 authoritative_backup_evidence_required_for_unprotected: True
-```
-
-Accepted truncation state:
-
-```text
 attention_now_truncated: False
 required_live_verification_truncated: False
 ```
 
-## Full-suite regression gate — FAILED AND PRESERVED
+## Preserved full-suite regression
 
 The first full repository suite after deployment returned:
 
@@ -139,29 +81,27 @@ Failing test:
 tests/test_backup_assurance_foundation_wiring.py::test_backup_assurance_runs_after_observability_post_steps
 ```
 
-Observed assertion:
+Observed required invariant:
 
 ```text
-prometheus_rule_context_integration index: 5856
-backup_assurance_foundation index: 2803
-required invariant: prometheus_rule_context_integration < backup_assurance_foundation
+prometheus_rule_context_integration < backup_assurance_foundation
 ```
 
-This was a repository/runtime ordering regression, not an evidence observation failure. The established test was not weakened or deleted.
+This was a repository/runtime ordering regression, not an evidence observation failure. The established test was preserved rather than weakened or removed.
 
 ## Corrective ordering decision
 
-The corrected repository order is:
+Corrected repository/runtime order:
 
 ```text
 1. kubernetes_runtime completes;
-2. existing routing / incident / observability ExecStartPost chain remains in its prior order;
+2. existing routing / incident / observability ExecStartPost chain remains in prior order;
 3. prometheus_rule_context_integration completes;
 4. backup_assurance_foundation produces backup-assurance.json/md;
-5. operator_attention_backup runs immediately after backup assurance and consumes inventory/context/change-context/backup-assurance.
+5. operator_attention_backup runs immediately after backup assurance.
 ```
 
-This preserves both ordering invariants:
+This preserves both invariants:
 
 ```text
 prometheus_rule_context_integration < backup_assurance_foundation
@@ -191,54 +131,65 @@ established backup ordering invariant preserved: true
 cross-domain backup-before-operator dependency preserved: true
 existing operator-attention behavior remains green: true
 corrective repository wiring accepted: true
-corrective unit deployed: false
 ```
 
 ## Corrective deployment dry run — ACCEPTED
 
-Executed without `--apply`:
+The helper was rerun without `--apply` and performed no mutation. It reconfirmed the bounded deployment plan and explicitly excluded `bootstrap-observer.sh`, Kubernetes RBAC changes, kubeconfig changes, Git source changes, new services/timers, and permission broadening.
+
+## Fresh corrective authorization — ACCEPTED
+
+The user explicitly authorized only the corrective redeployment of the reviewed corrected existing unit and the same bounded operator-attention runtime modules.
+
+This authorization did not extend to broader infrastructure mutation, Kubernetes RBAC/kubeconfig changes, permission broadening, new services/timers/datastores, remediation, or unrelated changes.
+
+## Corrective bounded redeployment — ACCEPTED
+
+Executed:
 
 ```bash
-sudo bash scripts/deploy-operator-attention-runtime.sh
+sudo bash scripts/deploy-operator-attention-runtime.sh --apply
 ```
 
-The helper printed the same bounded deployment plan for the corrected unit:
+Accepted helper output:
 
 ```text
-- install the accepted operator-attention modules into /opt/infra-assurance/src/infra_assurance/;
-- install the corrected existing infra-assurance-kubernetes.service unit definition;
-- run systemctl daemon-reload;
-- start the existing infra-assurance-kubernetes.service once;
-- verify operator-attention.json and operator-attention.md with the accepted cross-domain scope.
+deployment_status=COMPLETE
+service_result=success
+operator_attention_json=OBSERVED
+operator_attention_markdown=OBSERVED
+runtime_identity=infra-assurance
+runtime_scope=KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY
 ```
 
-The helper again explicitly excluded `bootstrap-observer.sh`, Kubernetes RBAC changes, kubeconfig changes, Git source changes, new services/timers, and permission broadening.
-
-Accepted dry-run interpretation:
+Accepted interpretation:
 
 ```text
-management-host mutation performed: false
-Kubernetes mutation performed: false
-systemd mutation performed: false
-installed runtime mutation performed: false
-artifact write performed by helper: false
-corrective deployment scope operator-reviewed: true
+corrected existing systemd unit installed: true
+existing oneshot collector completed successfully: true
+operator-attention JSON produced: true
+operator-attention Markdown produced: true
+runtime identity remains infra-assurance: true
+cross-domain runtime scope observed: true
+new service/timer created: false
+RBAC/kubeconfig/permission broadening performed: false
 ```
 
-The currently installed runtime still reflects the earlier deployed ordering until corrective redeployment occurs.
+The corrective redeployment proves the corrected installed runtime completed and produced cross-domain artifacts. It does not by itself prove that every allowlisted content/trust field in the newly generated artifact remains valid; that is the next read-only gate.
 
 ## Trust boundary
 
-- no broader infrastructure mutation was authorized or performed by this slice;
 - runtime identity remains `infra-assurance`, not root;
 - no new service, timer, datastore, RBAC, kubeconfig, or permission broadening is introduced;
 - derived operator artifacts do not replace source evidence;
-- no raw source artifact, per-asset backup detail, secret, credential, raw Terraform state, Kubernetes Secret value, or sensitive connection string was projected in validation output;
+- no raw source artifact, per-asset backup detail, secret, credential, raw Terraform state, Kubernetes Secret value, or sensitive connection string is needed for validation;
 - no remediation is authorized or implied;
-- generated operational semantics preserve `mutation_allowed=false`.
+- generated operational semantics must preserve `mutation_allowed=false`;
+- `UNKNOWN` protection must not be treated as `UNPROTECTED`;
+- restore-verification UNKNOWN must not be treated as overdue recovery testing.
 
 ## Next gate
 
-Fresh explicit authorization is required before corrective redeployment because the systemd unit content changed after the original authorization.
+Re-read only allowlisted fields from the newly generated `/var/lib/infra-assurance/evidence/operator-attention.json`.
 
-If authorized, rerun the same bounded deployment helper with `--apply`, then verify safe artifact content again and rerun the full repository suite before PR/merge.
+If the content/trust gate is accepted, rerun the full repository suite. PR/merge is permitted only if the full suite passes and exact branch scope remains the five intended files.
