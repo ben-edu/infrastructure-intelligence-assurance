@@ -63,7 +63,7 @@ Goal:
 Project existing incident-candidates.json into compact operator-facing evidence for grouped current signals without promoting candidates to confirmed incidents or root-cause conclusions.
 ```
 
-Exact branch scope:
+Exact intended branch scope:
 
 ```text
 HANDOFF.md
@@ -79,17 +79,11 @@ Source artifact:
 /var/lib/infra-assurance/evidence/incident-candidates.json
 ```
 
-This source already exists in the current five-minute collector and is derived from current alert attention, Kubernetes event correlation, inventory, and change context.
-
 Adapter scope:
 
 ```text
 INCIDENT_CANDIDATES_EXISTING_EVIDENCE_ONLY
 ```
-
-Projected fields are limited to aggregate candidate counts, compact candidate scope/state/count metadata, aggregate attention, deduplicated live-verification entries, truncation state, and trust semantics.
-
-Raw alert labels/details, raw Event details, related workload details, field-level change/drift details, rationales, and logs are discarded.
 
 Trust contract:
 
@@ -101,61 +95,25 @@ suppressed_means_resolved: False
 live_verification_required_before_action: True
 ```
 
-A non-COMPLETE source domain must remain explicit as incomplete evidence. Candidate absence under incomplete source coverage is not negative evidence.
+Raw alert/Event payloads, related workload details, field-level change/drift details, rationales, logs, secrets, raw Terraform state, and raw Kubernetes Secret values are not projected.
 
 ## Focused validation — ACCEPTED
-
-Executed twice on `mgmt-automation`:
 
 ```text
 6 passed in 0.05s
 6 passed in 0.04s
 ```
 
-Accepted interpretation:
-
-```text
-compact projection contract: PASS
-raw-detail exclusion: PASS
-incomplete-source semantics: PASS
-live-verification deduplication/truncation: PASS
-candidate truncation: PASS
-trust/fail-closed semantics: PASS
-```
-
-No deployment, systemd change, installed-runtime change, or infrastructure mutation was performed.
-
 ## Safe live read-only probe — ACCEPTED
 
-Executed with bounded privilege only to read the protected derived artifact.
-
-Safety:
-
-```text
-mutation_allowed: False
-live_infrastructure_query_performed: False
-source_artifact_written: False
-raw_alert_details_projected: False
-raw_event_details_projected: False
-candidate_promoted_to_confirmed_incident: False
-root_cause_claimed: False
-```
-
-Artifact read/adapter execution succeeded:
+Artifact read/adapter execution:
 
 ```text
 source_status: COMPLETE
+incident_source_status: PARTIAL
 cluster_id: k3s-main
 scope: INCIDENT_CANDIDATES_EXISTING_EVIDENCE_ONLY
 ```
-
-Internal incident evidence remains incomplete:
-
-```text
-incident_source_status: PARTIAL
-```
-
-The exact incomplete source domain was not printed by the allowlisted probe. Do not guess it and do not interpret candidate absence as negative evidence.
 
 Current compact summary:
 
@@ -200,8 +158,6 @@ VERIFY_ALERT_CONDITION_CURRENT -> PROMETHEUS_ALERTMANAGER
 VERIFY_PROMETHEUS_RULE_INPUTS -> PROMETHEUS_RULE_INPUTS
 ```
 
-Repeated `VERIFY_ALERT_CONDITION_CURRENT` entries are candidate-scoped checks, not proof that verification has already occurred.
-
 Trust/truncation:
 
 ```text
@@ -213,7 +169,7 @@ candidate_groups_truncated: False
 required_live_verification_truncated: False
 ```
 
-Accepted interpretation:
+Interpretation:
 
 ```text
 four active candidate groupings observed: true
@@ -225,47 +181,33 @@ exact drift association observed: false
 source completeness: PARTIAL
 ```
 
-The zero exact-change/drift counts are bounded to the current incident-candidate artifact and are not universal absence claims.
+The zero exact-change/drift counts are bounded to the current source artifact and are not universal absence claims. The exact incomplete source domain was not printed by the allowlisted probe and must not be guessed.
+
+## Full repository suite — ACCEPTED
+
+```text
+435 passed in 2.24s
+```
 
 ## Mutation boundary
 
-This slice remains repository-only plus a read-only evidence probe.
-
-It does NOT change:
-
-```text
-systemd
-installed /opt runtime
-collector service/timer
-Kubernetes RBAC/kubeconfig
-filesystem permissions
-datastores
-infrastructure
-```
+This slice is repository-only plus a read-only evidence probe. It does NOT change systemd, installed `/opt` runtime, collector service/timer, Kubernetes RBAC/kubeconfig, filesystem permissions, datastores, or infrastructure.
 
 No deployment authorization is requested or implied.
 
-## Exact next gate — FULL REPOSITORY SUITE
+## Merge gate — READY
 
-On `mgmt-automation`:
+Before merge:
 
-```bash
-cd ~/projects/infrastructure-intelligence-assurance
-git pull --ff-only origin agent/m7-incident-operator-adapter
-python3 -m pytest -q
-```
+1. compare branch against accepted main `abd8fe56832f1868e09e1cd26afbbc40046d9965`;
+2. verify exactly the five intended files listed above;
+3. ensure no temporary/debug/placeholder files exist;
+4. create a non-draft PR;
+5. verify changed filenames and mergeability;
+6. squash-merge;
+7. carry the new accepted main SHA forward.
 
-Do not use strict interactive shell mode.
-
-If the full suite passes:
-
-1. record exact pass count/time;
-2. verify exact five-file branch scope and no temporary/debug files;
-3. create/inspect a non-draft PR;
-4. verify changed filenames and mergeability;
-5. squash-merge and carry the new accepted main SHA forward.
-
-Do not integrate this adapter into installed operator attention until this contract/live-evidence slice is merged and a later runtime-integration slice is separately reviewed.
+Do not integrate this adapter into installed operator attention until this slice is merged and a later runtime-integration slice is separately reviewed.
 
 ## Preserved M6 boundaries
 
