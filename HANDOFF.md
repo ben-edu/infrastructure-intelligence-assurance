@@ -63,7 +63,7 @@ Goal:
 Project existing incident-candidates.json into compact operator-facing evidence for grouped current signals without promoting candidates to confirmed incidents or root-cause conclusions.
 ```
 
-Prepared files:
+Exact branch scope:
 
 ```text
 HANDOFF.md
@@ -103,9 +103,31 @@ live_verification_required_before_action: True
 
 A non-COMPLETE source domain must remain explicit as incomplete evidence. Candidate absence under incomplete source coverage is not negative evidence.
 
+## Focused validation — ACCEPTED
+
+Executed twice on `mgmt-automation`:
+
+```text
+6 passed in 0.05s
+6 passed in 0.04s
+```
+
+Accepted interpretation:
+
+```text
+compact projection contract: PASS
+raw-detail exclusion: PASS
+incomplete-source semantics: PASS
+live-verification deduplication/truncation: PASS
+candidate truncation: PASS
+trust/fail-closed semantics: PASS
+```
+
+No deployment, systemd change, installed-runtime change, or infrastructure mutation was performed.
+
 ## Mutation boundary
 
-This slice is repository-only plus a later read-only evidence probe.
+This slice is repository-only plus a read-only evidence probe.
 
 It does NOT change:
 
@@ -121,22 +143,28 @@ infrastructure
 
 No deployment authorization is requested or implied.
 
-## Exact next gate — FOCUSED TESTS
+## Exact next gate — SAFE LIVE READ-ONLY PROBE
 
-On `mgmt-automation`:
+On `mgmt-automation`, pull the current branch and run only:
 
 ```bash
-cd ~/projects/infrastructure-intelligence-assurance
-git fetch origin
-git switch --track origin/agent/m7-incident-operator-adapter
-python3 -m pytest -q tests/test_incident_operator_adapter.py
+sudo PYTHONPATH="$PWD/src" python3 scripts/discovery/m7_incident_operator_adapter_probe.py
 ```
 
-If already on another local branch with this name, switch to it and pull `--ff-only` instead of recreating it.
+The probe reads only `/var/lib/infra-assurance/evidence/incident-candidates.json`, performs no live infrastructure query, and writes nothing.
 
-Do not use strict interactive shell mode.
+A failed observation must remain `FAILED_TO_OBSERVE` and must not be converted into zero candidate counts.
 
-If focused tests pass, run the safe no-write probe against the protected current incident-candidates artifact. A failed observation must remain FAILED_TO_OBSERVE and must not be converted into zero candidate counts.
+If the probe succeeds:
+
+1. record exact current source status, candidate counts, attention, verification categories, truncation, and trust fields;
+2. run the full repository suite;
+3. verify exact five-file branch scope and no temporary/debug files;
+4. create/inspect a non-draft PR;
+5. verify changed filenames and mergeability;
+6. squash-merge and carry the new accepted main SHA forward.
+
+Do not integrate this adapter into installed operator attention until this contract/live-evidence slice is merged and a later runtime-integration slice is separately reviewed.
 
 ## Preserved M6 boundaries
 
