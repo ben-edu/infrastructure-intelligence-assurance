@@ -1,7 +1,7 @@
 # Milestone 7 — Incident Operator Integration Contract
 
 Date: 2026-08-30
-Status: LIVE NO-WRITE PROBE ACCEPTED / FULL-SUITE PENDING
+Status: ACCEPTED / MERGE READY
 Mode: repository-only integration over existing operator-attention and incident-candidate artifacts
 
 ## Goal
@@ -33,15 +33,9 @@ KUBERNETES_BACKUP_AND_INCIDENT_EXISTING_EVIDENCE_ONLY
 src/infra_assurance/operator_attention_incident.py
 ```
 
-The integration:
+The integration accepts only the previously accepted Kubernetes+backup operator scope, fails closed on cluster mismatch or `mutation_allowed != false`, appends compact incident attention and live-verification checks, preserves existing Kubernetes and backup summary/trust fields, and adds compact incident summary, candidate groups, source status, trust, and truncation metadata.
 
-- accepts only the previously accepted Kubernetes+backup operator scope;
-- fails closed on cluster mismatch or `mutation_allowed != false`;
-- appends compact incident attention and live-verification checks;
-- preserves existing Kubernetes and backup summary/trust fields;
-- adds compact incident summary, candidate groups, source status, trust, and truncation metadata;
-- discards raw alert/Event payloads, impact entity details, and field-level change/drift details through the accepted incident adapter;
-- provides an executable file-writing CLI contract for later separately reviewed runtime integration.
+Raw alert/Event payloads, impact entity details, field-level change/drift details, rationales, logs, secrets, raw Terraform state, and raw Kubernetes Secret values are not projected.
 
 ## Trust semantics
 
@@ -191,9 +185,19 @@ required_live_verification_truncated: False
 incident_candidates_truncated: False
 ```
 
+## Full repository regression — ACCEPTED
+
+Executed on the current corrected branch head:
+
+```text
+441 passed in 2.39s
+```
+
+This closes the corrective contract gate and confirms the existing repository regression suite remains green.
+
 ## Interpretation
 
-The integrated contract currently surfaces seven operator-attention items and fourteen required live-verification entries across the accepted Kubernetes, backup-assurance, and incident-candidate evidence. Four incident candidates are ACTIVE, one has related Warning Event context, and the incident source remains PARTIAL.
+The integrated contract currently surfaces seven operator-attention items and fourteen required live-verification entries across accepted Kubernetes, backup-assurance, and incident-candidate evidence. Four incident candidates are ACTIVE, one has related Warning Event context, and the incident source remains PARTIAL.
 
 These candidate groupings are not confirmed incidents or root-cause conclusions. The partial incident source means the current candidate set is not a universal absence statement about other possible incidents or signals.
 
@@ -201,8 +205,6 @@ These candidate groupings are not confirmed incidents or root-cause conclusions.
 
 This slice does NOT change systemd, installed `/opt` runtime, collector service/timer, Kubernetes RBAC/kubeconfig, filesystem permissions, datastores, or infrastructure. No deployment authorization is requested or implied.
 
-## Remaining gate
+## Merge gate
 
-Run the full repository regression suite on the current branch head. PR/merge is permitted only if the suite passes and exact branch scope remains the five intended files.
-
-Do not deploy or replace the installed operator-attention runtime in this slice.
+PR/merge is permitted only if exact branch scope remains the five intended files and the PR is clean and mergeable. Do not deploy or replace the installed operator-attention runtime in this slice; runtime integration must be a separate reviewed and explicitly authorized step.
