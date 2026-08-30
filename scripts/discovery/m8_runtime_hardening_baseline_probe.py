@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 
-VERSION = "0.1"
+VERSION = "0.2"
 SERVICE = "infra-assurance-kubernetes.service"
 TIMER = "infra-assurance-kubernetes.timer"
 RUNTIME_USER = "infra-assurance"
@@ -624,33 +624,86 @@ def smallest_change(
         service.get("user") != declared["identity"]["user"]
         or service.get("group") != declared["identity"]["group"]
     ):
-        change = "ALIGN_EFFECTIVE_RUNTIME_IDENTITY"
+        return _finding(
+            "ALIGN_EFFECTIVE_RUNTIME_IDENTITY",
+            "declared+observed",
+            implementation_status="NOT_IMPLEMENTED",
+            declared_identity=declared["identity"],
+            observed_identity={
+                "user": service.get("user", "UNKNOWN"),
+                "group": service.get("group", "UNKNOWN"),
+            },
+        )
     elif _sandbox_drift(declared, service):
-        change = "ALIGN_EFFECTIVE_SYSTEMD_SANDBOX"
+        return _finding(
+            "ALIGN_EFFECTIVE_SYSTEMD_SANDBOX",
+            "declared+observed",
+            implementation_status="NOT_IMPLEMENTED",
+            declared_sandbox=declared["sandbox"],
+            observed_sandbox={
+                key: service.get(key, "UNKNOWN") for key in declared["sandbox"]
+            },
+        )
     elif service.get("fragment_matches_repository") is False:
-        change = "RECONCILE_INSTALLED_SERVICE_FRAGMENT"
+        return _finding(
+            "RECONCILE_INSTALLED_SERVICE_FRAGMENT",
+            "declared+observed",
+            implementation_status="NOT_IMPLEMENTED",
+            fragment_matches_repository=False,
+        )
     elif timer.get("fragment_matches_repository") is False:
-        change = "RECONCILE_INSTALLED_TIMER_FRAGMENT"
-    elif any(
-        summary.get("status") == "OBSERVED"
+        return _finding(
+            "RECONCILE_INSTALLED_TIMER_FRAGMENT",
+            "declared+observed",
+            implementation_status="NOT_IMPLEMENTED",
+            fragment_matches_repository=False,
+        )
+
+    drifted_state = [
+        {
+            "path_class": path_class,
+            "world_writable_count": summary.get("world_writable_count", 0),
+            "owner_mismatch_count": summary.get("owner_mismatch_count", 0),
+            "group_mismatch_count": summary.get("group_mismatch_count", 0),
+        }
+        for path_class, summary in sorted(storage.get("state", {}).items())
+        if summary.get("status") == "OBSERVED"
         and (
             summary.get("world_writable_count", 0)
             or summary.get("owner_mismatch_count", 0)
             or summary.get("group_mismatch_count", 0)
         )
-        for summary in storage.get("state", {}).values()
-    ):
-        change = "ALIGN_STATE_ARTIFACT_OWNERSHIP_AND_MODES"
-    elif storage.get("code", {}).get("runtime_writable_by_posix_mode_count", 0):
-        change = "REMOVE_RUNTIME_WRITE_ACCESS_FROM_INSTALLED_CODE"
-    elif code.get("status") == "OBSERVED" and not code.get(
+    ]
+    if drifted_state:
+        return _finding(
+            "ALIGN_STATE_ARTIFACT_OWNERSHIP_AND_MODES",
+            "declared+observed",
+            implementation_status="NOT_IMPLEMENTED",
+            drifted_path_classes=drifted_state,
+        )
+    if storage.get("code", {}).get("runtime_writable_by_posix_mode_count", 0):
+        return _finding(
+            "REMOVE_RUNTIME_WRITE_ACCESS_FROM_INSTALLED_CODE",
+            "declared+observed",
+            implementation_status="NOT_IMPLEMENTED",
+            runtime_writable_by_posix_mode_count=storage["code"][
+                "runtime_writable_by_posix_mode_count"
+            ],
+        )
+    if code.get("status") == "OBSERVED" and not code.get(
         "installed_runtime_matches_repository", False
     ):
-        change = "RECONCILE_INSTALLED_RUNTIME_MODULES"
-    else:
-        change = "PIN_EXPLICIT_SERVICE_START_TIMEOUT"
+        return _finding(
+            "RECONCILE_INSTALLED_RUNTIME_MODULES",
+            "declared+observed",
+            implementation_status="NOT_IMPLEMENTED",
+            installed_runtime_matches_repository=False,
+            mismatched_modules=code.get("mismatched_modules", []),
+            unexpected_modules=code.get("unexpected_modules", []),
+            missing_entrypoint_modules=code.get("missing_entrypoint_modules", []),
+        )
     return _finding(
-        change,
+        "PIN_EXPLICIT_SERVICE_START_TIMEOUT",
         "declared+observed",
         implementation_status="NOT_IMPLEMENTED",
         declared_timeout=declared["failure"]["timeout_start_sec"],

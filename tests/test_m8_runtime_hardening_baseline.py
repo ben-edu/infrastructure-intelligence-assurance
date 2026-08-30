@@ -241,9 +241,10 @@ def test_complete_probe_separates_classes_and_selects_one_change(tmp_path: Path,
 
 def test_sandbox_drift_preempts_timeout_candidate(tmp_path: Path, monkeypatch):
     _module, result, _commands = _collect_live(tmp_path, monkeypatch, sandbox=False)
-    assert result["findings"]["REQUIRES_CHANGE"][0]["id"] == (
-        "ALIGN_EFFECTIVE_SYSTEMD_SANDBOX"
-    )
+    change = result["findings"]["REQUIRES_CHANGE"][0]
+    assert change["id"] == "ALIGN_EFFECTIVE_SYSTEMD_SANDBOX"
+    assert change["evidence"]["observed_sandbox"]["no_new_privileges"] is False
+    assert "declared_timeout" not in change["evidence"]
 
 
 def test_state_ownership_drift_preempts_timeout_candidate():
@@ -272,6 +273,39 @@ def test_state_ownership_drift_preempts_timeout_candidate():
     assert module.smallest_change(declared, live, storage, code)["id"] == (
         "ALIGN_STATE_ARTIFACT_OWNERSHIP_AND_MODES"
     )
+
+
+def test_runtime_module_drift_recommendation_carries_module_evidence():
+    module = load_module()
+    declared = module.declared_state(Path.cwd())
+    live = {
+        "service": {
+            **declared["identity"],
+            **declared["sandbox"],
+            "fragment_matches_repository": True,
+        },
+        "timer": {"fragment_matches_repository": True},
+    }
+    storage = {
+        "state": {},
+        "code": {"runtime_writable_by_posix_mode_count": 0},
+    }
+    code = {
+        "status": "OBSERVED",
+        "installed_runtime_matches_repository": False,
+        "mismatched_modules": ["__init__.py"],
+        "unexpected_modules": [],
+        "missing_entrypoint_modules": [],
+    }
+    change = module.smallest_change(declared, live, storage, code)
+    assert change["id"] == "RECONCILE_INSTALLED_RUNTIME_MODULES"
+    assert change["evidence"] == {
+        "implementation_status": "NOT_IMPLEMENTED",
+        "installed_runtime_matches_repository": False,
+        "mismatched_modules": ["__init__.py"],
+        "unexpected_modules": [],
+        "missing_entrypoint_modules": [],
+    }
 
 
 def test_failed_observation_remains_failure_and_backup_unknown(tmp_path: Path, monkeypatch):
