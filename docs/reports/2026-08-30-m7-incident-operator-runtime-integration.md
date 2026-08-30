@@ -1,7 +1,7 @@
 # Milestone 7 — Incident Operator Installed-Runtime Integration
 
 Date: 2026-08-30
-Status: INSTALLED RUNTIME VERIFIED / FINAL FULL-SUITE PENDING
+Status: ACCEPTED / PR READY
 Mode: existing five-minute collector runtime integration
 
 ## Goal
@@ -22,15 +22,24 @@ Accepted final scope:
 KUBERNETES_BACKUP_AND_INCIDENT_EXISTING_EVIDENCE_ONLY
 ```
 
-## Runtime wiring
+## Runtime wiring — ACCEPTED
 
-Required and now observed installed order:
+Observed installed order:
 
 ```text
 prometheus_rule_context_integration
 < backup_assurance_foundation
 < operator_attention_backup
 < operator_attention_incident
+```
+
+Observed booleans:
+
+```text
+observability_before_backup: True
+backup_before_operator_backup: True
+operator_backup_before_incident: True
+correct_order: True
 ```
 
 The final incident post-step consumes the same-run Kubernetes+backup `operator-attention.json` plus the same-run `incident-candidates.json`, then atomically writes the final projection back to the existing `operator-attention.json/.md` paths.
@@ -59,7 +68,7 @@ The focused gate covered the established observability-before-backup invariant, 
 
 ## Deployment helper dry-run — ACCEPTED
 
-Dry-run stated the exact bounded mutation plan and explicitly excluded bootstrap, Kubernetes RBAC/kubeconfig changes, Git source configuration changes, new service/timer creation, and filesystem permission broadening.
+Dry-run stated the exact bounded mutation plan and explicitly excluded bootstrap, Kubernetes RBAC/kubeconfig changes, Git source configuration changes, new service/timer creation, datastore changes, remediation, and filesystem permission broadening.
 
 ## Authorization — ACCEPTED AND BOUNDED
 
@@ -70,9 +79,9 @@ broader infrastructure mutation authorized: false
 incident operator runtime deployment authorized: true
 ```
 
-Authorization covered only installing the accepted five operator projection modules and prepared existing unit, running `daemon-reload`, starting the existing oneshot once, and verifying generated artifact ownership/scope. It did not authorize remediation, Kubernetes mutation, permission broadening, new services/timers/datastores, bootstrap, or unrelated infrastructure mutation.
+Authorization covered only installing the accepted five operator projection modules and prepared existing unit, running `daemon-reload`, starting the existing oneshot once, and verifying generated artifact ownership/scope.
 
-## Authorized bounded deployment — EXECUTED / HELPER GATE ACCEPTED
+## Authorized bounded deployment — ACCEPTED
 
 Observed helper output:
 
@@ -86,17 +95,6 @@ runtime_scope=KUBERNETES_BACKUP_AND_INCIDENT_EXISTING_EVIDENCE_ONLY
 ```
 
 ## Installed order and artifact verification — ACCEPTED
-
-A separate read-only verification inspected the installed unit and protected generated JSON artifact.
-
-Observed installed order:
-
-```text
-observability_before_backup: True
-backup_before_operator_backup: True
-operator_backup_before_incident: True
-correct_order: True
-```
 
 Observed service identity and sandbox:
 
@@ -171,36 +169,25 @@ required_live_verification_truncated: False
 incident_candidates_truncated: False
 ```
 
-## Interpretation
+The current counts differ from the earlier pre-deployment no-write snapshot. Four candidates remain, but one is ACTIVE and three are SUPPRESSED. This is observed evidence change, not a regression. `SUPPRESSED != RESOLVED`; the incident source remains `PARTIAL`.
 
-The installed runtime verification passes all hard trust and ordering conditions. The current evidence differs from the earlier pre-deployment no-write snapshot: incident candidates remain four total, but the current observed states are one ACTIVE and three SUPPRESSED, with two candidates currently requiring live verification and an overall verification total of 11.
+## Full repository regression suite — ACCEPTED
 
-These count changes are observed evidence changes, not regressions. `SUPPRESSED` is not treated as `RESOLVED`, and the incident source remains `PARTIAL`; therefore the current candidate set is not a universal negative-evidence statement. Counts must not be hard-coded as runtime invariants.
+Executed after the bounded deployment and separate installed-content verification, without `sudo`:
 
-Backup assurance semantics remain unchanged: UNKNOWN protection is not UNPROTECTED, and UNKNOWN restore verification is not a recovery-test-overdue claim.
+```text
+445 passed in 2.87s
+```
+
+This is the final repository regression gate for the slice.
 
 ## Mutation boundary
 
 The authorized mutation was limited to the recorded management-host runtime deployment. No new service/timer, Kubernetes mutation, permission broadening, datastore change, bootstrap, or remediation was authorized or performed by this slice.
 
-## Final remaining gate
+## Merge gate
 
-Pull the latest branch head and run the full repository regression suite without `sudo`:
-
-```bash
-cd ~/projects/infrastructure-intelligence-assurance
-git pull --ff-only origin agent/m7-incident-operator-runtime-integration
-python3 -m pytest -q
-```
-
-If the full suite passes:
-
-1. record exact pass count/time;
-2. verify exact five-file branch scope against accepted main `98cb3702faf6e23a15791ff32c36c7a7bd594c98`;
-3. verify no temporary/debug/placeholder files;
-4. create a non-draft PR;
-5. verify changed filenames and mergeability;
-6. squash-merge and carry the new accepted main SHA forward.
+PR/merge is permitted only if the branch remains exactly the intended five-file scope against accepted main `98cb3702faf6e23a15791ff32c36c7a7bd594c98`, contains no temporary/debug/placeholder files, and the non-draft PR is mergeable.
 
 ## Trust boundary
 
