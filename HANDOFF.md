@@ -15,19 +15,13 @@ broader infrastructure mutation authorized: false
 
 ## Accepted installed operator baseline
 
-Accepted report:
-
-```text
-docs/reports/2026-08-30-m7-cross-domain-runtime-integration.md
-```
-
-Installed runtime state:
+Installed runtime remains:
 
 ```text
 runtime identity: infra-assurance
 scope: KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY
 prometheus_rule_context_integration < backup_assurance_foundation < operator_attention_backup
-final suite: 429 passed in 2.15s
+final suite at accepted runtime integration: 429 passed in 2.15s
 ```
 
 Accepted operator evidence:
@@ -51,11 +45,7 @@ restore verification UNKNOWN != recovery test overdue
 
 ## Accepted incident operator adapter
 
-Accepted report:
-
-```text
-docs/reports/2026-08-30-m7-incident-operator-adapter.md
-```
+Accepted main after PR #85 includes the compact read-only incident adapter.
 
 Accepted validation:
 
@@ -66,7 +56,7 @@ incident_source_status=PARTIAL
 full suite: 435 passed in 2.24s
 ```
 
-Accepted compact incident evidence:
+Accepted current incident evidence:
 
 ```text
 incident_candidates: 4
@@ -105,7 +95,7 @@ Goal:
 Combine the accepted Kubernetes+backup operator-attention artifact with the accepted compact incident-candidate projection into one operator-facing contract without changing the installed runtime yet.
 ```
 
-Prepared branch scope:
+Exact intended branch scope:
 
 ```text
 HANDOFF.md
@@ -134,13 +124,49 @@ Prepared integrated scope:
 KUBERNETES_BACKUP_AND_INCIDENT_EXISTING_EVIDENCE_ONLY
 ```
 
-The integration fails closed on cluster mismatch, unaccepted operator scope, or `mutation_allowed != false`. It appends compact incident attention/live-verification entries while preserving the accepted Kubernetes and backup evidence/trust fields.
+The integration fails closed on cluster mismatch, unaccepted operator scope, or `mutation_allowed != false`. It appends compact incident attention/live-verification entries while preserving accepted Kubernetes and backup evidence/trust fields.
 
 Raw alert/Event payloads, related workload details, field-level change/drift details, rationales, logs, secrets, raw Terraform state, and raw Kubernetes Secret values are not projected.
 
+## Initial focused gate — FAILED AND PRESERVED
+
+Executed on `mgmt-automation`:
+
+```text
+1 failed, 5 passed, 1 warning in 0.10s
+```
+
+Failure:
+
+```text
+test_combined_totals_survive_projection_truncation
+expected required_live_verification_total: 11
+observed: 10
+```
+
+This was a real implementation bug, not a stale test. Final `max_items=2` was incorrectly reused as the incident-adapter verification cap, so three incident verification entries were truncated to two before calculating the combined total.
+
+The expected total of 11 remains authoritative for the fixture.
+
+## Corrective change — PREPARED
+
+Corrected behavior:
+
+```text
+existing required verification total: 8
+incident verification entries before final projection truncation: 3
+combined total: 11
+final projected list at max_items=2: 2
+required_live_verification_truncated: True
+```
+
+The integration no longer passes final `max_items` into the incident adapter verification bound. Final projection truncation and total-count semantics are separated, consistent with the accepted Kubernetes+backup integration pattern.
+
+The regex deprecation warning was also fixed using a raw regex string; no test assertion was weakened or removed.
+
 ## Mutation boundary
 
-This slice is repository-only plus a later read-only in-memory probe. It does NOT change:
+This slice remains repository-only plus a later read-only in-memory probe. It does NOT change:
 
 ```text
 systemd
@@ -154,22 +180,19 @@ infrastructure
 
 No deployment authorization is requested or implied.
 
-## Exact next gate — FOCUSED TESTS
+## Exact next gate — CORRECTIVE FOCUSED TESTS
 
 On `mgmt-automation`:
 
 ```bash
 cd ~/projects/infrastructure-intelligence-assurance
-git fetch origin
-git switch --track origin/agent/m7-incident-operator-integration-contract
+git pull --ff-only origin agent/m7-incident-operator-integration-contract
 python3 -m pytest -q tests/test_operator_attention_incident.py
 ```
 
-If the local branch already exists, switch to it and pull `--ff-only` instead of recreating it.
-
 Do not use strict interactive shell mode.
 
-If focused tests pass, run only the safe no-write integration probe. Do not deploy or replace the installed operator-attention runtime in this slice.
+If this passes, run only the safe no-write integration probe. Do not deploy or replace the installed operator-attention runtime in this slice.
 
 ## Preserved M6 boundaries
 
