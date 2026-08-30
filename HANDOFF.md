@@ -6,14 +6,14 @@ Project Sources remain authoritative. Read `docs/PROJECT_CONTINUITY.md`, then th
 
 ```text
 repository: ben-edu/infrastructure-intelligence-assurance
-accepted main after PR #84: abd8fe56832f1868e09e1cd26afbbc40046d9965
-active branch: agent/m7-incident-operator-adapter
+accepted main after PR #85: 1898072ef33a554dc1d4d86d82aa9030fd17b019
+active branch: agent/m7-incident-operator-integration-contract
 Milestone 7: ACTIVE
 management host: mgmt-automation
 broader infrastructure mutation authorized: false
 ```
 
-## Accepted cross-domain runtime baseline
+## Accepted installed operator baseline
 
 Accepted report:
 
@@ -30,7 +30,7 @@ prometheus_rule_context_integration < backup_assurance_foundation < operator_att
 final suite: 429 passed in 2.15s
 ```
 
-Current accepted operator evidence:
+Accepted operator evidence:
 
 ```text
 cluster_id: k3s-main
@@ -49,73 +49,24 @@ UNKNOWN protection != UNPROTECTED
 restore verification UNKNOWN != recovery test overdue
 ```
 
-## Active slice — incident operator adapter
+## Accepted incident operator adapter
 
-Report:
+Accepted report:
 
 ```text
 docs/reports/2026-08-30-m7-incident-operator-adapter.md
 ```
 
-Goal:
+Accepted validation:
 
 ```text
-Project existing incident-candidates.json into compact operator-facing evidence for grouped current signals without promoting candidates to confirmed incidents or root-cause conclusions.
+focused tests: 6 passed in 0.05s; repeat 6 passed in 0.04s
+live read-only probe: source_status=COMPLETE
+incident_source_status=PARTIAL
+full suite: 435 passed in 2.24s
 ```
 
-Exact intended branch scope:
-
-```text
-HANDOFF.md
-docs/reports/2026-08-30-m7-incident-operator-adapter.md
-scripts/discovery/m7_incident_operator_adapter_probe.py
-src/infra_assurance/incident_operator_adapter.py
-tests/test_incident_operator_adapter.py
-```
-
-Source artifact:
-
-```text
-/var/lib/infra-assurance/evidence/incident-candidates.json
-```
-
-Adapter scope:
-
-```text
-INCIDENT_CANDIDATES_EXISTING_EVIDENCE_ONLY
-```
-
-Trust contract:
-
-```text
-mutation_allowed: False
-candidate_is_confirmed_incident: False
-candidate_is_root_cause: False
-suppressed_means_resolved: False
-live_verification_required_before_action: True
-```
-
-Raw alert/Event payloads, related workload details, field-level change/drift details, rationales, logs, secrets, raw Terraform state, and raw Kubernetes Secret values are not projected.
-
-## Focused validation — ACCEPTED
-
-```text
-6 passed in 0.05s
-6 passed in 0.04s
-```
-
-## Safe live read-only probe — ACCEPTED
-
-Artifact read/adapter execution:
-
-```text
-source_status: COMPLETE
-incident_source_status: PARTIAL
-cluster_id: k3s-main
-scope: INCIDENT_CANDIDATES_EXISTING_EVIDENCE_ONLY
-```
-
-Current compact summary:
+Accepted compact incident evidence:
 
 ```text
 incident_candidates: 4
@@ -123,91 +74,102 @@ active_candidates: 4
 suppressed_candidates: 0
 unknown_candidates: 0
 candidates_with_related_warning_events: 1
-candidates_with_exact_recent_change: 0
-candidates_with_exact_drift: 0
-candidates_requiring_live_verification: 4
 attention_total: 2
 required_verification_categories_total: 6
-projected_candidates: 4
+candidate_groups_truncated: False
+required_live_verification_truncated: False
 ```
 
-Current attention:
-
-```text
-INCIDENT_SOURCE_INCOMPLETE / UNKNOWN / count=1
-ACTIVE_INCIDENT_CANDIDATES / SIGNAL / count=4
-```
-
-Current candidate groups:
-
-```text
-Namespace/keycloak / ACTIVE / alerts=2 / events=0 / changes=0 / drift=0 / checks=1
-Namespace/monitoring / ACTIVE / alerts=5 / events=0 / changes=0 / drift=0 / checks=1
-Namespace/moodle / ACTIVE / alerts=2 / events=1 / changes=0 / drift=0 / checks=2
-Platform/k3s-main / ACTIVE / alerts=2 / events=0 / changes=0 / drift=0 / checks=2
-```
-
-Current required live verification entries:
-
-```text
-VERIFY_ALERT_CONDITION_CURRENT -> PROMETHEUS_ALERTMANAGER
-VERIFY_ALERT_CONDITION_CURRENT -> PROMETHEUS_ALERTMANAGER
-VERIFY_ALERT_CONDITION_CURRENT -> PROMETHEUS_ALERTMANAGER
-VERIFY_RELATED_EVENT_OBJECT_STATE -> KUBERNETES_OBJECT
-VERIFY_ALERT_CONDITION_CURRENT -> PROMETHEUS_ALERTMANAGER
-VERIFY_PROMETHEUS_RULE_INPUTS -> PROMETHEUS_RULE_INPUTS
-```
-
-Trust/truncation:
+Trust semantics:
 
 ```text
 candidate_is_confirmed_incident: False
 candidate_is_root_cause: False
 suppressed_means_resolved: False
 live_verification_required_before_action: True
-candidate_groups_truncated: False
-required_live_verification_truncated: False
 ```
 
-Interpretation:
+The exact incomplete incident source domain was not printed by the allowlisted probe and must not be guessed.
+
+## Active slice — incident operator integration contract
+
+Report:
 
 ```text
-four active candidate groupings observed: true
-confirmed incidents observed by this adapter: false
-root cause established: false
-one candidate has related Warning Event context: true
-exact recent-change association observed: false
-exact drift association observed: false
-source completeness: PARTIAL
+docs/reports/2026-08-30-m7-incident-operator-integration-contract.md
 ```
 
-The zero exact-change/drift counts are bounded to the current source artifact and are not universal absence claims. The exact incomplete source domain was not printed by the allowlisted probe and must not be guessed.
-
-## Full repository suite — ACCEPTED
+Goal:
 
 ```text
-435 passed in 2.24s
+Combine the accepted Kubernetes+backup operator-attention artifact with the accepted compact incident-candidate projection into one operator-facing contract without changing the installed runtime yet.
 ```
+
+Prepared branch scope:
+
+```text
+HANDOFF.md
+docs/reports/2026-08-30-m7-incident-operator-integration-contract.md
+scripts/discovery/m7_incident_operator_integration_probe.py
+src/infra_assurance/operator_attention_incident.py
+tests/test_operator_attention_incident.py
+```
+
+Inputs:
+
+```text
+/var/lib/infra-assurance/evidence/operator-attention.json
+/var/lib/infra-assurance/evidence/incident-candidates.json
+```
+
+Required accepted input scope:
+
+```text
+KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY
+```
+
+Prepared integrated scope:
+
+```text
+KUBERNETES_BACKUP_AND_INCIDENT_EXISTING_EVIDENCE_ONLY
+```
+
+The integration fails closed on cluster mismatch, unaccepted operator scope, or `mutation_allowed != false`. It appends compact incident attention/live-verification entries while preserving the accepted Kubernetes and backup evidence/trust fields.
+
+Raw alert/Event payloads, related workload details, field-level change/drift details, rationales, logs, secrets, raw Terraform state, and raw Kubernetes Secret values are not projected.
 
 ## Mutation boundary
 
-This slice is repository-only plus a read-only evidence probe. It does NOT change systemd, installed `/opt` runtime, collector service/timer, Kubernetes RBAC/kubeconfig, filesystem permissions, datastores, or infrastructure.
+This slice is repository-only plus a later read-only in-memory probe. It does NOT change:
+
+```text
+systemd
+installed /opt runtime
+collector service/timer
+Kubernetes RBAC/kubeconfig
+filesystem permissions
+datastores
+infrastructure
+```
 
 No deployment authorization is requested or implied.
 
-## Merge gate — READY
+## Exact next gate — FOCUSED TESTS
 
-Before merge:
+On `mgmt-automation`:
 
-1. compare branch against accepted main `abd8fe56832f1868e09e1cd26afbbc40046d9965`;
-2. verify exactly the five intended files listed above;
-3. ensure no temporary/debug/placeholder files exist;
-4. create a non-draft PR;
-5. verify changed filenames and mergeability;
-6. squash-merge;
-7. carry the new accepted main SHA forward.
+```bash
+cd ~/projects/infrastructure-intelligence-assurance
+git fetch origin
+git switch --track origin/agent/m7-incident-operator-integration-contract
+python3 -m pytest -q tests/test_operator_attention_incident.py
+```
 
-Do not integrate this adapter into installed operator attention until this slice is merged and a later runtime-integration slice is separately reviewed.
+If the local branch already exists, switch to it and pull `--ff-only` instead of recreating it.
+
+Do not use strict interactive shell mode.
+
+If focused tests pass, run only the safe no-write integration probe. Do not deploy or replace the installed operator-attention runtime in this slice.
 
 ## Preserved M6 boundaries
 
