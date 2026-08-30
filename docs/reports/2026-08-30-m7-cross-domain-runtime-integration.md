@@ -1,7 +1,7 @@
 # Milestone 7 — Cross-Domain Installed Runtime Integration
 
 Date: 2026-08-30
-Status: CORRECTIVE REDEPLOYMENT ACCEPTED / CONTENT REVERIFICATION PENDING
+Status: CORRECTIVE RUNTIME VERIFIED / FINAL FULL-SUITE PENDING
 Mode: bounded management-host runtime integration in the existing five-minute collector
 
 ## Scope
@@ -162,20 +162,73 @@ runtime_identity=infra-assurance
 runtime_scope=KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY
 ```
 
+## Corrective installed-order and content verification — ACCEPTED
+
+A read-only verification inspected only the installed systemd unit text and allowlisted fields from the regenerated operator-attention artifact.
+
+Installed-order checks:
+
+```text
+observability_before_backup: True
+backup_before_operator: True
+correct_order: True
+```
+
+This establishes the installed runtime order:
+
+```text
+prometheus_rule_context_integration < backup_assurance_foundation < operator_attention_backup
+```
+
+Accepted contract metadata:
+
+```text
+operator_attention_version: 0.1
+cluster_id: k3s-main
+mutation_allowed: False
+scope: KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY
+source_artifacts: inventory.json,context.json,change-context.json,backup-assurance.json
+```
+
+Accepted summary:
+
+```text
+workloads_total: 68
+workloads_with_attention: 3
+attention_now_total: 5
+recent_changes_total: 0
+unknowns_total: 0
+required_live_verification_total: 8
+backup_assets_total: 37
+backup_protection_unknown: 37
+backup_restore_verification_unknown: 37
+backup_unprotected_claims: 0
+```
+
+Accepted backup trust:
+
+```text
+unknown_is_not_unprotected: True
+recovery_test_overdue_claimed: False
+authoritative_backup_evidence_required_for_unprotected: True
+```
+
+Accepted truncation state:
+
+```text
+attention_now_truncated: False
+required_live_verification_truncated: False
+```
+
 Accepted interpretation:
 
 ```text
-corrected existing systemd unit installed: true
-existing oneshot collector completed successfully: true
-operator-attention JSON produced: true
-operator-attention Markdown produced: true
-runtime identity remains infra-assurance: true
-cross-domain runtime scope observed: true
-new service/timer created: false
-RBAC/kubeconfig/permission broadening performed: false
+corrected installed ordering observed: true
+cross-domain artifact regenerated successfully: true
+mutation_allowed remains false: true
+UNKNOWN protection treated as UNPROTECTED: false
+overdue recovery test inferred from UNKNOWN restore verification: false
 ```
-
-The corrective redeployment proves the corrected installed runtime completed and produced cross-domain artifacts. It does not by itself prove that every allowlisted content/trust field in the newly generated artifact remains valid; that is the next read-only gate.
 
 ## Trust boundary
 
@@ -184,12 +237,12 @@ The corrective redeployment proves the corrected installed runtime completed and
 - derived operator artifacts do not replace source evidence;
 - no raw source artifact, per-asset backup detail, secret, credential, raw Terraform state, Kubernetes Secret value, or sensitive connection string is needed for validation;
 - no remediation is authorized or implied;
-- generated operational semantics must preserve `mutation_allowed=false`;
-- `UNKNOWN` protection must not be treated as `UNPROTECTED`;
-- restore-verification UNKNOWN must not be treated as overdue recovery testing.
+- generated operational semantics preserve `mutation_allowed=false`;
+- `UNKNOWN` protection is not treated as `UNPROTECTED`;
+- restore-verification UNKNOWN is not treated as overdue recovery testing.
 
-## Next gate
+## Remaining gate
 
-Re-read only allowlisted fields from the newly generated `/var/lib/infra-assurance/evidence/operator-attention.json`.
+Run the full repository regression suite on the current corrected branch head.
 
-If the content/trust gate is accepted, rerun the full repository suite. PR/merge is permitted only if the full suite passes and exact branch scope remains the five intended files.
+PR/merge is permitted only if the full suite passes and exact branch scope remains the five intended files.
