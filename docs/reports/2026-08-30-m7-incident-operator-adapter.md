@@ -1,7 +1,7 @@
 # Milestone 7 — Incident Operator Adapter
 
 Date: 2026-08-30
-Status: FOCUSED VALIDATION ACCEPTED / LIVE READ-ONLY PROBE PENDING
+Status: LIVE READ-ONLY PROBE ACCEPTED / FULL-SUITE PENDING
 Mode: read-only projection over existing `incident-candidates.json`
 
 ## Goal
@@ -37,7 +37,7 @@ The adapter projects only:
 - aggregate incident-candidate counts;
 - aggregate attention for incomplete source coverage, active candidates, or unknown candidate state;
 - compact candidate metadata: candidate ID, state, supported scope, alert/event/change/drift/check counts;
-- deduplicated live-verification categories;
+- deduplicated live-verification entries;
 - explicit truncation metadata;
 - trust semantics.
 
@@ -45,7 +45,7 @@ It discards raw alert labels/details, raw Kubernetes Event details, impact-conte
 
 ## Trust semantics
 
-The adapter must preserve:
+The adapter preserves:
 
 ```text
 candidate_is_confirmed_incident: False
@@ -55,7 +55,7 @@ live_verification_required_before_action: True
 mutation_allowed: False
 ```
 
-A source domain that is not `COMPLETE` must produce explicit UNKNOWN attention. Candidate absence under incomplete sources is not negative evidence.
+A source domain that is not `COMPLETE` produces explicit UNKNOWN attention. Candidate absence under incomplete sources is not negative evidence.
 
 ## Focused validation — ACCEPTED
 
@@ -79,7 +79,7 @@ trust/fail-closed semantics: PASS
 
 The repeat run reconfirmed the same six-test focused gate. No runtime or infrastructure mutation was performed.
 
-## Safe live probe
+## Safe live read-only probe — ACCEPTED
 
 Probe:
 
@@ -87,14 +87,113 @@ Probe:
 scripts/discovery/m7_incident_operator_adapter_probe.py
 ```
 
-The probe reads only the existing derived artifact and prints allowlisted compact fields. It writes nothing and performs no live infrastructure query.
+Executed with bounded privilege only to read the protected derived artifact. The probe wrote nothing and performed no live infrastructure query.
 
-Because the evidence artifact is protected, bounded privilege may be used only to read it for this validation. This does not change the target runtime identity or authorize deployment.
+Accepted safety output:
 
-## Next gate
+```text
+mutation_allowed: False
+live_infrastructure_query_performed: False
+source_artifact_written: False
+raw_alert_details_projected: False
+raw_event_details_projected: False
+candidate_promoted_to_confirmed_incident: False
+root_cause_claimed: False
+```
 
-Run the safe no-write probe against the current protected `incident-candidates.json` artifact.
+The artifact read/adapter execution itself completed successfully:
 
-A failed read/parse must remain `FAILED_TO_OBSERVE`; it must not be converted into zero candidate counts or absence evidence.
+```text
+source_status: COMPLETE
+cluster_id: k3s-main
+scope: INCIDENT_CANDIDATES_EXISTING_EVIDENCE_ONLY
+```
 
-Do not integrate this adapter into the installed operator-attention runtime until the adapter contract and current live evidence are separately accepted.
+The incident-candidate source domains are not all complete:
+
+```text
+incident_source_status: PARTIAL
+```
+
+The exact incomplete source domain was not printed by this allowlisted probe, so no stronger conclusion is recorded. The adapter correctly surfaced this as UNKNOWN attention rather than treating missing candidate evidence as absence.
+
+Current compact summary:
+
+```text
+incident_candidates: 4
+active_candidates: 4
+suppressed_candidates: 0
+unknown_candidates: 0
+candidates_with_related_warning_events: 1
+candidates_with_exact_recent_change: 0
+candidates_with_exact_drift: 0
+candidates_requiring_live_verification: 4
+attention_total: 2
+required_verification_categories_total: 6
+projected_candidates: 4
+```
+
+Current attention:
+
+```text
+INCIDENT_SOURCE_INCOMPLETE / UNKNOWN / count=1
+ACTIVE_INCIDENT_CANDIDATES / SIGNAL / count=4
+```
+
+Current compact candidate groups:
+
+```text
+Namespace/keycloak  / ACTIVE / alerts=2 / events=0 / changes=0 / drift=0 / checks=1
+Namespace/monitoring / ACTIVE / alerts=5 / events=0 / changes=0 / drift=0 / checks=1
+Namespace/moodle / ACTIVE / alerts=2 / events=1 / changes=0 / drift=0 / checks=2
+Platform/k3s-main / ACTIVE / alerts=2 / events=0 / changes=0 / drift=0 / checks=2
+```
+
+Current required live verification entries:
+
+```text
+VERIFY_ALERT_CONDITION_CURRENT -> PROMETHEUS_ALERTMANAGER
+VERIFY_ALERT_CONDITION_CURRENT -> PROMETHEUS_ALERTMANAGER
+VERIFY_ALERT_CONDITION_CURRENT -> PROMETHEUS_ALERTMANAGER
+VERIFY_RELATED_EVENT_OBJECT_STATE -> KUBERNETES_OBJECT
+VERIFY_ALERT_CONDITION_CURRENT -> PROMETHEUS_ALERTMANAGER
+VERIFY_PROMETHEUS_RULE_INPUTS -> PROMETHEUS_RULE_INPUTS
+```
+
+Repeated verification codes may remain separate because checks are scoped to different candidates. They are not evidence that the same operational action has already been performed.
+
+Accepted trust/truncation state:
+
+```text
+candidate_is_confirmed_incident: False
+candidate_is_root_cause: False
+suppressed_means_resolved: False
+live_verification_required_before_action: True
+candidate_groups_truncated: False
+required_live_verification_truncated: False
+```
+
+## Interpretation
+
+Current evidence contains four ACTIVE incident candidates grouped conservatively by supported scope. One candidate has a related Warning Event. No exact recent change or exact drift was associated with these candidates in the current source artifact.
+
+These are candidate groupings only. They are not confirmed incidents, root-cause conclusions, or authorization for remediation. Because the incident source status is `PARTIAL`, the set of four candidates is also not a complete negative statement about all possible incidents or signals.
+
+## Trust boundary
+
+- bounded `sudo` use was only for protected artifact read access during validation;
+- no live infrastructure query was performed by this adapter probe;
+- no source or derived artifact was written;
+- no raw alert/Event payload was projected;
+- no systemd, runtime, service, timer, RBAC, kubeconfig, permission, datastore, or infrastructure change occurred;
+- `mutation_allowed=false` remains explicit;
+- candidate grouping is not incident confirmation or root-cause proof;
+- live verification is required before operational action.
+
+## Remaining gate
+
+Run the full repository regression suite on the current branch head.
+
+PR/merge is permitted only if the full suite passes and exact branch scope remains the five intended files.
+
+Do not integrate this adapter into installed operator attention until this contract/live-evidence slice is merged and a later runtime-integration slice is separately reviewed.
