@@ -1,7 +1,7 @@
 # Milestone 7 — Incident Operator Adapter
 
 Date: 2026-08-30
-Status: PREPARED / FOCUSED VALIDATION PENDING
+Status: FOCUSED VALIDATION ACCEPTED / LIVE READ-ONLY PROBE PENDING
 Mode: read-only projection over existing `incident-candidates.json`
 
 ## Goal
@@ -57,24 +57,31 @@ mutation_allowed: False
 
 A source domain that is not `COMPLETE` must produce explicit UNKNOWN attention. Candidate absence under incomplete sources is not negative evidence.
 
-## Prepared validation
+## Focused validation — ACCEPTED
 
-Tests:
+Executed twice on `mgmt-automation` after switching to the active branch:
 
 ```text
-tests/test_incident_operator_adapter.py
+6 passed in 0.05s
+6 passed in 0.04s
 ```
 
-The focused tests cover:
+Accepted interpretation:
 
-- compact projection and summary;
-- raw-detail exclusion;
-- explicit incomplete-source semantics;
-- deduplication and truncation of live-verification categories;
-- candidate truncation;
-- trust semantics and fail-closed invalid inputs.
+```text
+compact projection contract: PASS
+raw-detail exclusion: PASS
+incomplete-source semantics: PASS
+live-verification deduplication/truncation: PASS
+candidate truncation: PASS
+trust/fail-closed semantics: PASS
+```
 
-Safe live probe:
+The repeat run reconfirmed the same six-test focused gate. No runtime or infrastructure mutation was performed.
+
+## Safe live probe
+
+Probe:
 
 ```text
 scripts/discovery/m7_incident_operator_adapter_probe.py
@@ -82,8 +89,12 @@ scripts/discovery/m7_incident_operator_adapter_probe.py
 
 The probe reads only the existing derived artifact and prints allowlisted compact fields. It writes nothing and performs no live infrastructure query.
 
+Because the evidence artifact is protected, bounded privilege may be used only to read it for this validation. This does not change the target runtime identity or authorize deployment.
+
 ## Next gate
 
-Run the focused adapter tests. If they pass, run the safe no-write probe against the protected current artifact using bounded privilege only for evidence read access.
+Run the safe no-write probe against the current protected `incident-candidates.json` artifact.
 
-Do not integrate this adapter into the installed operator-attention runtime until the adapter contract and live evidence are separately accepted.
+A failed read/parse must remain `FAILED_TO_OBSERVE`; it must not be converted into zero candidate counts or absence evidence.
+
+Do not integrate this adapter into the installed operator-attention runtime until the adapter contract and current live evidence are separately accepted.
