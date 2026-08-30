@@ -121,44 +121,22 @@ Cross-domain scope:
 KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY
 ```
 
-The active branch does NOT change:
+The active branch does NOT change systemd, installed runtime under `/opt`, collector timer/service, infrastructure, permissions, or datastores.
+
+## Validation — ACCEPTED
 
 ```text
-systemd
-installed runtime under /opt
-collector timer/service
-infrastructure
-permissions
-datastores
+focused tests: 6 passed in 0.06s
+live read-only probe: source_status=COMPLETE / discovery_rc=0
+full suite: 424 passed in 2.13s
 ```
 
-## Validation — ACCEPTED PENDING FULL SUITE
-
-Focused tests:
+Accepted live source state:
 
 ```text
-6 passed in 0.06s
-```
-
-Accepted live read-only probe:
-
-```text
-source_status: COMPLETE
 source_artifacts_loaded: 4
 cluster_id: k3s-main
 scope: KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY
-discovery_rc=0
-```
-
-Safety:
-
-```text
-mutation_allowed: false
-live infrastructure query: false
-source artifact write: false
-raw source projection: false
-backup asset detail projection: false
-secrets/credentials projection: false
 ```
 
 Accepted combined summary:
@@ -210,31 +188,19 @@ authoritative_backup_evidence_required_for_unprotected: True
 Do not infer unprotected assets from `backup_protection_unknown=37`.
 Do not infer overdue restore testing from `backup_restore_verification_unknown=37`.
 
-## Exact next gate — FULL REPOSITORY SUITE
+## Merge gate — READY
 
-On `mgmt-automation`:
+Expected branch scope is exactly five files:
 
-```bash
-cd ~/projects/infrastructure-intelligence-assurance
-git pull --ff-only origin agent/m7-backup-assurance-operator-integration
-python3 -m pytest -q
+```text
+HANDOFF.md
+docs/reports/2026-08-30-m7-backup-assurance-operator-integration.md
+scripts/discovery/m7_backup_assurance_operator_integration_probe.py
+src/infra_assurance/operator_attention_backup.py
+tests/test_operator_attention_backup.py
 ```
 
-Do not use strict interactive shell mode.
-
-If the full suite passes:
-
-1. record the exact pass count/time in this handoff and the report;
-2. verify branch scope is exactly five intended files:
-   - `HANDOFF.md`
-   - `docs/reports/2026-08-30-m7-backup-assurance-operator-integration.md`
-   - `scripts/discovery/m7_backup_assurance_operator_integration_probe.py`
-   - `src/infra_assurance/operator_attention_backup.py`
-   - `tests/test_operator_attention_backup.py`
-3. ensure no temporary/debug/placeholder files exist;
-4. create/inspect a non-draft PR;
-5. verify changed filenames and mergeability;
-6. squash-merge and carry the new accepted main SHA forward.
+Before merge, verify exact scope, no temporary/debug/placeholder files, non-draft PR, changed filenames, and mergeability; then squash-merge and carry the new accepted main SHA forward.
 
 Only after this contract slice is merged should runtime integration be considered. Any runtime/systemd deployment remains a separate management-host mutation gate requiring explicit authorization.
 
