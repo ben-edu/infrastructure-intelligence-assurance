@@ -142,9 +142,40 @@ If later explicitly authorized, it will only:
 
 It does not run `bootstrap-observer.sh` and does not broaden infrastructure access.
 
+## Deployment dry run — ACCEPTED
+
+Executed on `mgmt-automation` without `--apply`:
+
+```bash
+sudo bash scripts/deploy-operator-attention-runtime.sh
+```
+
+Accepted dry-run output confirmed the exact bounded mutation plan:
+
+```text
+- install the accepted operator-attention modules into /opt/infra-assurance/src/infra_assurance/;
+- install the existing infra-assurance-kubernetes.service unit definition;
+- run systemctl daemon-reload;
+- start the existing infra-assurance-kubernetes.service once;
+- verify operator-attention.json and operator-attention.md with the accepted cross-domain scope.
+```
+
+The helper explicitly confirmed it will not run `bootstrap-observer.sh`, change Kubernetes RBAC, kubeconfig, Git source configuration, add a service/timer, or broaden filesystem permissions.
+
+Dry-run interpretation:
+
+```text
+management-host mutation performed: false
+Kubernetes mutation performed: false
+systemd mutation performed: false
+installed runtime mutation performed: false
+artifact write performed by helper: false
+deployment scope operator-reviewed: true
+```
+
 ## Mutation boundary
 
-Repository preparation and tests are allowed. Actual deployment is NOT yet authorized.
+Repository preparation, tests, and dry-run are accepted. Actual deployment is NOT yet authorized.
 
 Do not run:
 
@@ -154,21 +185,30 @@ scripts/deploy-operator-attention-runtime.sh --apply
 
 until explicit authorization is obtained.
 
-## Exact next gate — DRY RUN ONLY
+## Exact next gate — EXPLICIT DEPLOYMENT AUTHORIZATION
 
-On `mgmt-automation`:
+The next gate is explicit authorization for this exact bounded management-host deployment only.
+
+If authorized, run on `mgmt-automation`:
 
 ```bash
 cd ~/projects/infrastructure-intelligence-assurance
-
 git pull --ff-only origin agent/m7-cross-domain-runtime-integration
-
-sudo bash scripts/deploy-operator-attention-runtime.sh
+sudo bash scripts/deploy-operator-attention-runtime.sh --apply
 ```
 
-This dry-run must perform no mutation and must print the exact bounded deployment plan. `--apply` remains forbidden until explicit authorization.
+Acceptance requires the helper to report:
 
-If the dry-run is accepted, record it and request explicit authorization for the exact bounded management-host deployment before any mutation.
+```text
+deployment_status=COMPLETE
+service_result=success
+operator_attention_json=OBSERVED
+operator_attention_markdown=OBSERVED
+runtime_identity=infra-assurance
+runtime_scope=KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY
+```
+
+Authorization for this deployment does not authorize broader infrastructure mutation, Kubernetes RBAC/kubeconfig changes, permission broadening, remediation, new services/timers, or unrelated changes.
 
 ## Preserved M6 boundaries
 
