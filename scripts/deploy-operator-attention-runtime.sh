@@ -14,7 +14,9 @@ This deployment helper performs only these bounded mutations:
 - installs systemd/infra-assurance-kubernetes.service into /etc/systemd/system/infra-assurance-kubernetes.service
 - runs systemctl daemon-reload
 - starts the existing infra-assurance-kubernetes.service once
-- verifies operator-attention.json and operator-attention.md were produced with the accepted cross-domain scope
+- verifies operator-attention.json and operator-attention.md were produced with the accepted Kubernetes+backup+incident scope
+
+The existing KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY operator artifact is upgraded in the same collector run by the accepted incident integration contract.
 
 It does not run bootstrap-observer.sh, change Kubernetes RBAC, change kubeconfig, change Git source configuration, add a new service/timer, or broaden filesystem permissions.
 
@@ -31,11 +33,13 @@ UNIT_TARGET="/etc/systemd/system/infra-assurance-kubernetes.service"
 SERVICE="infra-assurance-kubernetes.service"
 JSON_OUT="/var/lib/infra-assurance/evidence/operator-attention.json"
 MARKDOWN_OUT="/var/lib/infra-assurance/evidence/operator-attention.md"
-EXPECTED_SCOPE="KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY"
+EXPECTED_SCOPE="KUBERNETES_BACKUP_AND_INCIDENT_EXISTING_EVIDENCE_ONLY"
 MODULES=(
   operator_attention.py
   backup_operator_adapter.py
   operator_attention_backup.py
+  incident_operator_adapter.py
+  operator_attention_incident.py
 )
 
 [[ -d "${PACKAGE_TARGET}" ]] || { echo "Installed runtime package path is missing." >&2; exit 1; }
