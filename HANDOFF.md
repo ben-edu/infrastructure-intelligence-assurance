@@ -142,7 +142,7 @@ mutation_allowed=false unless separately reviewed and explicitly authorized
 
 Never expose secrets, tokens, passwords, private keys, raw Kubernetes Secret values, sensitive Terraform state, complete sensitive connection strings, raw backup contents, or unnecessary sensitive configuration.
 
-## Active M8 slice
+## Accepted M8 first slice
 
 Read:
 
@@ -190,24 +190,33 @@ Current repository state:
 probe: scripts/discovery/m8_runtime_hardening_baseline_probe.py
 tests: tests/test_m8_runtime_hardening_baseline.py
 probe contract: version 0.2 with candidate-specific recommendation evidence
-report status: PREPARED — CORRECTED FRESH LIVE READ-ONLY GATE RERUN PENDING
+report status: ACCEPTED — LIVE READ-ONLY GATE PASSED
+pull request: #90 READY FOR REVIEW
 focused validation: 11 passed in 0.09s
-full repository suite: 463 passed in 0.94s
+full repository suite: 463 passed in 1.04s
+management-host focused validation: 11 passed in 0.22s
+accepted live gate: COMPLETE at 2026-08-30T15:24:44.027806Z
+accepted live-gate commit: 42c3dcfbb6f07f206073a22f086cb8df1bdd74a9
+accepted probe_rc: 0
+FAILED_TO_OBSERVE: 0
 management-host mutation performed: false
 ```
 
 Repository declarations currently show the dedicated identity, strict sandbox, five-minute oneshot timer, 12 runtime entrypoints, and atomic per-file writes. They do not declare an explicit start timeout, restart policy, `OnFailure`, or process/history writer lock. These are declarations, not effective installed-state claims.
 
-The first live attempt returned `probe_rc=0` and no observation failures, but probe version 0.1 selected `RECONCILE_INSTALLED_RUNTIME_MODULES` for an observed `__init__.py` mismatch while attaching unrelated timeout evidence. That internally inconsistent recommendation payload is rejected for acceptance. Version 0.2 fixes the evidence contract and adds a regression test. The module reconciliation is only a preliminary candidate until a corrected fresh rerun confirms it. No hardening control is implemented in this baseline.
+The first live attempt returned `probe_rc=0` and no observation failures, but probe version 0.1 selected `RECONCILE_INSTALLED_RUNTIME_MODULES` for an observed `__init__.py` mismatch while attaching unrelated timeout evidence. That internally inconsistent recommendation payload remains rejected for acceptance.
+
+The corrected version 0.2 rerun is accepted. It confirms matching service/timer fragments, runtime identity, systemd sandbox, and state ownership/modes; root-owned installed code with no POSIX write access for the runtime identity; and exactly one installed-module mismatch, `__init__.py`. Backup status, external failure visibility, historical overlap/missed activations, and ACL/capability/MAC effects remain explicitly `UNKNOWN`.
+
+Exactly one smallest justified next change is `RECONCILE_INSTALLED_RUNTIME_MODULES`. It must reconcile installed `__init__.py` through a separate reviewed and explicitly authorized change. No hardening control is implemented in this baseline.
 
 ## Exact next step
 
-1. Read all Project Sources.
-2. Read `docs/PROJECT_CONTINUITY.md`.
-3. Read this `HANDOFF.md` from `agent/m8-runtime-hardening-baseline`.
-4. Read `docs/M8_START_HERE.md` and `docs/reports/2026-08-30-m8-runtime-hardening-baseline.md`.
-5. Continue on `agent/m8-runtime-hardening-baseline`; do not recreate the branch or repeat repository discovery.
-6. Pull the latest branch commit, then rerun the focused test and corrected fresh live read-only probe on `mgmt-automation` using the report commands.
-7. Review the classified JSON output, replace pending live state in the report with accepted evidence, confirm exactly one smallest justified change, update this handoff, then run the full repository suite.
+1. Review and merge PR `#90` after its accepted report and exact four-file scope are verified.
+2. Start the next M8 slice from the resulting accepted `main`; do not extend the baseline PR with the hardening mutation.
+3. Re-observe the repository/installed `__init__.py` mismatch without projecting source contents or secrets, and identify the bounded installation/deployment step responsible for it.
+4. Propose the smallest reviewed reconciliation and its rollback/verification procedure.
+5. Obtain explicit authorization before changing installed code or any management-host unit, permission, schedule, backup, RBAC, or infrastructure state.
+6. After an authorized reconciliation, rerun the focused tests, installed-runtime hash comparison, and full repository suite before accepting the next slice.
 
 Do not change the unit, permissions, schedule, backup, RBAC, installed code, or infrastructure during this baseline gate. Do not reconstruct M7 from chat memory.
