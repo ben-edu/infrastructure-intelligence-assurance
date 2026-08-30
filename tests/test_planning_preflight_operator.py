@@ -247,7 +247,7 @@ def test_invalid_cluster_scope_or_trust_semantics_fail_closed():
 
     operator = _operator()
     operator["scope"] = "KUBERNETES_EXISTING_EVIDENCE_ONLY"
-    with pytest.raises(ValueError, match="accepted Kubernetes\+backup\+incident scope"):
+    with pytest.raises(ValueError, match=r"accepted Kubernetes\+backup\+incident scope"):
         enrich_deployment_preflight_with_operator_context(_preflight(), operator)
 
     operator = _operator()
