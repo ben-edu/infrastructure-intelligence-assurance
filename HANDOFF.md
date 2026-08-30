@@ -25,7 +25,7 @@ prometheus_rule_context_integration < backup_assurance_foundation < operator_att
 runtime-integration suite: 445 passed in 2.87s
 ```
 
-Last accepted installed evidence snapshot before this slice:
+Last accepted installed evidence before this slice included:
 
 ```text
 cluster_id: k3s-main
@@ -64,22 +64,16 @@ Report:
 docs/reports/2026-08-30-m7-planning-preflight-operator-context.md
 ```
 
-Goal:
-
-```text
-Enrich the accepted task-scoped deployment preflight with compact current operator attention so observability, backup assurance, incident candidates, and current task-scoped risk affect pre-change verification and the safest next action without duplicating the preflight architecture or authorizing execution.
-```
-
 Prepared module:
 
 ```text
 src/infra_assurance/planning_preflight_operator.py
 ```
 
-Prepared behavior:
+Accepted behavior:
 
 ```text
-base build_deployment_preflight is preserved
+base build_deployment_preflight preserved
 accepted operator scope required
 cluster mismatch fails closed
 mutation_allowed=false required on both inputs
@@ -90,7 +84,7 @@ ACTIVE overlapping candidate -> live verification, not incident/root-cause claim
 SUPPRESSED != RESOLVED
 backup UNKNOWN != UNPROTECTED
 stateful post-change plan requires authoritative backup/recovery evidence before stronger protection claims
-one deterministic safest_next_action is emitted, always mutation_allowed=false
+one deterministic safest_next_action emitted, always mutation_allowed=false
 ```
 
 Safest-next-action precedence:
@@ -106,22 +100,78 @@ unknown/stale/failed/mismatched base evidence
 
 ## Focused validation — ACCEPTED
 
-Executed without `sudo`:
-
 ```text
 7 passed in 0.08s
 7 passed in 0.04s
 ```
 
-Both focused runs passed. Do not rerun them unless later code changes affect this slice.
+## Safe no-write probe — ACCEPTED
 
-Prepared safe probe:
+Probe:
 
 ```text
 scripts/discovery/m7_planning_preflight_operator_probe.py
 ```
 
-It reads existing protected evidence plus the repository hypothetical deployment request, performs no live infrastructure query, writes nothing, and prints only allowlisted compact planning/operator fields.
+Observed contract:
+
+```text
+source_status: COMPLETE
+cluster_id: k3s-main
+target_namespace: validation
+scope: KUBERNETES_DEPLOYMENT_PREFLIGHT_WITH_OPERATOR_CONTEXT
+mutation_allowed: False
+base_readiness: PLAN_WITH_LIVE_VERIFICATION
+operator_source_scope: KUBERNETES_BACKUP_AND_INCIDENT_EXISTING_EVIDENCE_ONLY
+incident_source_status: PARTIAL
+```
+
+Observed task context:
+
+```text
+attention_now_total: 7
+recent_changes_total: 0
+unknowns_total: 0
+operator_required_live_verification_total: 11
+relevant_attention: 1
+relevant_recent_changes: 0
+relevant_unknowns: 0
+relevant_incident_candidates: 1
+backup_assets_total: 37
+backup_protection_unknown: 37
+backup_restore_verification_unknown: 37
+backup_unprotected_claims: 0
+incident_candidates_total: 4
+incident_active_candidates: 1
+incident_suppressed_candidates: 3
+```
+
+The one task-relevant candidate was `ACTIVE`, platform scoped to `Platform/k3s-main`, with two alerts and two recommended checks. It is not a confirmed incident or root-cause conclusion.
+
+Enriched preflight:
+
+```text
+required_live_verification_total: 7
+post_change_verification_total: 7
+additive pre-change code: VERIFY_ACTIVE_INCIDENT_CONTEXT_BEFORE_CHANGE
+additive post-change codes: VERIFY_OPERATOR_ATTENTION_AFTER_CHANGE, VERIFY_BACKUP_PROTECTION_EVIDENCE_AFTER_CHANGE
+safest_next_action: VERIFY_ACTIVE_INCIDENT_CONTEXT
+live_verification_required: True
+mutation_allowed: False
+```
+
+Trust accepted:
+
+```text
+candidate_is_confirmed_incident: False
+candidate_is_root_cause: False
+suppressed_means_resolved: False
+live_verification_required_before_action: True
+backup_unknown_is_not_unprotected: True
+recovery_test_overdue_claimed: False
+```
+
+No truncation was observed. The probe performed no live infrastructure query, wrote nothing, and modified no installed runtime.
 
 ## Exact intended branch scope
 
@@ -135,25 +185,19 @@ tests/test_planning_preflight_operator.py
 
 No systemd, timer, runtime deployment, Kubernetes RBAC, kubeconfig, datastore, permission, AI-provider, remediation, or infrastructure mutation change is included.
 
-## Exact next gate — SAFE NO-WRITE PROBE
+## Exact next gate — FULL REPOSITORY SUITE
 
-On `mgmt-automation`:
+On `mgmt-automation`, without `sudo`:
 
 ```bash
 cd ~/projects/infrastructure-intelligence-assurance
 git pull --ff-only origin agent/m7-planning-preflight-operator-context
-sudo PYTHONPATH="$PWD/src" python3 scripts/discovery/m7_planning_preflight_operator_probe.py
-```
-
-The `sudo` scope is only to read protected existing evidence artifacts. The probe performs no live infrastructure query and writes no artifact.
-
-If the probe is accepted, record its exact output and then run the full repository suite without `sudo`:
-
-```bash
 python3 -m pytest -q
 ```
 
-Do not deploy this module in the current slice.
+If the full suite passes, record the exact result, compare the branch against accepted main `292b8da942f2445d7bdb061f5c778b6861b6cd6f`, require exactly the five intended files, create a non-draft PR, verify mergeability, and squash-merge. Do not deploy this module in this slice.
+
+After merge, reassess M7 against the roadmap. If no acceptance gap remains, perform an explicit M7 closure/handoff slice that updates repository continuity/status documentation and the Project Source files so a new tab can begin M8 without relying on chat memory.
 
 ## Preserved M6 boundaries
 
