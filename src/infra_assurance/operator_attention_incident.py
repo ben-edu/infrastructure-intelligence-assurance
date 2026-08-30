@@ -76,7 +76,6 @@ def build_operator_attention_with_incidents(
         incident_candidates,
         now=now,
         max_candidates=max_incident_candidates,
-        max_verifications=max_items,
     )
     if operator_cluster != incident["cluster_id"]:
         raise ValueError("operator attention and incident candidates must target the same cluster")
