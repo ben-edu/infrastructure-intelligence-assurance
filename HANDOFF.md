@@ -87,7 +87,7 @@ Adapter scope:
 INCIDENT_CANDIDATES_EXISTING_EVIDENCE_ONLY
 ```
 
-Projected fields are limited to aggregate candidate counts, compact candidate scope/state/count metadata, aggregate attention, deduplicated live-verification categories, truncation state, and trust semantics.
+Projected fields are limited to aggregate candidate counts, compact candidate scope/state/count metadata, aggregate attention, deduplicated live-verification entries, truncation state, and trust semantics.
 
 Raw alert labels/details, raw Event details, related workload details, field-level change/drift details, rationales, and logs are discarded.
 
@@ -125,9 +125,111 @@ trust/fail-closed semantics: PASS
 
 No deployment, systemd change, installed-runtime change, or infrastructure mutation was performed.
 
+## Safe live read-only probe — ACCEPTED
+
+Executed with bounded privilege only to read the protected derived artifact.
+
+Safety:
+
+```text
+mutation_allowed: False
+live_infrastructure_query_performed: False
+source_artifact_written: False
+raw_alert_details_projected: False
+raw_event_details_projected: False
+candidate_promoted_to_confirmed_incident: False
+root_cause_claimed: False
+```
+
+Artifact read/adapter execution succeeded:
+
+```text
+source_status: COMPLETE
+cluster_id: k3s-main
+scope: INCIDENT_CANDIDATES_EXISTING_EVIDENCE_ONLY
+```
+
+Internal incident evidence remains incomplete:
+
+```text
+incident_source_status: PARTIAL
+```
+
+The exact incomplete source domain was not printed by the allowlisted probe. Do not guess it and do not interpret candidate absence as negative evidence.
+
+Current compact summary:
+
+```text
+incident_candidates: 4
+active_candidates: 4
+suppressed_candidates: 0
+unknown_candidates: 0
+candidates_with_related_warning_events: 1
+candidates_with_exact_recent_change: 0
+candidates_with_exact_drift: 0
+candidates_requiring_live_verification: 4
+attention_total: 2
+required_verification_categories_total: 6
+projected_candidates: 4
+```
+
+Current attention:
+
+```text
+INCIDENT_SOURCE_INCOMPLETE / UNKNOWN / count=1
+ACTIVE_INCIDENT_CANDIDATES / SIGNAL / count=4
+```
+
+Current candidate groups:
+
+```text
+Namespace/keycloak / ACTIVE / alerts=2 / events=0 / changes=0 / drift=0 / checks=1
+Namespace/monitoring / ACTIVE / alerts=5 / events=0 / changes=0 / drift=0 / checks=1
+Namespace/moodle / ACTIVE / alerts=2 / events=1 / changes=0 / drift=0 / checks=2
+Platform/k3s-main / ACTIVE / alerts=2 / events=0 / changes=0 / drift=0 / checks=2
+```
+
+Current required live verification entries:
+
+```text
+VERIFY_ALERT_CONDITION_CURRENT -> PROMETHEUS_ALERTMANAGER
+VERIFY_ALERT_CONDITION_CURRENT -> PROMETHEUS_ALERTMANAGER
+VERIFY_ALERT_CONDITION_CURRENT -> PROMETHEUS_ALERTMANAGER
+VERIFY_RELATED_EVENT_OBJECT_STATE -> KUBERNETES_OBJECT
+VERIFY_ALERT_CONDITION_CURRENT -> PROMETHEUS_ALERTMANAGER
+VERIFY_PROMETHEUS_RULE_INPUTS -> PROMETHEUS_RULE_INPUTS
+```
+
+Repeated `VERIFY_ALERT_CONDITION_CURRENT` entries are candidate-scoped checks, not proof that verification has already occurred.
+
+Trust/truncation:
+
+```text
+candidate_is_confirmed_incident: False
+candidate_is_root_cause: False
+suppressed_means_resolved: False
+live_verification_required_before_action: True
+candidate_groups_truncated: False
+required_live_verification_truncated: False
+```
+
+Accepted interpretation:
+
+```text
+four active candidate groupings observed: true
+confirmed incidents observed by this adapter: false
+root cause established: false
+one candidate has related Warning Event context: true
+exact recent-change association observed: false
+exact drift association observed: false
+source completeness: PARTIAL
+```
+
+The zero exact-change/drift counts are bounded to the current incident-candidate artifact and are not universal absence claims.
+
 ## Mutation boundary
 
-This slice is repository-only plus a read-only evidence probe.
+This slice remains repository-only plus a read-only evidence probe.
 
 It does NOT change:
 
@@ -143,26 +245,25 @@ infrastructure
 
 No deployment authorization is requested or implied.
 
-## Exact next gate — SAFE LIVE READ-ONLY PROBE
+## Exact next gate — FULL REPOSITORY SUITE
 
-On `mgmt-automation`, pull the current branch and run only:
+On `mgmt-automation`:
 
 ```bash
-sudo PYTHONPATH="$PWD/src" python3 scripts/discovery/m7_incident_operator_adapter_probe.py
+cd ~/projects/infrastructure-intelligence-assurance
+git pull --ff-only origin agent/m7-incident-operator-adapter
+python3 -m pytest -q
 ```
 
-The probe reads only `/var/lib/infra-assurance/evidence/incident-candidates.json`, performs no live infrastructure query, and writes nothing.
+Do not use strict interactive shell mode.
 
-A failed observation must remain `FAILED_TO_OBSERVE` and must not be converted into zero candidate counts.
+If the full suite passes:
 
-If the probe succeeds:
-
-1. record exact current source status, candidate counts, attention, verification categories, truncation, and trust fields;
-2. run the full repository suite;
-3. verify exact five-file branch scope and no temporary/debug files;
-4. create/inspect a non-draft PR;
-5. verify changed filenames and mergeability;
-6. squash-merge and carry the new accepted main SHA forward.
+1. record exact pass count/time;
+2. verify exact five-file branch scope and no temporary/debug files;
+3. create/inspect a non-draft PR;
+4. verify changed filenames and mergeability;
+5. squash-merge and carry the new accepted main SHA forward.
 
 Do not integrate this adapter into installed operator attention until this contract/live-evidence slice is merged and a later runtime-integration slice is separately reviewed.
 
