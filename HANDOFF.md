@@ -85,19 +85,15 @@ existing ReadWritePaths only
 
 No new service, timer, identity, datastore, Kubernetes RBAC, kubeconfig, Git source config, or filesystem permission was introduced.
 
-## Repository focused validation before deployment — ACCEPTED
+## Initial repository/deployment validation
+
+Initial focused tests:
 
 ```text
 10 passed in 0.21s
 ```
 
-## Deployment dry run — ACCEPTED
-
-Dry-run established the bounded deployment scope and performed no mutation.
-
-## Initial bounded deployment — ACCEPTED AS DEPLOYMENT/CONTENT EVIDENCE
-
-The user explicitly authorized the bounded management-host deployment and it completed with:
+The bounded dry-run was accepted and the user explicitly authorized the first deployment. The first deployment completed successfully:
 
 ```text
 deployment_status=COMPLETE
@@ -133,9 +129,7 @@ attention_now_truncated: False
 required_live_verification_truncated: False
 ```
 
-This proves the deployed runtime produced the accepted cross-domain content. It does NOT override a later repository regression failure.
-
-## Full-suite regression — FAILED / PRESERVED
+## Preserved full-suite failure
 
 The first full suite after deployment returned:
 
@@ -149,81 +143,77 @@ Failure:
 tests/test_backup_assurance_foundation_wiring.py::test_backup_assurance_runs_after_observability_post_steps
 ```
 
-Observed condition:
+This was a real repository/runtime ordering regression, not an evidence observation failure. The established invariant is preserved; its test was not weakened or removed.
 
-```text
-prometheus_rule_context_integration appeared after backup_assurance_foundation
-required established invariant: prometheus_rule_context_integration < backup_assurance_foundation
-```
-
-Interpretation:
-
-```text
-repository/runtime ordering regression: true
-evidence observation failure: false
-zero/absence evidence implied: false
-merge-ready: false
-```
-
-Do NOT delete or weaken the established backup ordering test to make the suite pass.
-
-## Corrective repository ordering — PREPARED, NOT DEPLOYED
-
-Corrective commit:
-
-```text
-1ca5d15bd925322e641af5c395f48623c3353d59
-```
+## Corrective ordering — REPOSITORY VALIDATED
 
 Corrected intended order:
 
 ```text
 1. kubernetes_runtime completes;
-2. existing routing / incident / observability ExecStartPost chain stays in prior order;
+2. existing routing / incident / observability ExecStartPost chain remains in its prior order;
 3. prometheus_rule_context_integration completes;
 4. backup_assurance_foundation produces backup-assurance.json/md;
 5. operator_attention_backup runs immediately after backup assurance.
 ```
 
-This preserves both invariants:
+Preserved invariants:
 
 ```text
 prometheus_rule_context_integration < backup_assurance_foundation
 backup_assurance_foundation < operator_attention_backup
 ```
 
+Corrective focused gate executed on `mgmt-automation`:
+
+```text
+14 passed in 0.26s
+```
+
+Covered tests:
+
+```text
+tests/test_backup_assurance_foundation_wiring.py
+tests/test_operator_attention.py
+tests/test_operator_attention_cross_domain_runtime_integration.py
+```
+
+Accepted interpretation:
+
+```text
+established backup ordering invariant preserved: true
+cross-domain backup-before-operator dependency preserved: true
+existing operator-attention behavior remains green: true
+corrective repository wiring accepted: true
+corrective unit deployed: false
+```
+
 The currently installed unit still reflects the earlier deployed ordering until corrective redeployment occurs.
 
-## Exact next gate — CORRECTIVE FOCUSED TESTS
+## Exact next gate — CORRECTIVE DRY RUN ONLY
 
-On `mgmt-automation`:
+Run on `mgmt-automation`:
 
 ```bash
 cd ~/projects/infrastructure-intelligence-assurance
 git pull --ff-only origin agent/m7-cross-domain-runtime-integration
-python3 -m pytest -q \
-  tests/test_backup_assurance_foundation_wiring.py \
-  tests/test_operator_attention.py \
-  tests/test_operator_attention_cross_domain_runtime_integration.py
+sudo bash scripts/deploy-operator-attention-runtime.sh
 ```
 
-Do not use strict interactive shell mode.
+This must perform no mutation and print the same bounded deployment plan. Do not use `--apply` yet.
 
-Expected test count from current files is 14, but accept only actual output.
+If dry-run is accepted:
 
-If focused tests pass:
-
-1. repeat the deployment helper without `--apply` as a no-mutation dry-run;
-2. record the dry-run;
-3. request fresh explicit authorization for the corrective deployment because the systemd unit content changed after the first authorization;
-4. only after authorization, rerun the same bounded helper with `--apply`;
-5. verify safe cross-domain artifact content again;
-6. rerun the full repository suite;
-7. PR/squash-merge only if all gates pass.
+1. record the dry-run;
+2. request fresh explicit authorization because the systemd unit content changed after the original authorization;
+3. only after fresh authorization, run the same helper with `--apply`;
+4. verify safe cross-domain artifact content again;
+5. rerun the full repository suite;
+6. PR/squash-merge only if all gates pass.
 
 ## Authorization boundary
 
-The previous deployment authorization does not automatically authorize the corrected unit content.
+Previous authorization does not automatically cover the corrected unit content.
 
 Corrective `--apply` is NOT authorized yet.
 
