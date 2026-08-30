@@ -1,10 +1,17 @@
 from __future__ import annotations
 
+import argparse
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 from .backup_operator_adapter import build_backup_operator_adapter
-from .operator_attention import build_operator_attention_summary
+from .io_utils import atomic_write_json, atomic_write_text
+from .operator_attention import (
+    build_operator_attention_summary,
+    load_json_artifact,
+    render_operator_attention_markdown,
+)
 
 CROSS_DOMAIN_SCOPE = "KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY"
 
@@ -119,3 +126,61 @@ def build_operator_attention_with_backup(
         "trust": backup["trust"],
     }
     return result
+
+
+def render_operator_attention_with_backup_markdown(summary: dict[str, Any]) -> str:
+    """Render the existing operator Markdown with an explicit cross-domain trust boundary."""
+    rendered = render_operator_attention_markdown(summary)
+    counts = summary["summary"]
+    backup_block = "\n".join(
+        [
+            "## Backup assurance",
+            "",
+            f"- Backup assets: {counts['backup_assets_total']}",
+            f"- Protection unknown: {counts['backup_protection_unknown']}",
+            f"- Restore verification unknown: {counts['backup_restore_verification_unknown']}",
+            f"- Unprotected claims: {counts['backup_unprotected_claims']}",
+            "",
+        ]
+    )
+    rendered = rendered.replace("\n## Trust boundary\n", f"\n{backup_block}\n## Trust boundary\n", 1)
+    return rendered.replace(
+        "existing Kubernetes evidence artifacts only",
+        "existing Kubernetes and backup-assurance evidence artifacts only",
+    )
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description=(
+            "Build the cross-domain read-only operator-attention projection from already-generated "
+            "Kubernetes and backup-assurance evidence artifacts. This command performs no live infrastructure query."
+        )
+    )
+    parser.add_argument("--inventory", type=Path, required=True)
+    parser.add_argument("--context", type=Path, required=True)
+    parser.add_argument("--change-context", type=Path, required=True)
+    parser.add_argument("--backup-assurance", type=Path, required=True)
+    parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--summary-out", type=Path)
+    parser.add_argument("--max-items", type=int, default=20)
+    args = parser.parse_args()
+
+    if args.max_items < 1:
+        parser.error("--max-items must be positive")
+
+    summary = build_operator_attention_with_backup(
+        load_json_artifact(args.inventory),
+        load_json_artifact(args.context),
+        load_json_artifact(args.change_context),
+        load_json_artifact(args.backup_assurance),
+        max_items=args.max_items,
+    )
+    atomic_write_json(args.out, summary)
+    if args.summary_out:
+        atomic_write_text(args.summary_out, render_operator_attention_with_backup_markdown(summary))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
