@@ -77,16 +77,14 @@ def _compact_required_verification(
     artifact: dict[str, Any],
     *,
     max_verifications: int,
-) -> list[dict[str, Any]]:
+) -> tuple[list[dict[str, Any]], int]:
     result: list[dict[str, Any]] = []
     seen: set[tuple[str, str, str]] = set()
     for candidate in artifact.get("candidates", []):
         if not isinstance(candidate, dict):
             continue
         for item in candidate.get("recommended_checks", []):
-            if not isinstance(item, dict):
-                continue
-            if item.get("live_verification_required") is not True:
+            if not isinstance(item, dict) or item.get("live_verification_required") is not True:
                 continue
             code = item.get("code") if isinstance(item.get("code"), str) else "INCIDENT_VERIFICATION_REQUIRED"
             target = item.get("target") if isinstance(item.get("target"), str) else "UNKNOWN"
@@ -95,18 +93,17 @@ def _compact_required_verification(
             if key in seen:
                 continue
             seen.add(key)
-            result.append(
-                {
-                    "source": "incident_candidates",
-                    "code": code,
-                    "target": target,
-                    "check": check,
-                    "live_verification_required": True,
-                }
-            )
-            if len(result) >= max_verifications:
-                return result
-    return result
+            if len(result) < max_verifications:
+                result.append(
+                    {
+                        "source": "incident_candidates",
+                        "code": code,
+                        "target": target,
+                        "check": check,
+                        "live_verification_required": True,
+                    }
+                )
+    return result, len(seen)
 
 
 def build_incident_operator_adapter(
@@ -174,7 +171,7 @@ def build_incident_operator_adapter(
         )
 
     compact_candidates = _compact_candidates(artifact, max_candidates=max_candidates)
-    required = _compact_required_verification(
+    required, required_total = _compact_required_verification(
         artifact,
         max_verifications=max_verifications,
     )
@@ -198,7 +195,7 @@ def build_incident_operator_adapter(
             "candidates_with_exact_drift": exact_drift,
             "candidates_requiring_live_verification": requiring_verification,
             "attention_total": len(attention),
-            "required_verification_categories_total": len(required),
+            "required_verification_categories_total": required_total,
             "projected_candidates": len(compact_candidates),
         },
         "attention": attention,
@@ -207,8 +204,7 @@ def build_incident_operator_adapter(
         "source_artifacts": ["incident-candidates.json"],
         "truncation": {
             "candidates_truncated": incident_candidates > len(compact_candidates),
-            "required_live_verification_truncated": requiring_verification > 0
-            and len(required) >= max_verifications,
+            "required_live_verification_truncated": required_total > len(required),
         },
         "trust": {
             "candidate_is_confirmed_incident": False,
