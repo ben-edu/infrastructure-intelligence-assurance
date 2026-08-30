@@ -96,6 +96,32 @@ existing ReadWritePaths only
 
 No new service, timer, identity, datastore, Kubernetes RBAC, kubeconfig, Git source config, or filesystem permission is introduced.
 
+## Repository focused validation — ACCEPTED
+
+Executed on `mgmt-automation`:
+
+```text
+10 passed in 0.21s
+```
+
+Command:
+
+```bash
+python3 -m pytest -q \
+  tests/test_operator_attention.py \
+  tests/test_operator_attention_cross_domain_runtime_integration.py
+```
+
+Accepted interpretation:
+
+```text
+- existing operator-attention tests remain green;
+- cross-domain service wiring tests pass;
+- backup assurance is ordered before cross-domain operator projection;
+- runtime remains under infra-assurance;
+- no repository test required infrastructure mutation.
+```
+
 ## Bounded deployment helper
 
 `scripts/deploy-operator-attention-runtime.sh` remains dry-run unless `--apply` is supplied.
@@ -128,25 +154,21 @@ scripts/deploy-operator-attention-runtime.sh --apply
 
 until explicit authorization is obtained.
 
-## Exact next gate — repository focused tests
+## Exact next gate — DRY RUN ONLY
 
 On `mgmt-automation`:
 
 ```bash
 cd ~/projects/infrastructure-intelligence-assurance
 
-git fetch origin
+git pull --ff-only origin agent/m7-cross-domain-runtime-integration
 
-git switch --track origin/agent/m7-cross-domain-runtime-integration
-
-python3 -m pytest -q \
-  tests/test_operator_attention.py \
-  tests/test_operator_attention_cross_domain_runtime_integration.py
+sudo bash scripts/deploy-operator-attention-runtime.sh
 ```
 
-Do not use strict interactive shell mode.
+This dry-run must perform no mutation and must print the exact bounded deployment plan. `--apply` remains forbidden until explicit authorization.
 
-If focused tests pass, run the deployment helper without `--apply` only. That dry-run must print the bounded mutation plan and perform no mutation. Actual `--apply` remains a separate explicit authorization gate.
+If the dry-run is accepted, record it and request explicit authorization for the exact bounded management-host deployment before any mutation.
 
 ## Preserved M6 boundaries
 
