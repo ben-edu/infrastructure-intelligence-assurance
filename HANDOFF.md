@@ -189,15 +189,16 @@ Current repository state:
 ```text
 probe: scripts/discovery/m8_runtime_hardening_baseline_probe.py
 tests: tests/test_m8_runtime_hardening_baseline.py
-report status: PREPARED — FRESH LIVE READ-ONLY GATE PENDING
-focused validation: 10 passed in 0.12s
-full repository suite: 462 passed in 1.61s
+probe contract: version 0.2 with candidate-specific recommendation evidence
+report status: PREPARED — CORRECTED FRESH LIVE READ-ONLY GATE RERUN PENDING
+focused validation: 11 passed in 0.09s
+full repository suite: 463 passed in 0.94s
 management-host mutation performed: false
 ```
 
 Repository declarations currently show the dedicated identity, strict sandbox, five-minute oneshot timer, 12 runtime entrypoints, and atomic per-file writes. They do not declare an explicit start timeout, restart policy, `OnFailure`, or process/history writer lock. These are declarations, not effective installed-state claims.
 
-The provisional smallest change candidate is, after fresh observation, to pin the effective start timeout in the repository unit. The probe must first rule out higher-priority identity, sandbox, fragment, installed-code, or permission drift. No hardening control is implemented in this baseline.
+The first live attempt returned `probe_rc=0` and no observation failures, but probe version 0.1 selected `RECONCILE_INSTALLED_RUNTIME_MODULES` for an observed `__init__.py` mismatch while attaching unrelated timeout evidence. That internally inconsistent recommendation payload is rejected for acceptance. Version 0.2 fixes the evidence contract and adds a regression test. The module reconciliation is only a preliminary candidate until a corrected fresh rerun confirms it. No hardening control is implemented in this baseline.
 
 ## Exact next step
 
@@ -206,7 +207,7 @@ The provisional smallest change candidate is, after fresh observation, to pin th
 3. Read this `HANDOFF.md` from `agent/m8-runtime-hardening-baseline`.
 4. Read `docs/M8_START_HERE.md` and `docs/reports/2026-08-30-m8-runtime-hardening-baseline.md`.
 5. Continue on `agent/m8-runtime-hardening-baseline`; do not recreate the branch or repeat repository discovery.
-6. Run the focused test and the prepared fresh live read-only probe on `mgmt-automation` using the report commands.
+6. Pull the latest branch commit, then rerun the focused test and corrected fresh live read-only probe on `mgmt-automation` using the report commands.
 7. Review the classified JSON output, replace pending live state in the report with accepted evidence, confirm exactly one smallest justified change, update this handoff, then run the full repository suite.
 
 Do not change the unit, permissions, schedule, backup, RBAC, installed code, or infrastructure during this baseline gate. Do not reconstruct M7 from chat memory.
