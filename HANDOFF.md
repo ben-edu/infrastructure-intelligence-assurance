@@ -97,7 +97,7 @@ tests/test_operator_attention_backup_runtime.py
 HANDOFF.md
 ```
 
-The cross-domain module now provides a CLI contract:
+The cross-domain module provides a CLI contract:
 
 ```text
 python3 -m infra_assurance.operator_attention_backup
@@ -135,40 +135,62 @@ permissions
 datastores
 ```
 
-No management-host mutation is authorized or required for this contract gate.
+## Repository validation — ACCEPTED
 
-## Exact next gate
+Focused tests executed on `mgmt-automation`:
 
-On `mgmt-automation`:
-
-```bash
-cd ~/projects/infrastructure-intelligence-assurance
-
-git fetch origin
-
-git switch --track origin/agent/m7-cross-domain-runtime-contract
-
-python3 -m pytest -q \
-  tests/test_operator_attention_backup.py \
-  tests/test_operator_attention_backup_runtime.py
+```text
+8 passed in 0.46s
 ```
 
-Do not use strict interactive shell mode.
+Accepted interpretation:
 
-Expected focused test count from the branch definition is 8, but accept only the actual test output.
+```text
+- existing cross-domain builder tests remain green;
+- file-writing runtime CLI tests pass;
+- JSON and Markdown writer behavior is covered;
+- non-positive max-items fails closed;
+- no runtime/systemd/infrastructure mutation occurred.
+```
+
+## Exact next gate — LIVE READ-ONLY NO-DEPLOY CHECK
+
+Run a bounded one-time privileged Python projection from repository code against the four protected existing artifacts. This check performs no file write, no live infrastructure query, no systemd action, and no `/opt` change.
+
+Expected sources:
+
+```text
+/var/lib/infra-assurance/evidence/inventory.json
+/var/lib/infra-assurance/evidence/context.json
+/var/lib/infra-assurance/evidence/change-context.json
+/var/lib/infra-assurance/evidence/backup-assurance.json
+```
 
 Acceptance rules:
 
 ```text
-- all focused tests pass;
-- existing builder semantics remain unchanged;
-- runtime writer produces cross-domain JSON and Markdown in tests;
-- per-asset backup details are absent from both outputs;
-- non-positive max-items fails closed;
-- no systemd/runtime/infrastructure mutation occurs.
+source_status: COMPLETE
+source_artifacts_loaded: 4
+cluster_id: k3s-main
+scope: KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY
+mutation_allowed: False
+attention_now_total: 5
+required_live_verification_total: 8
+backup_unprotected_claims: 0
+unknown_is_not_unprotected: True
+recovery_test_overdue_claimed: False
+no raw source or per-asset backup detail printed
 ```
 
-If focused tests pass, the next gate is a bounded live no-deploy execution contract check. Do not modify systemd or `/opt` until that contract is accepted and a separate deployment mutation is explicitly authorized.
+The one-time `sudo` execution is validation-only because repository code is under `/home/ben` while artifacts are protected. It is not the target runtime privilege model.
+
+If accepted:
+
+1. create/update the runtime-contract report;
+2. run the full repository suite;
+3. verify exact branch scope and no temporary/debug files;
+4. PR/squash-merge;
+5. only then consider a separate explicitly authorized runtime/systemd deployment slice.
 
 ## Preserved M6 boundaries
 
