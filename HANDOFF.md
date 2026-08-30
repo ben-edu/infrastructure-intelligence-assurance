@@ -83,6 +83,12 @@ unprotected claims require authoritative backup evidence
 
 ## Active slice — cross-domain runtime contract
 
+Accepted report:
+
+```text
+docs/reports/2026-08-30-m7-cross-domain-runtime-contract.md
+```
+
 Goal:
 
 ```text
@@ -92,9 +98,10 @@ Make the already-accepted cross-domain operator projection executable as a file-
 Prepared changes:
 
 ```text
+HANDOFF.md
+docs/reports/2026-08-30-m7-cross-domain-runtime-contract.md
 src/infra_assurance/operator_attention_backup.py
 tests/test_operator_attention_backup_runtime.py
-HANDOFF.md
 ```
 
 The cross-domain module provides a CLI contract:
@@ -122,8 +129,6 @@ The writer:
 - preserves restore verification UNKNOWN != recovery test overdue.
 ```
 
-The Markdown renderer adds only aggregate backup-assurance counts and explicitly describes the trust boundary as Kubernetes plus backup-assurance evidence.
-
 This branch does NOT change:
 
 ```text
@@ -143,54 +148,83 @@ Focused tests executed on `mgmt-automation`:
 8 passed in 0.46s
 ```
 
-Accepted interpretation:
+## Live no-deploy runtime contract check — ACCEPTED
+
+The one-time privileged projection used repository code only to read the four protected existing artifacts. It did not write output files, modify systemd, modify `/opt`, or query live infrastructure.
+
+Accepted safety:
 
 ```text
-- existing cross-domain builder tests remain green;
-- file-writing runtime CLI tests pass;
-- JSON and Markdown writer behavior is covered;
-- non-positive max-items fails closed;
-- no runtime/systemd/infrastructure mutation occurred.
+mutation_allowed: False
+live_infrastructure_query_performed: False
+source_artifacts_written: False
+systemd_modified: False
+installed_runtime_modified: False
+raw_source_artifacts_projected: False
+backup_asset_details_projected: False
 ```
 
-## Exact next gate — LIVE READ-ONLY NO-DEPLOY CHECK
-
-Run a bounded one-time privileged Python projection from repository code against the four protected existing artifacts. This check performs no file write, no live infrastructure query, no systemd action, and no `/opt` change.
-
-Expected sources:
-
-```text
-/var/lib/infra-assurance/evidence/inventory.json
-/var/lib/infra-assurance/evidence/context.json
-/var/lib/infra-assurance/evidence/change-context.json
-/var/lib/infra-assurance/evidence/backup-assurance.json
-```
-
-Acceptance rules:
+Accepted source state:
 
 ```text
 source_status: COMPLETE
 source_artifacts_loaded: 4
 cluster_id: k3s-main
 scope: KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY
-mutation_allowed: False
-attention_now_total: 5
-required_live_verification_total: 8
-backup_unprotected_claims: 0
-unknown_is_not_unprotected: True
-recovery_test_overdue_claimed: False
-no raw source or per-asset backup detail printed
+discovery_rc=0
 ```
 
-The one-time `sudo` execution is validation-only because repository code is under `/home/ben` while artifacts are protected. It is not the target runtime privilege model.
+Accepted summary:
 
-If accepted:
+```text
+workloads_total: 68
+workloads_with_attention: 3
+attention_now_total: 5
+recent_changes_total: 0
+unknowns_total: 0
+required_live_verification_total: 8
+backup_assets_total: 37
+backup_protection_unknown: 37
+backup_restore_verification_unknown: 37
+backup_unprotected_claims: 0
+```
 
-1. create/update the runtime-contract report;
-2. run the full repository suite;
-3. verify exact branch scope and no temporary/debug files;
-4. PR/squash-merge;
-5. only then consider a separate explicitly authorized runtime/systemd deployment slice.
+Accepted trust checks:
+
+```text
+unknown_is_not_unprotected: True
+recovery_test_overdue_claimed: False
+authoritative_backup_evidence_required_for_unprotected: True
+```
+
+The one-time `sudo` execution is validation-only because repository code remains under `/home/ben` while the evidence artifacts are protected. It is not the target runtime privilege model.
+
+## Exact next gate — FULL REPOSITORY SUITE
+
+On `mgmt-automation`:
+
+```bash
+cd ~/projects/infrastructure-intelligence-assurance
+git pull --ff-only origin agent/m7-cross-domain-runtime-contract
+python3 -m pytest -q
+```
+
+Do not use strict interactive shell mode.
+
+If the full suite passes:
+
+1. record exact pass count/time in this handoff and the runtime-contract report;
+2. verify exact branch scope is four intended files:
+   - `HANDOFF.md`
+   - `docs/reports/2026-08-30-m7-cross-domain-runtime-contract.md`
+   - `src/infra_assurance/operator_attention_backup.py`
+   - `tests/test_operator_attention_backup_runtime.py`
+3. ensure no temporary/debug/placeholder files exist;
+4. create/inspect a non-draft PR;
+5. verify changed filenames and mergeability;
+6. squash-merge and carry the new accepted main SHA forward.
+
+Only after merge should installed runtime/systemd integration be considered. That remains a separate management-host mutation gate requiring explicit authorization.
 
 ## Preserved M6 boundaries
 
