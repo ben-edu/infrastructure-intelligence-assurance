@@ -1,7 +1,7 @@
 # Milestone 7 — Incident Operator Integration Contract
 
 Date: 2026-08-30
-Status: PREPARED / FOCUSED VALIDATION PENDING
+Status: CORRECTIVE FOCUSED VALIDATION PENDING
 Mode: repository-only integration over existing operator-attention and incident-candidate artifacts
 
 ## Goal
@@ -59,6 +59,49 @@ restore verification UNKNOWN != recovery test overdue
 
 Incident source incompleteness remains explicit. Candidate absence under partial source coverage is not negative evidence.
 
+## Initial focused validation — FAILED AND PRESERVED
+
+Executed on `mgmt-automation`:
+
+```text
+1 failed, 5 passed, 1 warning in 0.10s
+```
+
+Failing test:
+
+```text
+tests/test_operator_attention_incident.py::test_combined_totals_survive_projection_truncation
+```
+
+Observed mismatch:
+
+```text
+expected required_live_verification_total: 11
+observed required_live_verification_total: 10
+```
+
+The test exposed a real implementation bug. The integration incorrectly passed final `max_items=2` into the incident adapter as its verification cap. That truncated three incident verification entries to two before the combined total was calculated.
+
+The test expectation was not weakened.
+
+## Corrective decision
+
+Projection truncation must not alter the pre-truncation combined total.
+
+The incident adapter now uses its independent accepted verification bound, while the integration layer applies `max_items` only to the final projected list. This follows the same separation already used by the Kubernetes+backup integration.
+
+Expected corrected semantics for the failing fixture:
+
+```text
+existing required verification total: 8
+incident verification entries before final projection truncation: 3
+combined required_live_verification_total: 11
+final projected list with max_items=2: 2
+required_live_verification_truncated: True
+```
+
+The non-blocking Python regex warning was also corrected by using a raw regex string. No contract assertion was removed.
+
 ## Prepared validation
 
 Focused tests:
@@ -103,4 +146,4 @@ No deployment authorization is requested or implied.
 
 ## Next gate
 
-Run the focused integration tests. If they pass, run the safe no-write probe against the protected current artifacts. Do not deploy or replace the installed operator-attention runtime in this slice.
+Rerun the focused integration tests on the corrected branch head. If they pass, run the safe no-write probe against the protected current artifacts. Do not deploy or replace the installed operator-attention runtime in this slice.
