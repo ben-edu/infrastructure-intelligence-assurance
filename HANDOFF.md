@@ -64,7 +64,7 @@ Report:
 docs/reports/2026-08-30-m7-planning-preflight-operator-context.md
 ```
 
-Prepared module:
+Accepted module:
 
 ```text
 src/infra_assurance/planning_preflight_operator.py
@@ -98,22 +98,16 @@ unknown/stale/failed/mismatched base evidence
 > review non-executable candidate plan
 ```
 
-## Focused validation — ACCEPTED
+## Validation — ACCEPTED
+
+Focused tests:
 
 ```text
 7 passed in 0.08s
 7 passed in 0.04s
 ```
 
-## Safe no-write probe — ACCEPTED
-
-Probe:
-
-```text
-scripts/discovery/m7_planning_preflight_operator_probe.py
-```
-
-Observed contract:
+Safe protected-artifact probe:
 
 ```text
 source_status: COMPLETE
@@ -146,7 +140,7 @@ incident_active_candidates: 1
 incident_suppressed_candidates: 3
 ```
 
-The one task-relevant candidate was `ACTIVE`, platform scoped to `Platform/k3s-main`, with two alerts and two recommended checks. It is not a confirmed incident or root-cause conclusion.
+The one task-relevant candidate was `ACTIVE`, platform scoped to `Platform/k3s-main`, with two alerts and two recommended checks. It remains a candidate, not a confirmed incident or root-cause conclusion.
 
 Enriched preflight:
 
@@ -173,6 +167,12 @@ recovery_test_overdue_claimed: False
 
 No truncation was observed. The probe performed no live infrastructure query, wrote nothing, and modified no installed runtime.
 
+Full repository suite:
+
+```text
+452 passed in 2.44s
+```
+
 ## Exact intended branch scope
 
 ```text
@@ -185,19 +185,17 @@ tests/test_planning_preflight_operator.py
 
 No systemd, timer, runtime deployment, Kubernetes RBAC, kubeconfig, datastore, permission, AI-provider, remediation, or infrastructure mutation change is included.
 
-## Exact next gate — FULL REPOSITORY SUITE
+## Exact next gate — MERGE THEN M7 CLOSURE
 
-On `mgmt-automation`, without `sudo`:
+1. Compare this branch against accepted main `292b8da942f2445d7bdb061f5c778b6861b6cd6f`.
+2. Require exactly the five intended files listed above.
+3. Create a non-draft PR and verify changed filenames/mergeability.
+4. Squash-merge.
+5. Carry the resulting accepted main SHA into a dedicated M7 closure/handoff branch.
+6. Reassess all M7 roadmap acceptance outcomes against accepted implementation and evidence.
+7. If no remaining M7 acceptance gap exists, mark M7 complete and update repository continuity/status documentation plus the Project Source files so a fresh project tab can begin M8 without relying on chat memory.
 
-```bash
-cd ~/projects/infrastructure-intelligence-assurance
-git pull --ff-only origin agent/m7-planning-preflight-operator-context
-python3 -m pytest -q
-```
-
-If the full suite passes, record the exact result, compare the branch against accepted main `292b8da942f2445d7bdb061f5c778b6861b6cd6f`, require exactly the five intended files, create a non-draft PR, verify mergeability, and squash-merge. Do not deploy this module in this slice.
-
-After merge, reassess M7 against the roadmap. If no acceptance gap remains, perform an explicit M7 closure/handoff slice that updates repository continuity/status documentation and the Project Source files so a new tab can begin M8 without relying on chat memory.
+Do not deploy `planning_preflight_operator.py` in this slice. No new infrastructure mutation is authorized.
 
 ## Preserved M6 boundaries
 
