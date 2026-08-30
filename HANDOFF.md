@@ -49,6 +49,12 @@ unprotected claims require authoritative backup evidence
 
 ## Active slice — cross-domain installed-runtime integration
 
+Accepted report:
+
+```text
+docs/reports/2026-08-30-m7-cross-domain-runtime-integration.md
+```
+
 Goal:
 
 ```text
@@ -59,12 +65,13 @@ Prepared repository changes:
 
 ```text
 HANDOFF.md
+docs/reports/2026-08-30-m7-cross-domain-runtime-integration.md
 scripts/deploy-operator-attention-runtime.sh
 systemd/infra-assurance-kubernetes.service
 tests/test_operator_attention_cross_domain_runtime_integration.py
 ```
 
-Prepared runtime order:
+Accepted runtime order:
 
 ```text
 1. existing kubernetes_runtime ExecStart completes;
@@ -94,15 +101,7 @@ Executed on `mgmt-automation`:
 10 passed in 0.21s
 ```
 
-This confirmed the existing operator-attention tests remain green, the backup assurance step precedes the cross-domain operator projection, and runtime wiring remains under `infra-assurance`.
-
 ## Deployment dry run — ACCEPTED
-
-Dry-run command:
-
-```bash
-sudo bash scripts/deploy-operator-attention-runtime.sh
-```
 
 Accepted dry-run interpretation:
 
@@ -117,19 +116,9 @@ deployment scope operator-reviewed: true
 
 ## Deployment authorization — ACCEPTED
 
-The user explicitly authorized only this bounded management-host deployment:
+The user explicitly authorized only the bounded deployment described by the dry-run.
 
-```text
-install operator_attention.py
-install backup_operator_adapter.py
-install operator_attention_backup.py
-replace existing infra-assurance-kubernetes.service unit definition
-systemctl daemon-reload
-start existing oneshot service once
-verify generated operator-attention artifacts and cross-domain scope
-```
-
-Authorization does NOT extend to broader infrastructure mutation, Kubernetes RBAC/kubeconfig changes, filesystem permission broadening, new services/timers/datastores, remediation, or unrelated changes.
+Authorization did not extend to broader infrastructure mutation, Kubernetes RBAC/kubeconfig changes, permission broadening, remediation, new services/timers/datastores, or unrelated changes.
 
 ## Live bounded deployment — ACCEPTED
 
@@ -150,53 +139,105 @@ runtime_identity=infra-assurance
 runtime_scope=KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY
 ```
 
-Accepted interpretation:
+## Safe generated-artifact content verification — ACCEPTED
+
+Only allowlisted fields from `/var/lib/infra-assurance/evidence/operator-attention.json` were printed.
+
+Accepted contract metadata:
 
 ```text
-bounded management-host deployment completed: true
-existing oneshot collector completed successfully: true
-operator-attention JSON produced: true
-operator-attention Markdown produced: true
-runtime identity remains infra-assurance: true
-cross-domain runtime scope observed: true
-broader infrastructure mutation authorized/performed by this gate: false
-```
-
-This proves installed runtime deployment and artifact generation. It does not by itself validate every allowlisted content field inside the generated artifact.
-
-## Exact next gate — SAFE GENERATED-ARTIFACT CONTENT VERIFICATION
-
-Read only allowlisted fields from:
-
-```text
-/var/lib/infra-assurance/evidence/operator-attention.json
-```
-
-Acceptance requires:
-
-```text
+operator_attention_version: 0.1
 cluster_id: k3s-main
 mutation_allowed: False
 scope: KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY
-source_artifacts include inventory.json, context.json, change-context.json, backup-assurance.json
-summary counts are present integers
-backup_unprotected_claims: 0 unless authoritative evidence legitimately changed
-unknown_is_not_unprotected: True
-recovery_test_overdue_claimed: False
-no raw source data, per-asset backup details, secret, credential, raw Terraform state, or Kubernetes Secret value printed
+source_artifacts: inventory.json,context.json,change-context.json,backup-assurance.json
 ```
 
-Current prior accepted counts are a comparison baseline only, not immutable expected values. If current evidence changed legitimately, changed counts are not a failure by themselves.
+Accepted summary:
 
-After safe content verification succeeds:
+```text
+workloads_total: 68
+workloads_with_attention: 3
+attention_now_total: 5
+recent_changes_total: 0
+unknowns_total: 0
+required_live_verification_total: 8
+backup_assets_total: 37
+backup_protection_unknown: 37
+backup_restore_verification_unknown: 37
+backup_unprotected_claims: 0
+```
 
-1. create `docs/reports/2026-08-30-m7-cross-domain-runtime-integration.md` with exact accepted deployment/content evidence;
-2. update this handoff with the accepted content gate;
-3. run the full repository suite on the current branch head;
-4. verify exact intended branch scope and no temporary/debug files;
-5. create/inspect a non-draft PR;
-6. verify changed filenames and mergeability;
-7. squash-merge and carry the new accepted main SHA forward.
+Accepted attention:
+
+```text
+topology / SERVICE_SELECTOR_MULTIPLE_CONTROLLER_MATCHES / AMBIGUOUS / Service/monitoring/loki-headless
+drift / DECLARED_OBSERVED_DRIFT / DRIFT / Ingress/validation/nginx-validation
+backup_assurance / BACKUP_PROTECTION_UNKNOWN / UNKNOWN / count=37
+backup_assurance / RESTORE_VERIFICATION_UNKNOWN / UNKNOWN / count=37
+backup_assurance / AUTHORITATIVE_BACKUP_SOURCE_NOT_INTEGRATED / UNKNOWN
+```
+
+Accepted required backup/recovery verification categories:
+
+```text
+OBSERVE_BACKUP_MECHANISM
+OBSERVE_LAST_SUCCESSFUL_BACKUP
+OBSERVE_BACKUP_RETENTION
+OBSERVE_BACKUP_FAILURE_DOMAIN
+OBSERVE_BACKUP_INTEGRITY_VERIFICATION
+OBSERVE_RESTORE_TEST
+OBSERVE_RPO_TARGET_AND_RESULT
+OBSERVE_RTO_TARGET_AND_RESULT
+```
+
+All eight require an authoritative source.
+
+Accepted trust checks:
+
+```text
+unknown_is_not_unprotected: True
+recovery_test_overdue_claimed: False
+authoritative_backup_evidence_required_for_unprotected: True
+```
+
+Accepted truncation state:
+
+```text
+attention_now_truncated: False
+required_live_verification_truncated: False
+```
+
+The installed runtime therefore reproduces the accepted cross-domain contract on current evidence under `infra-assurance`.
+
+Do not infer unprotected assets from `backup_protection_unknown=37`.
+Do not infer overdue restore testing from `backup_restore_verification_unknown=37`.
+
+## Exact next gate — FULL REPOSITORY SUITE
+
+On `mgmt-automation`:
+
+```bash
+cd ~/projects/infrastructure-intelligence-assurance
+git pull --ff-only origin agent/m7-cross-domain-runtime-integration
+python3 -m pytest -q
+```
+
+Do not use strict interactive shell mode.
+
+If the full suite passes:
+
+1. record the exact pass count/time in this handoff and the runtime-integration report;
+2. verify exact branch scope is five intended files:
+   - `HANDOFF.md`
+   - `docs/reports/2026-08-30-m7-cross-domain-runtime-integration.md`
+   - `scripts/deploy-operator-attention-runtime.sh`
+   - `systemd/infra-assurance-kubernetes.service`
+   - `tests/test_operator_attention_cross_domain_runtime_integration.py`
+3. ensure no temporary/debug/placeholder files exist;
+4. create/inspect a non-draft PR;
+5. verify changed filenames and mergeability;
+6. squash-merge and carry the new accepted main SHA forward.
 
 ## Preserved M6 boundaries
 
