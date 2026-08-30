@@ -1,7 +1,7 @@
 # Milestone 7 — Planning Preflight Operator Context
 
 Date: 2026-08-30
-Status: PREPARED / FOCUSED VALIDATION PENDING
+Status: FOCUSED VALIDATION ACCEPTED / SAFE PROBE PENDING
 Mode: repository-only integration over existing evidence; no live infrastructure query or runtime deployment
 
 ## Goal
@@ -81,6 +81,17 @@ Every returned action retains:
 mutation_allowed: False
 ```
 
+## Focused validation — ACCEPTED
+
+Executed without `sudo` on `mgmt-automation`:
+
+```text
+7 passed in 0.08s
+7 passed in 0.04s
+```
+
+The repeated focused gate confirms the prepared adapter preserves the tested base contract and trust semantics, including task-scoped incident filtering, `SUPPRESSED != RESOLVED`, backup UNKNOWN distinct from UNPROTECTED, fail-closed scope/cluster checks, deterministic safest-next-action precedence, and non-executable output.
+
 ## Probe
 
 Prepared safe no-write probe:
@@ -117,10 +128,12 @@ No systemd, timer, RBAC, kubeconfig, filesystem-permission, datastore, runtime d
 
 ## Exact next gate
 
-Run focused tests without `sudo`:
+Run the protected-artifact probe with privilege scoped only to reading existing evidence artifacts:
 
 ```bash
-python3 -m pytest -q tests/test_planning_preflight_operator.py
+cd ~/projects/infrastructure-intelligence-assurance
+git pull --ff-only origin agent/m7-planning-preflight-operator-context
+sudo PYTHONPATH="$PWD/src" python3 scripts/discovery/m7_planning_preflight_operator_probe.py
 ```
 
-If focused validation passes, run the protected-artifact probe with privilege scoped only to reading existing evidence artifacts. Do not deploy this module in this slice.
+This is a no-write validation. Do not deploy this module in this slice.
