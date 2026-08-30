@@ -1,7 +1,7 @@
 # Milestone 7 — Cross-Domain Runtime Contract
 
 Date: 2026-08-30
-Status: ACCEPTED PENDING FULL-SUITE GATE
+Status: ACCEPTED
 Mode: read-only runtime command contract over existing Kubernetes and backup-assurance evidence
 
 ## Scope
@@ -20,7 +20,7 @@ python3 -m infra_assurance.operator_attention_backup
   --summary-out <operator-attention.md>
 ```
 
-The command reads only existing derived artifacts and uses the accepted cross-domain builder. The actual live gate in this slice was no-deploy and performed no file write.
+The command reads only existing derived artifacts and uses the accepted cross-domain builder. The live gate in this slice was no-deploy and performed no file write.
 
 ## Repository validation
 
@@ -30,13 +30,17 @@ Focused tests:
 8 passed in 0.46s
 ```
 
+Full repository suite:
+
+```text
+426 passed in 2.48s
+```
+
 The focused gate covers the existing cross-domain builder plus runtime JSON/Markdown writing behavior and fail-closed handling for invalid `max-items`.
 
 ## Live no-deploy validation
 
-A one-time bounded privileged projection was run from repository code because the repository resides under `/home/ben` while the protected evidence artifacts require elevated read access.
-
-This use of `sudo` is validation-only and is not the target runtime privilege model.
+A one-time bounded privileged projection was run from repository code because the repository resides under `/home/ben` while the protected evidence artifacts require elevated read access. This `sudo` use is validation-only and is not the target runtime privilege model.
 
 Accepted safety output:
 
@@ -108,8 +112,6 @@ restore verification UNKNOWN != recovery test overdue
 - no remediation is authorized or implied;
 - generated runtime semantics preserve `mutation_allowed=false`.
 
-## Remaining gate
+## Closure
 
-A full repository regression suite is required before PR/merge because reusable runtime command implementation and tests changed.
-
-Any installed runtime/systemd integration remains a separate management-host mutation slice requiring explicit authorization.
+All contract gates passed. Installed runtime/systemd integration remains a separate management-host mutation slice and requires explicit authorization before deployment.
