@@ -1,7 +1,7 @@
 # Milestone 7 — Backup Assurance Operator Integration
 
 Date: 2026-08-30
-Status: ACCEPTED PENDING FULL-SUITE GATE
+Status: ACCEPTED
 Mode: bounded cross-domain operator projection over existing Kubernetes and backup-assurance evidence
 
 ## Scope
@@ -31,6 +31,12 @@ Focused tests:
 
 ```text
 6 passed in 0.06s
+```
+
+Full repository suite:
+
+```text
+424 passed in 2.13s
 ```
 
 ## Live validation
@@ -138,6 +144,6 @@ authoritative_backup_evidence_required_for_unprotected: True
 - no remediation is authorized or implied;
 - generated operational semantics keep `mutation_allowed=false`.
 
-## Remaining gate
+## Acceptance
 
-A full repository regression suite is required before PR/merge because reusable cross-domain projection implementation and tests changed.
+The contract slice is accepted and merge-ready after focused, live read-only, and full-suite validation.
