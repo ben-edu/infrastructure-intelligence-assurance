@@ -1,7 +1,7 @@
 # Milestone 7 — Cross-Domain Installed Runtime Integration
 
 Date: 2026-08-30
-Status: CORRECTIVE ORDERING VALIDATED PENDING DRY-RUN AND REDEPLOYMENT
+Status: CORRECTIVE ORDERING VALIDATED / DRY-RUN ACCEPTED / REDEPLOYMENT PENDING AUTHORIZATION
 Mode: bounded management-host runtime integration in the existing five-minute collector
 
 ## Scope
@@ -194,6 +194,37 @@ corrective repository wiring accepted: true
 corrective unit deployed: false
 ```
 
+## Corrective deployment dry run — ACCEPTED
+
+Executed without `--apply`:
+
+```bash
+sudo bash scripts/deploy-operator-attention-runtime.sh
+```
+
+The helper printed the same bounded deployment plan for the corrected unit:
+
+```text
+- install the accepted operator-attention modules into /opt/infra-assurance/src/infra_assurance/;
+- install the corrected existing infra-assurance-kubernetes.service unit definition;
+- run systemctl daemon-reload;
+- start the existing infra-assurance-kubernetes.service once;
+- verify operator-attention.json and operator-attention.md with the accepted cross-domain scope.
+```
+
+The helper again explicitly excluded `bootstrap-observer.sh`, Kubernetes RBAC changes, kubeconfig changes, Git source changes, new services/timers, and permission broadening.
+
+Accepted dry-run interpretation:
+
+```text
+management-host mutation performed: false
+Kubernetes mutation performed: false
+systemd mutation performed: false
+installed runtime mutation performed: false
+artifact write performed by helper: false
+corrective deployment scope operator-reviewed: true
+```
+
 The currently installed runtime still reflects the earlier deployed ordering until corrective redeployment occurs.
 
 ## Trust boundary
@@ -208,8 +239,6 @@ The currently installed runtime still reflects the earlier deployed ordering unt
 
 ## Next gate
 
-Repeat the deployment helper without `--apply` as a no-mutation dry-run against the corrected repository unit.
+Fresh explicit authorization is required before corrective redeployment because the systemd unit content changed after the original authorization.
 
-Because the systemd unit content changed after the original authorization, corrective redeployment requires a fresh explicit authorization before `--apply`.
-
-After corrected deployment and safe artifact verification, rerun the full repository suite before PR/merge.
+If authorized, rerun the same bounded deployment helper with `--apply`, then verify safe artifact content again and rerun the full repository suite before PR/merge.
