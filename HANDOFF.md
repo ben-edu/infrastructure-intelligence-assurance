@@ -28,13 +28,9 @@ No incident operator runtime deployment has occurred yet.
 
 ## Accepted incident integration contract
 
-Accepted report:
+Accepted main after PR #86 includes the Kubernetes+backup+incident integration contract.
 
-```text
-docs/reports/2026-08-30-m7-incident-operator-integration-contract.md
-```
-
-Accepted contract/live validation:
+Accepted validation:
 
 ```text
 corrective focused tests: 6 passed in 0.06s
@@ -126,35 +122,79 @@ It verifies final scope:
 KUBERNETES_BACKUP_AND_INCIDENT_EXISTING_EVIDENCE_ONLY
 ```
 
-Dry-run is the default. No `--apply` execution is authorized yet.
+## Focused repository validation — ACCEPTED
 
-The helper does not run `bootstrap-observer.sh`, change Kubernetes RBAC/kubeconfig, change Git source configuration, add a service/timer, or broaden filesystem permissions.
+Executed twice:
 
-## Exact next gate — FOCUSED REPOSITORY TESTS
-
-On `mgmt-automation`:
-
-```bash
-cd ~/projects/infrastructure-intelligence-assurance
-git fetch origin
-git switch --track origin/agent/m7-incident-operator-runtime-integration
-python3 -m pytest -q \
-  tests/test_backup_assurance_foundation_wiring.py \
-  tests/test_operator_attention_cross_domain_runtime_integration.py \
-  tests/test_operator_attention_incident_runtime_integration.py
+```text
+11 passed in 0.09s
+11 passed in 0.10s
 ```
 
-If the local branch already exists, switch to it and pull `--ff-only` instead of recreating it.
+Accepted interpretation:
 
-Do not use strict interactive shell mode.
-
-If focused tests pass, run only:
-
-```bash
-sudo bash scripts/deploy-operator-attention-runtime.sh
+```text
+existing observability-before-backup invariant preserved: true
+backup_assurance_foundation < operator_attention_backup: true
+operator_attention_backup < operator_attention_incident: true
+service identity/sandbox preserved: true
+new service/timer introduced: false
+final expected scope encoded in helper: true
 ```
 
-That is dry-run only. Do not use `--apply` until the dry-run is reviewed and fresh explicit authorization is obtained.
+## Deployment helper dry-run — ACCEPTED
+
+Executed without `--apply`.
+
+Accepted dry-run scope:
+
+```text
+install accepted operator-attention modules
+install existing systemd unit definition
+systemctl daemon-reload
+start existing infra-assurance-kubernetes.service once
+verify operator-attention.json/.md with Kubernetes+backup+incident scope
+```
+
+Explicitly excluded:
+
+```text
+bootstrap-observer.sh
+Kubernetes RBAC changes
+kubeconfig changes
+Git source configuration changes
+new service/timer creation
+filesystem permission broadening
+```
+
+Dry-run performed no installed-runtime, systemd, service, or infrastructure mutation.
+
+## Authorization boundary — CURRENT GATE
+
+```text
+broader infrastructure mutation authorized: false
+incident operator runtime deployment authorized: false
+```
+
+Fresh explicit authorization is required because the installed module set and unit content differ from the previously authorized runtime deployment.
+
+If authorization is granted, it covers only:
+
+```text
+install the accepted five operator projection modules
+install the prepared existing systemd unit
+systemctl daemon-reload
+start the existing oneshot service once
+verify generated operator-attention artifact ownership and exact final scope
+```
+
+It does NOT authorize Kubernetes RBAC/kubeconfig changes, permission broadening, new services/timers/datastores, remediation, bootstrap, or unrelated infrastructure mutation.
+
+## Exact next gate
+
+Obtain fresh explicit authorization for the bounded incident-operator runtime deployment. Do not run `scripts/deploy-operator-attention-runtime.sh --apply` until authorization is explicitly given and recorded.
+
+After an authorized deployment succeeds, verify installed ordering and safe allowlisted artifact content, then run the full repository suite before PR/merge.
 
 ## Preserved M6 boundaries
 
