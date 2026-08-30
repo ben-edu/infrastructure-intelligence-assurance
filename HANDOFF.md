@@ -15,17 +15,17 @@ broader infrastructure mutation authorized: false
 
 ## Accepted installed operator runtime
 
-The accepted five-minute collector now produces the final operator projection under the existing `infra-assurance` identity.
+The existing five-minute collector produces the accepted cross-domain operator projection under `infra-assurance`.
 
 ```text
 scope: KUBERNETES_BACKUP_AND_INCIDENT_EXISTING_EVIDENCE_ONLY
 mutation_allowed: False
 runtime identity: infra-assurance
 prometheus_rule_context_integration < backup_assurance_foundation < operator_attention_backup < operator_attention_incident
-final runtime-integration suite: 445 passed in 2.87s
+runtime-integration suite: 445 passed in 2.87s
 ```
 
-Last accepted installed evidence snapshot:
+Last accepted installed evidence snapshot before this slice:
 
 ```text
 cluster_id: k3s-main
@@ -41,22 +41,11 @@ incident_suppressed_candidates: 3
 incident_source_status: PARTIAL
 ```
 
-Trust semantics remain:
-
-```text
-candidate_is_confirmed_incident: False
-candidate_is_root_cause: False
-suppressed_means_resolved: False
-live_verification_required_before_action: True
-UNKNOWN backup protection != UNPROTECTED
-restore verification UNKNOWN != recovery test overdue
-```
-
 Counts are observed evidence and may change; they are not hard runtime invariants.
 
-## Existing planning-preflight architecture
+## Existing planning architecture
 
-Do not create a second pre-change pack implementation. The repository already has the accepted task-scoped planning preflight:
+Do not create a second pre-change pack implementation. Accepted planning artifacts already exist:
 
 ```text
 docs/decisions/0004-task-scoped-planning-preflight.md
@@ -65,47 +54,99 @@ tests/test_planning_preflight.py
 schemas/deployment-preflight.schema.json
 ```
 
-ADR 0004 already requires a deterministic read-only preflight that separates evidence-backed facts, conflicts, inferences/attention, unknowns, required live verification, a non-executable candidate plan, and post-change verification. `mutation_allowed` remains false.
+The base preflight already separates facts, conflicts, inferences, unknowns, required live verification, a non-executable candidate plan, and post-change verification. It keeps `mutation_allowed=false`.
 
-## Active slice — enrich planning preflight with operator context
+## Active slice — planning preflight operator context
+
+Report:
+
+```text
+docs/reports/2026-08-30-m7-planning-preflight-operator-context.md
+```
 
 Goal:
 
 ```text
-Use the accepted operator-attention artifact as an additional compact input to the existing task-scoped deployment planning preflight so current observability, backup-assurance, and incident-candidate context can influence pre-change verification without duplicating the preflight architecture or authorizing execution.
+Enrich the accepted task-scoped deployment preflight with compact current operator attention so observability, backup assurance, incident candidates, and current task-scoped risk affect pre-change verification and the safest next action without duplicating the preflight architecture or authorizing execution.
 ```
 
-Expected source artifact:
+Prepared module:
 
 ```text
-/var/lib/infra-assurance/evidence/operator-attention.json
+src/infra_assurance/planning_preflight_operator.py
 ```
 
-Required accepted operator scope:
+Prepared behavior:
 
 ```text
-KUBERNETES_BACKUP_AND_INCIDENT_EXISTING_EVIDENCE_ONLY
-```
-
-Trust boundary:
-
-```text
-mutation_allowed: False
-operator attention does not replace source evidence
-incident candidates are not confirmed incidents or root cause
+base build_deployment_preflight is preserved
+accepted operator scope required
+cluster mismatch fails closed
+mutation_allowed=false required on both inputs
+target-namespace attention/change/unknown context projected
+PLATFORM or target-namespace incident candidates are task-relevant
+unrelated namespace incident candidates are not promoted into task risk
+ACTIVE overlapping candidate -> live verification, not incident/root-cause claim
 SUPPRESSED != RESOLVED
 backup UNKNOWN != UNPROTECTED
-partial/incomplete operator evidence must not become negative evidence
-preflight remains non-executable
+stateful post-change plan requires authoritative backup/recovery evidence before stronger protection claims
+one deterministic safest_next_action is emitted, always mutation_allowed=false
 ```
 
-## Exact next step
+Safest-next-action precedence:
 
-Inspect `planning_preflight.py`, `tests/test_planning_preflight.py`, and the deployment-preflight schema on this branch. Design the smallest backward-compatible integration contract for optional operator-attention input.
+```text
+unknown/stale/failed/mismatched base evidence
+> observed current-state conflict
+> overlapping ACTIVE incident candidate
+> relevant target-scope operator attention
+> existing required live verification
+> review non-executable candidate plan
+```
 
-Prefer an additive, task-scoped projection. Do not rewrite the existing preflight model, do not add a new service/timer, do not query live infrastructure, and do not introduce AI-provider or remediation execution in this slice.
+Prepared safe probe:
 
-After the contract is prepared, run focused repository tests before any protected-artifact probe.
+```text
+scripts/discovery/m7_planning_preflight_operator_probe.py
+```
+
+It reads existing protected evidence plus the repository hypothetical deployment request, performs no live infrastructure query, writes nothing, and prints only allowlisted compact planning/operator fields.
+
+## Exact intended branch scope
+
+```text
+HANDOFF.md
+docs/reports/2026-08-30-m7-planning-preflight-operator-context.md
+scripts/discovery/m7_planning_preflight_operator_probe.py
+src/infra_assurance/planning_preflight_operator.py
+tests/test_planning_preflight_operator.py
+```
+
+No systemd, timer, runtime deployment, Kubernetes RBAC, kubeconfig, datastore, permission, AI-provider, remediation, or infrastructure mutation change is included.
+
+## Exact next gate — FOCUSED TESTS
+
+On `mgmt-automation`:
+
+```bash
+cd ~/projects/infrastructure-intelligence-assurance
+git fetch origin
+git switch --track origin/agent/m7-planning-preflight-operator-context
+python3 -m pytest -q tests/test_planning_preflight_operator.py
+```
+
+If the branch already exists locally:
+
+```bash
+cd ~/projects/infrastructure-intelligence-assurance
+git switch agent/m7-planning-preflight-operator-context
+git pull --ff-only origin agent/m7-planning-preflight-operator-context
+python3 -m pytest -q tests/test_planning_preflight_operator.py
+```
+
+Do not use `sudo` for focused tests and do not use strict interactive shell mode.
+
+If focused tests pass, record the exact result, then run the safe protected-artifact probe. Do not deploy this module in the current slice.
 
 ## Preserved M6 boundaries
 
@@ -124,6 +165,10 @@ Do not reopen weak M6 probes.
 - NONE_OBSERVED_IN_BOUNDED_SOURCE != universal absence;
 - FAILED_TO_OBSERVE != negative evidence;
 - UNKNOWN != false;
+- incident candidates are not confirmed incidents or root-cause conclusions;
+- suppressed incident candidates are not resolved by implication;
+- backup UNKNOWN protection is not UNPROTECTED;
+- restore verification UNKNOWN is not a recovery-test-overdue claim;
 - derived projections do not replace source evidence;
 - no secret, credential, raw Terraform state, or raw Kubernetes Secret value enters the planning projection;
 - no remediation or infrastructure mutation is implied;
