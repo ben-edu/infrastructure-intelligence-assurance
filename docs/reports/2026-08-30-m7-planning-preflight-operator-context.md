@@ -1,7 +1,7 @@
 # Milestone 7 — Planning Preflight Operator Context
 
 Date: 2026-08-30
-Status: SAFE PROBE ACCEPTED / FULL SUITE PENDING
+Status: ACCEPTED / PR READY
 Mode: repository-only integration over existing evidence; no live infrastructure query or runtime deployment
 
 ## Goal
@@ -33,7 +33,7 @@ docs/decisions/0004-task-scoped-planning-preflight.md
 
 The base preflight remains non-executable and keeps `mutation_allowed: False`.
 
-## Prepared integration
+## Accepted integration
 
 New module:
 
@@ -140,7 +140,7 @@ alerts=2
 checks=2
 ```
 
-The enriched preflight emitted seven required live-verification items. Six are existing base planning checks; the seventh is the accepted operator-context gate:
+The enriched preflight emitted seven required live-verification items. Six are existing base planning checks; the seventh is:
 
 ```text
 VERIFY_ACTIVE_INCIDENT_CONTEXT_BEFORE_CHANGE
@@ -183,7 +183,17 @@ required_live_verification_truncated: False
 incident_candidates_truncated: False
 ```
 
-Interpretation: the operator context changes planning priority, but it does not convert a candidate into a confirmed incident/root cause, does not treat suppressed candidates as resolved, does not convert backup UNKNOWN into UNPROTECTED, and does not authorize mutation.
+Interpretation: operator context changes planning priority, but it does not convert a candidate into a confirmed incident/root cause, does not treat suppressed candidates as resolved, does not convert backup UNKNOWN into UNPROTECTED, and does not authorize mutation.
+
+## Full repository suite — ACCEPTED
+
+Executed without `sudo` after the accepted safe probe:
+
+```text
+452 passed in 2.44s
+```
+
+All repository regression tests are green with the operator-aware planning adapter included.
 
 ## Intended branch scope
 
@@ -197,12 +207,16 @@ tests/test_planning_preflight_operator.py
 
 No systemd, timer, RBAC, kubeconfig, filesystem-permission, datastore, runtime deployment, remediation, or AI-provider change is included.
 
-## Exact next gate
+## Merge gate
 
-Run the full repository suite without `sudo`:
+Before squash merge:
 
-```bash
-python3 -m pytest -q
-```
+1. compare against accepted main `292b8da942f2445d7bdb061f5c778b6861b6cd6f`;
+2. require exactly the five intended files listed above;
+3. verify no temporary/debug/placeholder files;
+4. create a non-draft PR;
+5. verify changed filenames and mergeability;
+6. squash-merge;
+7. carry the accepted main SHA into the M7 closure/handoff slice.
 
-If it passes, mark this slice merge-ready, verify exact five-file scope, create a non-draft PR, verify mergeability, and squash-merge. Do not deploy this module in this slice.
+After merge, reassess M7 against the roadmap. If no acceptance gap remains, close M7 explicitly and update repository continuity/status documentation plus Project Sources so M8 can start in a new tab without reliance on chat memory.
