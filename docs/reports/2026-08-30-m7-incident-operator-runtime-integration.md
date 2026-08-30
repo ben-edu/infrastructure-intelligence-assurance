@@ -1,28 +1,28 @@
 # Milestone 7 — Incident Operator Installed-Runtime Integration
 
 Date: 2026-08-30
-Status: FOCUSED VALIDATION ACCEPTED / DRY-RUN ACCEPTED / DEPLOYMENT AUTHORIZED / APPLY PENDING
-Mode: repository wiring for the existing five-minute collector; bounded deployment explicitly authorized but not yet executed
+Status: BOUNDED DEPLOYMENT EXECUTED / HELPER GATE ACCEPTED / INSTALLED CONTENT VERIFICATION PENDING
+Mode: existing five-minute collector runtime integration
 
 ## Goal
 
-Install the accepted Kubernetes+backup+incident operator contract into the existing `infra-assurance-kubernetes.service` runtime without adding a service, timer, identity, datastore, Kubernetes RBAC, kubeconfig, or filesystem permission.
+Run the accepted Kubernetes+backup+incident operator contract in the existing `infra-assurance-kubernetes.service` runtime without adding a service, timer, identity, datastore, Kubernetes RBAC, kubeconfig, or filesystem permission.
 
 ## Accepted baseline
 
-Accepted main checkpoint:
+Accepted main checkpoint before this slice:
 
 ```text
 98cb3702faf6e23a15791ff32c36c7a7bd594c98
 ```
 
-Accepted integration contract scope:
+Accepted final scope:
 
 ```text
 KUBERNETES_BACKUP_AND_INCIDENT_EXISTING_EVIDENCE_ONLY
 ```
 
-Accepted live no-write contract summary:
+Accepted pre-deployment live contract summary:
 
 ```text
 cluster_id: k3s-main
@@ -35,24 +35,20 @@ candidate_is_confirmed_incident: False
 candidate_is_root_cause: False
 ```
 
-## Prepared runtime order
+## Runtime wiring
 
-The existing collector order is preserved, with one final post-step added:
+Prepared order:
 
 ```text
-incident_runtime
-...
 prometheus_rule_context_integration
 < backup_assurance_foundation
 < operator_attention_backup
 < operator_attention_incident
 ```
 
-`operator_attention_incident` consumes the same-run accepted Kubernetes+backup `operator-attention.json` plus the already-generated same-run `incident-candidates.json`, then atomically replaces `operator-attention.json/.md` with the accepted final scope.
+The final incident post-step consumes the same-run Kubernetes+backup `operator-attention.json` plus the same-run `incident-candidates.json`, then atomically writes the final projection back to the existing `operator-attention.json/.md` paths.
 
-## Runtime identity and sandbox
-
-Unchanged:
+Runtime identity and sandbox are intended to remain unchanged:
 
 ```text
 User=infra-assurance
@@ -63,26 +59,6 @@ ProtectHome=true
 existing ReadWritePaths only
 ```
 
-## Bounded deployment helper
-
-`scripts/deploy-operator-attention-runtime.sh` installs only the accepted operator projection modules required by the existing unit:
-
-```text
-operator_attention.py
-backup_operator_adapter.py
-operator_attention_backup.py
-incident_operator_adapter.py
-operator_attention_incident.py
-```
-
-The helper also installs the existing systemd unit, runs `systemctl daemon-reload`, starts the existing service once, and verifies that the generated operator artifact has scope:
-
-```text
-KUBERNETES_BACKUP_AND_INCIDENT_EXISTING_EVIDENCE_ONLY
-```
-
-The helper does not run `bootstrap-observer.sh`, change Kubernetes RBAC/kubeconfig, change Git source configuration, add services/timers, or broaden filesystem permissions.
-
 ## Focused repository validation — ACCEPTED
 
 Executed twice on `mgmt-automation`:
@@ -92,30 +68,21 @@ Executed twice on `mgmt-automation`:
 11 passed in 0.10s
 ```
 
-The focused gate covered:
-
-- preservation of the established observability-before-backup ordering invariant;
-- `backup_assurance_foundation < operator_attention_backup < operator_attention_incident`;
-- unchanged `infra-assurance` service identity and sandbox;
-- bounded deployment helper module set;
-- final expected scope `KUBERNETES_BACKUP_AND_INCIDENT_EXISTING_EVIDENCE_ONLY`;
-- reuse of the existing artifact paths without adding a service or timer.
+The focused gate covered the established observability-before-backup invariant, backup-before-operator ordering, final incident post-step ordering, unchanged service identity/sandbox, bounded helper module set, reuse of existing artifact paths, and absence of a new service/timer.
 
 ## Deployment helper dry-run — ACCEPTED
 
-Executed without `--apply`.
-
-The dry-run stated the exact bounded mutation plan:
+Dry-run stated the exact bounded mutation plan:
 
 ```text
-- install accepted operator-attention modules under /opt/infra-assurance/src/infra_assurance/
-- install the existing systemd unit definition
-- run systemctl daemon-reload
-- start the existing infra-assurance-kubernetes.service once
-- verify operator-attention.json and operator-attention.md with the accepted Kubernetes+backup+incident scope
+install accepted operator projection modules under /opt/infra-assurance/src/infra_assurance/
+install the existing systemd unit definition
+systemctl daemon-reload
+start the existing infra-assurance-kubernetes.service once
+verify operator-attention.json and operator-attention.md with the final accepted scope
 ```
 
-It explicitly excludes:
+Explicit exclusions remained:
 
 ```text
 bootstrap-observer.sh
@@ -126,40 +93,22 @@ new service/timer creation
 filesystem permission broadening
 ```
 
-Dry-run only: no systemd, installed runtime, service execution, or infrastructure mutation occurred.
+## Authorization — ACCEPTED
 
-## Authorization state — AUTHORIZED
-
-Fresh explicit user authorization was granted on 2026-08-30 for this bounded deployment.
+Fresh explicit user authorization was granted on 2026-08-30 for this bounded deployment only.
 
 ```text
 broader infrastructure mutation authorized: false
 incident operator runtime deployment authorized: true
 ```
 
-The authorization covers only:
+The authorization covered installing the accepted five operator projection modules and prepared existing unit, running `daemon-reload`, starting the existing oneshot once, and verifying generated artifact ownership/scope. It did not authorize remediation, Kubernetes mutation, permission broadening, new services/timers/datastores, bootstrap, or unrelated infrastructure mutation.
 
-```text
-install the accepted five operator projection modules
-install the prepared existing systemd unit
-systemctl daemon-reload
-start the existing oneshot service once
-verify generated operator-attention artifact ownership and exact final scope
-```
+## Authorized bounded deployment — EXECUTED / HELPER GATE ACCEPTED
 
-It does not authorize remediation, Kubernetes RBAC/kubeconfig changes, permission broadening, new services/timers, new datastores, bootstrap, or unrelated infrastructure mutation.
+Executed on `mgmt-automation` after pulling the authorization-recording branch head.
 
-## Exact next gate — AUTHORIZED APPLY
-
-On `mgmt-automation`:
-
-```bash
-cd ~/projects/infrastructure-intelligence-assurance
-git pull --ff-only origin agent/m7-incident-operator-runtime-integration
-sudo bash scripts/deploy-operator-attention-runtime.sh --apply
-```
-
-Accept the deployment only if the helper reports:
+Observed helper output:
 
 ```text
 deployment_status=COMPLETE
@@ -170,4 +119,56 @@ runtime_identity=infra-assurance
 runtime_scope=KUBERNETES_BACKUP_AND_INCIDENT_EXISTING_EVIDENCE_ONLY
 ```
 
-After a successful apply, perform separate read-only verification of installed ordering and safe allowlisted artifact content before running the full repository suite and PR/merge gates.
+Accepted interpretation:
+
+```text
+bounded apply executed: true
+existing oneshot result: success
+JSON artifact observed: true
+Markdown artifact observed: true
+runtime identity reported by helper: infra-assurance
+exact final scope reported by helper: true
+broader mutation authorization: false
+```
+
+The helper gate is necessary but is not the final installed-content acceptance gate.
+
+## Remaining verification gate
+
+Perform a separate read-only check of the installed unit and protected generated JSON artifact.
+
+Required ordering:
+
+```text
+prometheus_rule_context_integration
+< backup_assurance_foundation
+< operator_attention_backup
+< operator_attention_incident
+```
+
+Required trust conditions:
+
+```text
+mutation_allowed: False
+scope: KUBERNETES_BACKUP_AND_INCIDENT_EXISTING_EVIDENCE_ONLY
+candidate_is_confirmed_incident: False
+candidate_is_root_cause: False
+suppressed_means_resolved: False
+live_verification_required_before_action: True
+backup unknown_is_not_unprotected: True
+backup recovery_test_overdue_claimed: False
+```
+
+Current counts are evidence values, not hard invariants. Print exact counts, incident source status, source artifacts, and truncation state. Any missing module/order key or parse failure must remain a failed verification rather than being interpreted as zero/absence.
+
+## After installed-content acceptance
+
+1. Record exact read-only verification output.
+2. Pull the latest branch head.
+3. Run the full repository suite without `sudo`.
+4. Verify exact five-file branch scope versus accepted main.
+5. Create a non-draft PR, verify changed filenames and mergeability, and squash-merge only if all gates remain green.
+
+## Trust boundary
+
+No secret, credential, raw Terraform state, or raw Kubernetes Secret value is projected. Incident candidates remain candidates, not confirmed incidents or root-cause conclusions. Backup UNKNOWN remains distinct from UNPROTECTED, and restore verification UNKNOWN is not a recovery-overdue claim. No remediation is implied by this runtime integration.
