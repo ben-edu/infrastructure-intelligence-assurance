@@ -2,20 +2,22 @@
 
 Project Sources remain authoritative. Read `docs/PROJECT_CONTINUITY.md`, then this file, then only the transition/report documents named below.
 
-## Accepted milestone boundary
+## Current execution checkpoint
 
 ```text
 repository: ben-edu/infrastructure-intelligence-assurance
-accepted functional main before M7 closure docs: b236c2e74960327ca70239a9ffcf15f9e52cfa63
+current accepted main at M8 branch point: b63bed9704832d1e3701ea87dea50e135f2b1f64
 Milestone 7: COMPLETE WITHIN ACCEPTED READ-ONLY SCOPE
-Milestone 8: NEXT
-active implementation branch: none after closure merge
+Milestone 8: ACTIVE — FIRST READ-ONLY BASELINE SLICE
+active implementation branch: agent/m8-runtime-hardening-baseline
+active pull request: pending creation
+open project PRs at branch creation: none
 broader infrastructure mutation authorized: false
 management host: mgmt-automation
 cluster: k3s-main
 ```
 
-At this milestone boundary, verify current `main` directly after the closure PR is merged. Do not create a self-referential documentation-only SHA update loop.
+The M8 branch was created directly from current accepted `main`. No unresolved M7 pull request existed at branch creation.
 
 ## M7 closure
 
@@ -140,12 +142,13 @@ mutation_allowed=false unless separately reviewed and explicitly authorized
 
 Never expose secrets, tokens, passwords, private keys, raw Kubernetes Secret values, sensitive Terraform state, complete sensitive connection strings, raw backup contents, or unnecessary sensitive configuration.
 
-## M8 bootstrap
+## Active M8 slice
 
 Read:
 
 ```text
 docs/M8_START_HERE.md
+docs/reports/2026-08-30-m8-runtime-hardening-baseline.md
 ```
 
 First M8 slice:
@@ -181,14 +184,29 @@ REQUIRES_CHANGE
 
 It should identify one smallest justified hardening change. Do not apply unit, permission, scheduling, backup, RBAC, or infrastructure mutations in the baseline slice.
 
-## Exact next step for a fresh M8 session
+Current repository state:
+
+```text
+probe: scripts/discovery/m8_runtime_hardening_baseline_probe.py
+tests: tests/test_m8_runtime_hardening_baseline.py
+report status: PREPARED — FRESH LIVE READ-ONLY GATE PENDING
+focused validation: 10 passed in 0.12s
+full repository suite: 462 passed in 1.61s
+management-host mutation performed: false
+```
+
+Repository declarations currently show the dedicated identity, strict sandbox, five-minute oneshot timer, 12 runtime entrypoints, and atomic per-file writes. They do not declare an explicit start timeout, restart policy, `OnFailure`, or process/history writer lock. These are declarations, not effective installed-state claims.
+
+The provisional smallest change candidate is, after fresh observation, to pin the effective start timeout in the repository unit. The probe must first rule out higher-priority identity, sandbox, fragment, installed-code, or permission drift. No hardening control is implemented in this baseline.
+
+## Exact next step
 
 1. Read all Project Sources.
 2. Read `docs/PROJECT_CONTINUITY.md`.
-3. Read this `HANDOFF.md` from current `main`.
-4. Read `docs/reports/2026-08-30-m7-closure.md` and `docs/M8_START_HERE.md`.
-5. Verify current `main` and confirm there is no unresolved M7 PR.
-6. Create `agent/m8-runtime-hardening-baseline` from current accepted `main`.
-7. Inspect existing repository systemd/runtime declarations before writing the smallest read-only baseline probe.
+3. Read this `HANDOFF.md` from `agent/m8-runtime-hardening-baseline`.
+4. Read `docs/M8_START_HERE.md` and `docs/reports/2026-08-30-m8-runtime-hardening-baseline.md`.
+5. Continue on `agent/m8-runtime-hardening-baseline`; do not recreate the branch or repeat repository discovery.
+6. Run the focused test and the prepared fresh live read-only probe on `mgmt-automation` using the report commands.
+7. Review the classified JSON output, replace pending live state in the report with accepted evidence, confirm exactly one smallest justified change, update this handoff, then run the full repository suite.
 
-Do not reconstruct M7 from chat memory and do not repeat completed discovery solely because a new tab has started.
+Do not change the unit, permissions, schedule, backup, RBAC, installed code, or infrastructure during this baseline gate. Do not reconstruct M7 from chat memory.
