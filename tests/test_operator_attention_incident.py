@@ -214,7 +214,7 @@ def test_cluster_mismatch_fails_closed():
 def test_rejects_unaccepted_operator_contract():
     operator = _operator()
     operator["scope"] = "KUBERNETES_EXISTING_EVIDENCE_ONLY"
-    with pytest.raises(ValueError, match="accepted Kubernetes\+backup scope"):
+    with pytest.raises(ValueError, match=r"accepted Kubernetes\+backup scope"):
         build_operator_attention_with_incidents(operator, _incidents())
 
     operator = _operator()
