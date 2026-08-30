@@ -104,6 +104,17 @@ unknown/stale/failed/mismatched base evidence
 > review non-executable candidate plan
 ```
 
+## Focused validation — ACCEPTED
+
+Executed without `sudo`:
+
+```text
+7 passed in 0.08s
+7 passed in 0.04s
+```
+
+Both focused runs passed. Do not rerun them unless later code changes affect this slice.
+
 Prepared safe probe:
 
 ```text
@@ -124,29 +135,25 @@ tests/test_planning_preflight_operator.py
 
 No systemd, timer, runtime deployment, Kubernetes RBAC, kubeconfig, datastore, permission, AI-provider, remediation, or infrastructure mutation change is included.
 
-## Exact next gate — FOCUSED TESTS
+## Exact next gate — SAFE NO-WRITE PROBE
 
 On `mgmt-automation`:
 
 ```bash
 cd ~/projects/infrastructure-intelligence-assurance
-git fetch origin
-git switch --track origin/agent/m7-planning-preflight-operator-context
-python3 -m pytest -q tests/test_planning_preflight_operator.py
+git pull --ff-only origin agent/m7-planning-preflight-operator-context
+sudo PYTHONPATH="$PWD/src" python3 scripts/discovery/m7_planning_preflight_operator_probe.py
 ```
 
-If the branch already exists locally:
+The `sudo` scope is only to read protected existing evidence artifacts. The probe performs no live infrastructure query and writes no artifact.
+
+If the probe is accepted, record its exact output and then run the full repository suite without `sudo`:
 
 ```bash
-cd ~/projects/infrastructure-intelligence-assurance
-git switch agent/m7-planning-preflight-operator-context
-git pull --ff-only origin agent/m7-planning-preflight-operator-context
-python3 -m pytest -q tests/test_planning_preflight_operator.py
+python3 -m pytest -q
 ```
 
-Do not use `sudo` for focused tests and do not use strict interactive shell mode.
-
-If focused tests pass, record the exact result, then run the safe protected-artifact probe. Do not deploy this module in the current slice.
+Do not deploy this module in the current slice.
 
 ## Preserved M6 boundaries
 
