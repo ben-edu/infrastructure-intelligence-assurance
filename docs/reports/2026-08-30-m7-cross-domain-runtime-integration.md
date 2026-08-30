@@ -1,7 +1,7 @@
 # Milestone 7 — Cross-Domain Installed Runtime Integration
 
 Date: 2026-08-30
-Status: ACCEPTED PENDING FULL-SUITE GATE
+Status: CORRECTIVE ORDERING VALIDATION IN PROGRESS
 Mode: bounded management-host runtime integration in the existing five-minute collector
 
 ## Scope
@@ -9,15 +9,6 @@ Mode: bounded management-host runtime integration in the existing five-minute co
 This slice installs the already-accepted Kubernetes-plus-backup operator projection into the existing `infra-assurance-kubernetes.service` oneshot collector path.
 
 No new service, timer, identity, datastore, Kubernetes RBAC, kubeconfig, Git source configuration, or filesystem permission was introduced.
-
-The accepted runtime order is:
-
-```text
-1. kubernetes_runtime completes;
-2. backup_assurance_foundation produces backup-assurance.json/md;
-3. operator_attention_backup consumes inventory/context/change-context/backup-assurance;
-4. remaining existing ExecStartPost commands continue unchanged.
-```
 
 Runtime identity and sandbox remain:
 
@@ -30,9 +21,9 @@ ProtectHome=true
 existing ReadWritePaths only
 ```
 
-## Repository validation
+## Repository focused validation
 
-Focused integration tests:
+Initial focused integration tests:
 
 ```text
 10 passed in 0.21s
@@ -169,18 +160,59 @@ attention_now_truncated: False
 required_live_verification_truncated: False
 ```
 
-## Interpretation
+## Full-suite regression gate — FAILED
 
-The installed collector now produces the accepted cross-domain operator-attention projection on the existing schedule and under the existing `infra-assurance` identity.
-
-The current backup evidence continues to report protection and restore verification as UNKNOWN for 37 assets, while authoritative unprotected claims remain zero. Therefore:
+The first full repository suite after deployment returned:
 
 ```text
-UNKNOWN != UNPROTECTED
-restore verification UNKNOWN != recovery test overdue
+1 failed, 428 passed in 2.49s
 ```
 
-The zero values for recent changes and unknowns are bounded to the loaded source artifacts and their own freshness/trust boundaries. They are not universal absence claims.
+Failing test:
+
+```text
+tests/test_backup_assurance_foundation_wiring.py::test_backup_assurance_runs_after_observability_post_steps
+```
+
+Observed assertion:
+
+```text
+prometheus_rule_context_integration index: 5856
+backup_assurance_foundation index: 2803
+required invariant: prometheus_rule_context_integration < backup_assurance_foundation
+```
+
+This is a repository/runtime ordering regression, not an evidence observation failure and not evidence that backup protection is absent.
+
+The deployed runtime still completed successfully and produced a valid cross-domain artifact, but the slice is not merge-ready while this ordering invariant is violated.
+
+## Corrective ordering decision
+
+The existing backup-assurance ordering invariant is preserved rather than weakening or deleting its test.
+
+The corrected repository order is:
+
+```text
+1. kubernetes_runtime completes;
+2. existing routing / incident / observability ExecStartPost chain remains in its prior order;
+3. prometheus_rule_context_integration completes;
+4. backup_assurance_foundation produces backup-assurance.json/md;
+5. operator_attention_backup runs immediately after backup assurance and consumes inventory/context/change-context/backup-assurance.
+```
+
+This is the smallest compatible ordering because:
+
+- `backup_assurance_foundation` retains its established position after observability post-steps;
+- `operator_attention_backup` still receives a backup artifact generated in the same oneshot service execution;
+- no service, timer, permission, RBAC, kubeconfig, datastore, or runtime identity changes are introduced.
+
+Repository corrective commit:
+
+```text
+1ca5d15bd925322e641af5c395f48623c3353d59
+```
+
+The corrective unit has NOT yet been redeployed. The currently installed runtime still reflects the earlier ordering until a separately reviewed corrective redeployment occurs.
 
 ## Trust boundary
 
@@ -192,6 +224,10 @@ The zero values for recent changes and unknowns are bounded to the loaded source
 - no remediation is authorized or implied;
 - generated operational semantics preserve `mutation_allowed=false`.
 
-## Remaining gate
+## Next gate
 
-A full repository regression suite is required before PR/merge because systemd wiring, deployment helper behavior, and tests changed.
+Run focused repository tests covering the preserved backup ordering invariant and cross-domain operator wiring.
+
+Only after those tests pass should a dry-run of the unchanged bounded deployment helper be repeated. Because the unit content changed after the original authorization, corrective redeployment requires a fresh explicit authorization before `--apply`.
+
+After corrected deployment and safe artifact verification, rerun the full repository suite before PR/merge.
