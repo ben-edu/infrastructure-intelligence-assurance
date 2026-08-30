@@ -79,7 +79,7 @@ suppressed_means_resolved: False
 live_verification_required_before_action: True
 ```
 
-The exact incomplete incident source domain was not printed by the allowlisted probe and must not be guessed.
+The exact incomplete incident source domain was not printed by the allowlisted adapter probe and must not be guessed.
 
 ## Active slice — incident operator integration contract
 
@@ -118,13 +118,11 @@ Required accepted input scope:
 KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY
 ```
 
-Prepared integrated scope:
+Integrated scope:
 
 ```text
 KUBERNETES_BACKUP_AND_INCIDENT_EXISTING_EVIDENCE_ONLY
 ```
-
-The integration fails closed on cluster mismatch, unaccepted operator scope, or `mutation_allowed != false`. Raw alert/Event payloads, related workload details, field-level change/drift details, rationales, logs, secrets, raw Terraform state, and raw Kubernetes Secret values are not projected.
 
 ## Initial focused gate — FAILED AND PRESERVED
 
@@ -144,7 +142,7 @@ Root cause: final `max_items=2` was incorrectly reused as the incident-adapter v
 
 ## Corrective focused gate — ACCEPTED
 
-Corrected semantics:
+Corrected fixture semantics:
 
 ```text
 existing required verification total: 8
@@ -162,37 +160,122 @@ Corrective focused result:
 
 The regex warning was also removed with a raw regex string. No assertion was weakened or removed.
 
-## Mutation boundary
+## Safe no-write integration probe — ACCEPTED
 
-This slice remains repository-only plus a safe read-only in-memory probe. It does NOT change:
+The probe read only the protected current `operator-attention.json` and `incident-candidates.json`, performed no live infrastructure query, and wrote nothing.
+
+Safety:
 
 ```text
-systemd
-installed /opt runtime
-collector service/timer
-Kubernetes RBAC/kubeconfig
-filesystem permissions
-datastores
-infrastructure
+mutation_allowed: False
+live_infrastructure_query_performed: False
+source_artifacts_written: False
+systemd_modified: False
+installed_runtime_modified: False
+candidate_promoted_to_confirmed_incident: False
+root_cause_claimed: False
 ```
 
-No deployment authorization is requested or implied.
+Integrated contract:
 
-## Exact next gate — SAFE NO-WRITE INTEGRATION PROBE
+```text
+source_status: COMPLETE
+cluster_id: k3s-main
+scope: KUBERNETES_BACKUP_AND_INCIDENT_EXISTING_EVIDENCE_ONLY
+mutation_allowed: False
+incident_source_status: PARTIAL
+source_artifacts: inventory.json,context.json,change-context.json,backup-assurance.json,incident-candidates.json
+```
+
+Current combined summary:
+
+```text
+workloads_total: 68
+workloads_with_attention: 3
+attention_now_total: 7
+recent_changes_total: 0
+unknowns_total: 0
+required_live_verification_total: 14
+backup_assets_total: 37
+backup_protection_unknown: 37
+backup_restore_verification_unknown: 37
+backup_unprotected_claims: 0
+incident_candidates_total: 4
+incident_active_candidates: 4
+incident_suppressed_candidates: 0
+incident_unknown_candidates: 0
+incident_candidates_with_related_warning_events: 1
+incident_candidates_requiring_live_verification: 4
+```
+
+Incident attention added:
+
+```text
+INCIDENT_SOURCE_INCOMPLETE / UNKNOWN / count=1
+ACTIVE_INCIDENT_CANDIDATES / SIGNAL / count=4
+```
+
+Current incident groups:
+
+```text
+Namespace/keycloak / ACTIVE / alerts=2 / events=0 / checks=1
+Namespace/monitoring / ACTIVE / alerts=5 / events=0 / checks=1
+Namespace/moodle / ACTIVE / alerts=2 / events=1 / checks=2
+Platform/k3s-main / ACTIVE / alerts=2 / events=0 / checks=2
+```
+
+Incident live-verification entries:
+
+```text
+VERIFY_ALERT_CONDITION_CURRENT -> PROMETHEUS_ALERTMANAGER
+VERIFY_ALERT_CONDITION_CURRENT -> PROMETHEUS_ALERTMANAGER
+VERIFY_ALERT_CONDITION_CURRENT -> PROMETHEUS_ALERTMANAGER
+VERIFY_RELATED_EVENT_OBJECT_STATE -> KUBERNETES_OBJECT
+VERIFY_ALERT_CONDITION_CURRENT -> PROMETHEUS_ALERTMANAGER
+VERIFY_PROMETHEUS_RULE_INPUTS -> PROMETHEUS_RULE_INPUTS
+```
+
+The combined total of 14 is the accepted existing operator total of 8 plus six current incident verification entries. Repeated alert-condition checks are candidate-scoped, not proof of completed verification.
+
+Trust/truncation:
+
+```text
+candidate_is_confirmed_incident: False
+candidate_is_root_cause: False
+suppressed_means_resolved: False
+live_verification_required_before_action: True
+attention_now_truncated: False
+required_live_verification_truncated: False
+incident_candidates_truncated: False
+```
+
+The incident source remains PARTIAL. Four active candidate groupings are observed, but they are not confirmed incidents or root-cause conclusions, and the current set is not a universal absence statement about other possible incidents or signals.
+
+## Mutation boundary
+
+This slice remains repository-only plus a safe read-only in-memory probe. It does NOT change systemd, installed `/opt` runtime, collector service/timer, Kubernetes RBAC/kubeconfig, filesystem permissions, datastores, or infrastructure. No deployment authorization is requested or implied.
+
+## Exact next gate — FULL REPOSITORY SUITE
 
 On `mgmt-automation`:
 
 ```bash
 cd ~/projects/infrastructure-intelligence-assurance
 git pull --ff-only origin agent/m7-incident-operator-integration-contract
-sudo PYTHONPATH="$PWD/src" python3 scripts/discovery/m7_incident_operator_integration_probe.py
+python3 -m pytest -q
 ```
 
-The probe reads only the protected current `operator-attention.json` and `incident-candidates.json`, performs no live infrastructure query, and writes nothing.
+Do not use strict interactive shell mode.
 
-A failed read, scope mismatch, cluster mismatch, or builder failure must remain an explicit failed observation/contract gate and must not be converted to zero counts.
+If the full suite passes:
 
-If the probe passes, record exact current integrated counts/trust/truncation, then run the full repository suite. Do not deploy or replace installed operator attention in this slice.
+1. record exact pass count/time;
+2. verify exact five-file branch scope and no temporary/debug files;
+3. create/inspect a non-draft PR;
+4. verify changed filenames and mergeability;
+5. squash-merge and carry the new accepted main SHA forward.
+
+Do not deploy or replace installed operator attention in this slice.
 
 ## Preserved M6 boundaries
 
