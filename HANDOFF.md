@@ -11,20 +11,18 @@ active branch: agent/m7-incident-operator-runtime-integration
 Milestone 7: ACTIVE
 management host: mgmt-automation
 broader infrastructure mutation authorized: false
-incident operator runtime deployment authorized: false
+incident operator runtime deployment authorized: true
 ```
 
 ## Accepted installed runtime baseline
 
-Current installed runtime is still the previously accepted Kubernetes+backup operator projection:
+Current installed runtime is still the previously accepted Kubernetes+backup operator projection until the authorized deployment command is executed successfully:
 
 ```text
 runtime identity: infra-assurance
 scope: KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY
 prometheus_rule_context_integration < backup_assurance_foundation < operator_attention_backup
 ```
-
-No incident operator runtime deployment has occurred yet.
 
 ## Accepted incident integration contract
 
@@ -169,16 +167,16 @@ filesystem permission broadening
 
 Dry-run performed no installed-runtime, systemd, service, or infrastructure mutation.
 
-## Authorization boundary — CURRENT GATE
+## Authorization boundary — AUTHORIZED
+
+Fresh explicit user authorization was granted on 2026-08-30 for the bounded incident-operator runtime deployment.
 
 ```text
 broader infrastructure mutation authorized: false
-incident operator runtime deployment authorized: false
+incident operator runtime deployment authorized: true
 ```
 
-Fresh explicit authorization is required because the installed module set and unit content differ from the previously authorized runtime deployment.
-
-If authorization is granted, it covers only:
+This authorization covers only:
 
 ```text
 install the accepted five operator projection modules
@@ -190,11 +188,28 @@ verify generated operator-attention artifact ownership and exact final scope
 
 It does NOT authorize Kubernetes RBAC/kubeconfig changes, permission broadening, new services/timers/datastores, remediation, bootstrap, or unrelated infrastructure mutation.
 
-## Exact next gate
+## Exact next gate — AUTHORIZED BOUNDED DEPLOYMENT
 
-Obtain fresh explicit authorization for the bounded incident-operator runtime deployment. Do not run `scripts/deploy-operator-attention-runtime.sh --apply` until authorization is explicitly given and recorded.
+On `mgmt-automation`, pull the authorization-recording branch head and run only:
 
-After an authorized deployment succeeds, verify installed ordering and safe allowlisted artifact content, then run the full repository suite before PR/merge.
+```bash
+cd ~/projects/infrastructure-intelligence-assurance
+git pull --ff-only origin agent/m7-incident-operator-runtime-integration
+sudo bash scripts/deploy-operator-attention-runtime.sh --apply
+```
+
+After the command, accept the deployment only if the helper reports:
+
+```text
+deployment_status=COMPLETE
+service_result=success
+operator_attention_json=OBSERVED
+operator_attention_markdown=OBSERVED
+runtime_identity=infra-assurance
+runtime_scope=KUBERNETES_BACKUP_AND_INCIDENT_EXISTING_EVIDENCE_ONLY
+```
+
+If deployment succeeds, verify installed ordering and safe allowlisted artifact content, then run the full repository suite before PR/merge.
 
 ## Preserved M6 boundaries
 
@@ -217,4 +232,4 @@ Do not reopen weak M6 probes.
 - no secret, credential, raw Terraform state, or raw Kubernetes Secret value enters the projection;
 - no remediation is implied;
 - generated operational semantics keep `mutation_allowed=false`;
-- any installed-runtime mutation requires fresh explicit authorization.
+- this authorization is bounded to the recorded incident-operator runtime deployment only.
