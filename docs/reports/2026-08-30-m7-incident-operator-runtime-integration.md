@@ -1,8 +1,8 @@
 # Milestone 7 — Incident Operator Installed-Runtime Integration
 
 Date: 2026-08-30
-Status: FOCUSED VALIDATION ACCEPTED / DRY-RUN ACCEPTED / DEPLOYMENT PENDING AUTHORIZATION
-Mode: repository wiring for the existing five-minute collector; no deployment performed
+Status: FOCUSED VALIDATION ACCEPTED / DRY-RUN ACCEPTED / DEPLOYMENT AUTHORIZED / APPLY PENDING
+Mode: repository wiring for the existing five-minute collector; bounded deployment explicitly authorized but not yet executed
 
 ## Goal
 
@@ -65,7 +65,7 @@ existing ReadWritePaths only
 
 ## Bounded deployment helper
 
-`scripts/deploy-operator-attention-runtime.sh` is prepared to install only the accepted operator projection modules required by the existing unit:
+`scripts/deploy-operator-attention-runtime.sh` installs only the accepted operator projection modules required by the existing unit:
 
 ```text
 operator_attention.py
@@ -115,7 +115,7 @@ The dry-run stated the exact bounded mutation plan:
 - verify operator-attention.json and operator-attention.md with the accepted Kubernetes+backup+incident scope
 ```
 
-It also explicitly excludes:
+It explicitly excludes:
 
 ```text
 bootstrap-observer.sh
@@ -128,21 +128,46 @@ filesystem permission broadening
 
 Dry-run only: no systemd, installed runtime, service execution, or infrastructure mutation occurred.
 
-## Authorization state
+## Authorization state — AUTHORIZED
+
+Fresh explicit user authorization was granted on 2026-08-30 for this bounded deployment.
 
 ```text
 broader infrastructure mutation authorized: false
-incident operator runtime deployment authorized: false
+incident operator runtime deployment authorized: true
 ```
 
-A fresh explicit authorization is required before any `--apply` execution. Prior runtime deployment authorization does not cover this changed unit/module set.
+The authorization covers only:
 
-## Mutation boundary
+```text
+install the accepted five operator projection modules
+install the prepared existing systemd unit
+systemctl daemon-reload
+start the existing oneshot service once
+verify generated operator-attention artifact ownership and exact final scope
+```
 
-The proposed bounded deployment, if explicitly authorized, is limited to installing the accepted operator projection modules and corrected existing unit, running `daemon-reload`, starting the existing oneshot service once, and verifying the generated artifact scope/ownership.
+It does not authorize remediation, Kubernetes RBAC/kubeconfig changes, permission broadening, new services/timers, new datastores, bootstrap, or unrelated infrastructure mutation.
 
-It does not authorize remediation, Kubernetes changes, permission broadening, new services/timers, new datastores, or unrelated infrastructure mutation.
+## Exact next gate — AUTHORIZED APPLY
 
-## Next gate
+On `mgmt-automation`:
 
-Obtain fresh explicit authorization for the bounded incident-operator runtime deployment. Do not run `scripts/deploy-operator-attention-runtime.sh --apply` before that authorization is recorded.
+```bash
+cd ~/projects/infrastructure-intelligence-assurance
+git pull --ff-only origin agent/m7-incident-operator-runtime-integration
+sudo bash scripts/deploy-operator-attention-runtime.sh --apply
+```
+
+Accept the deployment only if the helper reports:
+
+```text
+deployment_status=COMPLETE
+service_result=success
+operator_attention_json=OBSERVED
+operator_attention_markdown=OBSERVED
+runtime_identity=infra-assurance
+runtime_scope=KUBERNETES_BACKUP_AND_INCIDENT_EXISTING_EVIDENCE_ONLY
+```
+
+After a successful apply, perform separate read-only verification of installed ordering and safe allowlisted artifact content before running the full repository suite and PR/merge gates.
