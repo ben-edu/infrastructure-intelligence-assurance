@@ -104,30 +104,7 @@ runtime_identity=infra-assurance
 runtime_scope=KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY
 ```
 
-Safe generated-artifact verification also succeeded:
-
-```text
-operator_attention_version: 0.1
-cluster_id: k3s-main
-mutation_allowed: False
-scope: KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY
-source_artifacts: inventory.json,context.json,change-context.json,backup-assurance.json
-workloads_total: 68
-workloads_with_attention: 3
-attention_now_total: 5
-recent_changes_total: 0
-unknowns_total: 0
-required_live_verification_total: 8
-backup_assets_total: 37
-backup_protection_unknown: 37
-backup_restore_verification_unknown: 37
-backup_unprotected_claims: 0
-unknown_is_not_unprotected: True
-recovery_test_overdue_claimed: False
-authoritative_backup_evidence_required_for_unprotected: True
-attention_now_truncated: False
-required_live_verification_truncated: False
-```
+Safe generated-artifact verification also succeeded with the accepted 5 attention items, 8 required verification categories, 37 backup assets with protection/restore UNKNOWN, zero authoritative unprotected claims, and preserved trust semantics.
 
 ## Preserved full-suite failure
 
@@ -143,7 +120,7 @@ Failure:
 tests/test_backup_assurance_foundation_wiring.py::test_backup_assurance_runs_after_observability_post_steps
 ```
 
-This was a real repository/runtime ordering regression, not an evidence observation failure. The established invariant is preserved; its test was not weakened or removed.
+This was a real repository/runtime ordering regression, not an evidence observation failure. The established invariant was preserved; its test was not weakened or removed.
 
 ## Corrective ordering — REPOSITORY VALIDATED
 
@@ -151,7 +128,7 @@ Corrected intended order:
 
 ```text
 1. kubernetes_runtime completes;
-2. existing routing / incident / observability ExecStartPost chain remains in its prior order;
+2. existing routing / incident / observability ExecStartPost chain remains in prior order;
 3. prometheus_rule_context_integration completes;
 4. backup_assurance_foundation produces backup-assurance.json/md;
 5. operator_attention_backup runs immediately after backup assurance.
@@ -168,15 +145,6 @@ Corrective focused gate:
 
 ```text
 14 passed in 0.26s
-```
-
-Accepted interpretation:
-
-```text
-established backup ordering invariant preserved: true
-cross-domain backup-before-operator dependency preserved: true
-existing operator-attention behavior remains green: true
-corrective repository wiring accepted: true
 ```
 
 ## Corrective deployment dry run — ACCEPTED
@@ -208,36 +176,78 @@ runtime_identity=infra-assurance
 runtime_scope=KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY
 ```
 
+## Corrective installed-order/content verification — ACCEPTED
+
+Read-only verification of the installed unit and allowlisted artifact fields returned:
+
+```text
+observability_before_backup: True
+backup_before_operator: True
+correct_order: True
+```
+
+Installed runtime therefore satisfies:
+
+```text
+prometheus_rule_context_integration < backup_assurance_foundation < operator_attention_backup
+```
+
+Accepted regenerated contract/content:
+
+```text
+operator_attention_version: 0.1
+cluster_id: k3s-main
+mutation_allowed: False
+scope: KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY
+source_artifacts: inventory.json,context.json,change-context.json,backup-assurance.json
+workloads_total: 68
+workloads_with_attention: 3
+attention_now_total: 5
+recent_changes_total: 0
+unknowns_total: 0
+required_live_verification_total: 8
+backup_assets_total: 37
+backup_protection_unknown: 37
+backup_restore_verification_unknown: 37
+backup_unprotected_claims: 0
+unknown_is_not_unprotected: True
+recovery_test_overdue_claimed: False
+authoritative_backup_evidence_required_for_unprotected: True
+attention_now_truncated: False
+required_live_verification_truncated: False
+```
+
 Accepted interpretation:
 
 ```text
-corrected existing unit installed: true
-existing oneshot collector completed successfully: true
-operator-attention JSON produced: true
-operator-attention Markdown produced: true
-runtime identity remains infra-assurance: true
-cross-domain runtime scope observed: true
-broader infrastructure mutation authorized/performed by this gate: false
+corrected installed ordering observed: true
+cross-domain artifact regenerated successfully: true
+mutation_allowed remains false: true
+UNKNOWN protection treated as UNPROTECTED: false
+overdue recovery test inferred from UNKNOWN restore verification: false
 ```
 
-## Exact next gate — SAFE CONTENT REVERIFICATION
+## Exact next gate — FINAL FULL REPOSITORY SUITE
 
-Read only allowlisted fields from:
+Run on `mgmt-automation`:
 
-```text
-/var/lib/infra-assurance/evidence/operator-attention.json
+```bash
+cd ~/projects/infrastructure-intelligence-assurance
+git pull --ff-only origin agent/m7-cross-domain-runtime-integration
+python3 -m pytest -q
 ```
 
-Acceptance requires the cross-domain contract/trust fields to remain valid. Current counts may legitimately differ if source evidence changed; changed counts alone are not a failure.
+Do not use strict interactive shell mode.
 
-After safe content reverification succeeds:
+If the full suite passes:
 
-1. record exact current content in this handoff/report;
-2. rerun the full repository suite;
-3. verify exact five-file branch scope and no temporary/debug files;
+1. record exact pass count/time in this handoff and the runtime-integration report;
+2. verify exact branch scope is the five intended files listed above;
+3. ensure no temporary/debug/placeholder files exist;
 4. create/inspect a non-draft PR;
 5. verify changed filenames and mergeability;
-6. squash-merge and carry the new accepted main SHA forward.
+6. squash-merge;
+7. carry the new accepted main SHA forward.
 
 ## Preserved M6 boundaries
 
