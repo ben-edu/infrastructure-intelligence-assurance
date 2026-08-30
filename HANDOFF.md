@@ -15,7 +15,7 @@ broader infrastructure mutation authorized: false
 
 ## Accepted installed operator baseline
 
-Installed runtime remains:
+Installed runtime remains unchanged in this slice:
 
 ```text
 runtime identity: infra-assurance
@@ -124,13 +124,9 @@ Prepared integrated scope:
 KUBERNETES_BACKUP_AND_INCIDENT_EXISTING_EVIDENCE_ONLY
 ```
 
-The integration fails closed on cluster mismatch, unaccepted operator scope, or `mutation_allowed != false`. It appends compact incident attention/live-verification entries while preserving accepted Kubernetes and backup evidence/trust fields.
-
-Raw alert/Event payloads, related workload details, field-level change/drift details, rationales, logs, secrets, raw Terraform state, and raw Kubernetes Secret values are not projected.
+The integration fails closed on cluster mismatch, unaccepted operator scope, or `mutation_allowed != false`. Raw alert/Event payloads, related workload details, field-level change/drift details, rationales, logs, secrets, raw Terraform state, and raw Kubernetes Secret values are not projected.
 
 ## Initial focused gate — FAILED AND PRESERVED
-
-Executed on `mgmt-automation`:
 
 ```text
 1 failed, 5 passed, 1 warning in 0.10s
@@ -144,29 +140,31 @@ expected required_live_verification_total: 11
 observed: 10
 ```
 
-This was a real implementation bug, not a stale test. Final `max_items=2` was incorrectly reused as the incident-adapter verification cap, so three incident verification entries were truncated to two before calculating the combined total.
+Root cause: final `max_items=2` was incorrectly reused as the incident-adapter verification cap, truncating three incident verification entries to two before calculating the combined total. This was an implementation bug; the test was not weakened.
 
-The expected total of 11 remains authoritative for the fixture.
+## Corrective focused gate — ACCEPTED
 
-## Corrective change — PREPARED
-
-Corrected behavior:
+Corrected semantics:
 
 ```text
 existing required verification total: 8
 incident verification entries before final projection truncation: 3
-combined total: 11
+combined required_live_verification_total: 11
 final projected list at max_items=2: 2
 required_live_verification_truncated: True
 ```
 
-The integration no longer passes final `max_items` into the incident adapter verification bound. Final projection truncation and total-count semantics are separated, consistent with the accepted Kubernetes+backup integration pattern.
+Corrective focused result:
 
-The regex deprecation warning was also fixed using a raw regex string; no test assertion was weakened or removed.
+```text
+6 passed in 0.06s
+```
+
+The regex warning was also removed with a raw regex string. No assertion was weakened or removed.
 
 ## Mutation boundary
 
-This slice remains repository-only plus a later read-only in-memory probe. It does NOT change:
+This slice remains repository-only plus a safe read-only in-memory probe. It does NOT change:
 
 ```text
 systemd
@@ -180,19 +178,21 @@ infrastructure
 
 No deployment authorization is requested or implied.
 
-## Exact next gate — CORRECTIVE FOCUSED TESTS
+## Exact next gate — SAFE NO-WRITE INTEGRATION PROBE
 
 On `mgmt-automation`:
 
 ```bash
 cd ~/projects/infrastructure-intelligence-assurance
 git pull --ff-only origin agent/m7-incident-operator-integration-contract
-python3 -m pytest -q tests/test_operator_attention_incident.py
+sudo PYTHONPATH="$PWD/src" python3 scripts/discovery/m7_incident_operator_integration_probe.py
 ```
 
-Do not use strict interactive shell mode.
+The probe reads only the protected current `operator-attention.json` and `incident-candidates.json`, performs no live infrastructure query, and writes nothing.
 
-If this passes, run only the safe no-write integration probe. Do not deploy or replace the installed operator-attention runtime in this slice.
+A failed read, scope mismatch, cluster mismatch, or builder failure must remain an explicit failed observation/contract gate and must not be converted to zero counts.
+
+If the probe passes, record exact current integrated counts/trust/truncation, then run the full repository suite. Do not deploy or replace installed operator attention in this slice.
 
 ## Preserved M6 boundaries
 
