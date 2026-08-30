@@ -12,35 +12,21 @@ Milestone 7: ACTIVE
 management host: mgmt-automation
 broader infrastructure mutation authorized: false
 incident operator runtime deployment authorized: true
+incident operator runtime deployment performed: true
 ```
 
-## Accepted installed runtime baseline
+## Accepted contract baseline
 
-Current installed runtime is still the previously accepted Kubernetes+backup operator projection until the authorized deployment command is executed successfully:
-
-```text
-runtime identity: infra-assurance
-scope: KUBERNETES_AND_BACKUP_EXISTING_EVIDENCE_ONLY
-prometheus_rule_context_integration < backup_assurance_foundation < operator_attention_backup
-```
-
-## Accepted incident integration contract
-
-Accepted main after PR #86 includes the Kubernetes+backup+incident integration contract.
-
-Accepted validation:
+The accepted Kubernetes+backup+incident integration contract is already on `main`.
 
 ```text
-corrective focused tests: 6 passed in 0.06s
-live no-write integration probe: source_status=COMPLETE
-cluster_id: k3s-main
 scope: KUBERNETES_BACKUP_AND_INCIDENT_EXISTING_EVIDENCE_ONLY
+cluster_id: k3s-main
 attention_now_total: 7
 required_live_verification_total: 14
 incident_candidates_total: 4
 incident_active_candidates: 4
 incident_source_status: PARTIAL
-full repository suite: 441 passed in 2.39s
 ```
 
 Trust semantics remain:
@@ -55,18 +41,19 @@ UNKNOWN backup protection != UNPROTECTED
 restore verification UNKNOWN != recovery test overdue
 ```
 
+Accepted contract validation before runtime deployment:
+
+```text
+corrective focused tests: 6 passed in 0.06s
+contract full suite: 441 passed in 2.39s
+```
+
 ## Active slice — incident operator installed-runtime integration
 
 Report:
 
 ```text
 docs/reports/2026-08-30-m7-incident-operator-runtime-integration.md
-```
-
-Goal:
-
-```text
-Run the accepted Kubernetes+backup+incident operator projection in the existing five-minute collector under infra-assurance, without introducing a new service, timer, identity, datastore, RBAC, kubeconfig, or filesystem permission.
 ```
 
 Exact intended branch scope:
@@ -79,20 +66,16 @@ systemd/infra-assurance-kubernetes.service
 tests/test_operator_attention_incident_runtime_integration.py
 ```
 
-Prepared runtime order:
+Prepared/expected runtime order:
 
 ```text
-incident_runtime
-...
 prometheus_rule_context_integration
 < backup_assurance_foundation
 < operator_attention_backup
 < operator_attention_incident
 ```
 
-The final incident operator post-step reads the same-run `operator-attention.json` and `incident-candidates.json`, then atomically writes the final operator artifact back to the existing `operator-attention.json/.md` paths.
-
-Runtime identity/sandbox remain:
+Runtime identity/sandbox must remain:
 
 ```text
 User=infra-assurance
@@ -103,26 +86,9 @@ ProtectHome=true
 existing ReadWritePaths only
 ```
 
-Prepared bounded deployment helper installs only:
+## Repository validation — ACCEPTED
 
-```text
-operator_attention.py
-backup_operator_adapter.py
-operator_attention_backup.py
-incident_operator_adapter.py
-operator_attention_incident.py
-systemd/infra-assurance-kubernetes.service
-```
-
-It verifies final scope:
-
-```text
-KUBERNETES_BACKUP_AND_INCIDENT_EXISTING_EVIDENCE_ONLY
-```
-
-## Focused repository validation — ACCEPTED
-
-Executed twice:
+Focused wiring tests were executed twice:
 
 ```text
 11 passed in 0.09s
@@ -140,43 +106,15 @@ new service/timer introduced: false
 final expected scope encoded in helper: true
 ```
 
-## Deployment helper dry-run — ACCEPTED
+## Deployment dry-run — ACCEPTED
 
-Executed without `--apply`.
+Dry-run confirmed the bounded mutation set and explicitly excluded bootstrap, Kubernetes RBAC/kubeconfig changes, Git source configuration changes, new service/timer creation, and filesystem permission broadening.
 
-Accepted dry-run scope:
+## Authorization — ACCEPTED AND BOUNDED
 
-```text
-install accepted operator-attention modules
-install existing systemd unit definition
-systemctl daemon-reload
-start existing infra-assurance-kubernetes.service once
-verify operator-attention.json/.md with Kubernetes+backup+incident scope
-```
+Fresh explicit user authorization was granted on 2026-08-30.
 
-Explicitly excluded:
-
-```text
-bootstrap-observer.sh
-Kubernetes RBAC changes
-kubeconfig changes
-Git source configuration changes
-new service/timer creation
-filesystem permission broadening
-```
-
-Dry-run performed no installed-runtime, systemd, service, or infrastructure mutation.
-
-## Authorization boundary — AUTHORIZED
-
-Fresh explicit user authorization was granted on 2026-08-30 for the bounded incident-operator runtime deployment.
-
-```text
-broader infrastructure mutation authorized: false
-incident operator runtime deployment authorized: true
-```
-
-This authorization covers only:
+It covered only:
 
 ```text
 install the accepted five operator projection modules
@@ -186,19 +124,11 @@ start the existing oneshot service once
 verify generated operator-attention artifact ownership and exact final scope
 ```
 
-It does NOT authorize Kubernetes RBAC/kubeconfig changes, permission broadening, new services/timers/datastores, remediation, bootstrap, or unrelated infrastructure mutation.
+It did not authorize unrelated infrastructure mutation, remediation, Kubernetes mutation, permission broadening, bootstrap, new services/timers, or new datastores.
 
-## Exact next gate — AUTHORIZED BOUNDED DEPLOYMENT
+## Authorized bounded deployment — EXECUTED / HELPER GATE ACCEPTED
 
-On `mgmt-automation`, pull the authorization-recording branch head and run only:
-
-```bash
-cd ~/projects/infrastructure-intelligence-assurance
-git pull --ff-only origin agent/m7-incident-operator-runtime-integration
-sudo bash scripts/deploy-operator-attention-runtime.sh --apply
-```
-
-After the command, accept the deployment only if the helper reports:
+Executed on `mgmt-automation` after pulling the authorization-recording branch head:
 
 ```text
 deployment_status=COMPLETE
@@ -209,7 +139,46 @@ runtime_identity=infra-assurance
 runtime_scope=KUBERNETES_BACKUP_AND_INCIDENT_EXISTING_EVIDENCE_ONLY
 ```
 
-If deployment succeeds, verify installed ordering and safe allowlisted artifact content, then run the full repository suite before PR/merge.
+Accepted interpretation:
+
+```text
+bounded apply executed: true
+existing oneshot completed successfully: true
+operator-attention JSON produced: true
+operator-attention Markdown produced: true
+runtime identity remained infra-assurance: true
+helper observed exact final scope: true
+broader infrastructure mutation authorization: false
+```
+
+This helper result does not replace the separate installed-content verification gate.
+
+## Exact next gate — READ-ONLY INSTALLED ORDER + ARTIFACT VERIFICATION
+
+Perform a separate bounded read-only verification against:
+
+```text
+/etc/systemd/system/infra-assurance-kubernetes.service
+/var/lib/infra-assurance/evidence/operator-attention.json
+```
+
+Hard conditions:
+
+```text
+prometheus_rule_context_integration < backup_assurance_foundation < operator_attention_backup < operator_attention_incident
+mutation_allowed: False
+scope: KUBERNETES_BACKUP_AND_INCIDENT_EXISTING_EVIDENCE_ONLY
+candidate_is_confirmed_incident: False
+candidate_is_root_cause: False
+suppressed_means_resolved: False
+live_verification_required_before_action: True
+backup unknown_is_not_unprotected: True
+backup recovery_test_overdue_claimed: False
+```
+
+Current counts may change with new evidence and must not be treated as hard-coded invariants. Truncation and source completeness must be printed explicitly.
+
+If this gate passes, record exact evidence, then pull the latest branch head and run the full repository suite without `sudo`. Only after that may branch scope/PR/merge gates proceed.
 
 ## Preserved M6 boundaries
 
@@ -232,4 +201,4 @@ Do not reopen weak M6 probes.
 - no secret, credential, raw Terraform state, or raw Kubernetes Secret value enters the projection;
 - no remediation is implied;
 - generated operational semantics keep `mutation_allowed=false`;
-- this authorization is bounded to the recorded incident-operator runtime deployment only.
+- this deployment authorization was bounded to the recorded incident-operator runtime deployment only.
