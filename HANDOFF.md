@@ -10,7 +10,7 @@ current accepted main at M8 branch point: b63bed9704832d1e3701ea87dea50e135f2b1f
 Milestone 7: COMPLETE WITHIN ACCEPTED READ-ONLY SCOPE
 Milestone 8: ACTIVE — FIRST READ-ONLY BASELINE SLICE ACCEPTED; MERGE PENDING
 active implementation branch: agent/m8-runtime-hardening-baseline
-active pull request: #90 (draft; content accepted; ready-state transition pending)
+active pull request: #91 (ready; baseline merge pending; replaces closed Draft PR #90)
 open project PRs at branch creation: none
 broader infrastructure mutation authorized: false
 management host: mgmt-automation
@@ -191,7 +191,7 @@ probe: scripts/discovery/m8_runtime_hardening_baseline_probe.py
 tests: tests/test_m8_runtime_hardening_baseline.py
 probe contract: version 0.2 with candidate-specific recommendation evidence
 report status: ACCEPTED — LIVE READ-ONLY GATE PASSED
-pull request: #90 DRAFT — CONTENT ACCEPTED; READY-STATE TRANSITION PENDING
+pull request: #91 READY FOR REVIEW — REPLACES CLOSED DRAFT PR #90
 focused validation: 11 passed in 0.09s
 full repository suite: 463 passed in 1.04s
 management-host focused validation: 11 passed in 0.22s
@@ -212,7 +212,7 @@ Exactly one smallest justified next change is `RECONCILE_INSTALLED_RUNTIME_MODUL
 
 ## Exact next step
 
-1. Mark PR `#90` ready in GitHub, then review and merge it after its accepted report and exact four-file scope are verified. The automated ready-state transition was attempted but the GitHub connector returned a GraphQL response-schema error; the PR remains Draft.
+1. Review and merge replacement PR `#91` after its accepted report and exact four-file scope are verified. Closed Draft PR `#90` was not merged and is superseded only because the connector could not transition its review state.
 2. Start the next M8 slice from the resulting accepted `main`; do not extend the baseline PR with the hardening mutation.
 3. Re-observe the repository/installed `__init__.py` mismatch without projecting source contents or secrets, and identify the bounded installation/deployment step responsible for it.
 4. Propose the smallest reviewed reconciliation and its rollback/verification procedure.
