@@ -1,7 +1,7 @@
 # Milestone 7 — Incident Operator Installed-Runtime Integration
 
 Date: 2026-08-30
-Status: PREPARED / FOCUSED VALIDATION PENDING
+Status: FOCUSED VALIDATION ACCEPTED / DRY-RUN ACCEPTED / DEPLOYMENT PENDING AUTHORIZATION
 Mode: repository wiring for the existing five-minute collector; no deployment performed
 
 ## Goal
@@ -81,29 +81,68 @@ The helper also installs the existing systemd unit, runs `systemctl daemon-reloa
 KUBERNETES_BACKUP_AND_INCIDENT_EXISTING_EVIDENCE_ONLY
 ```
 
-Dry-run remains the default. `--apply` must not be used without fresh explicit authorization.
-
 The helper does not run `bootstrap-observer.sh`, change Kubernetes RBAC/kubeconfig, change Git source configuration, add services/timers, or broaden filesystem permissions.
 
-## Prepared tests
+## Focused repository validation — ACCEPTED
+
+Executed twice on `mgmt-automation`:
 
 ```text
-tests/test_operator_attention_incident_runtime_integration.py
+11 passed in 0.09s
+11 passed in 0.10s
 ```
 
-The tests verify:
+The focused gate covered:
 
-- same-run dependency ordering;
-- preservation of the existing observability-before-backup invariant;
-- backup-before-existing-operator-before-incident-operator ordering;
-- unchanged `infra-assurance` identity and sandbox;
-- bounded helper module set and final scope;
-- reuse of existing artifact paths without a new service/timer.
+- preservation of the established observability-before-backup ordering invariant;
+- `backup_assurance_foundation < operator_attention_backup < operator_attention_incident`;
+- unchanged `infra-assurance` service identity and sandbox;
+- bounded deployment helper module set;
+- final expected scope `KUBERNETES_BACKUP_AND_INCIDENT_EXISTING_EVIDENCE_ONLY`;
+- reuse of the existing artifact paths without adding a service or timer.
+
+## Deployment helper dry-run — ACCEPTED
+
+Executed without `--apply`.
+
+The dry-run stated the exact bounded mutation plan:
+
+```text
+- install accepted operator-attention modules under /opt/infra-assurance/src/infra_assurance/
+- install the existing systemd unit definition
+- run systemctl daemon-reload
+- start the existing infra-assurance-kubernetes.service once
+- verify operator-attention.json and operator-attention.md with the accepted Kubernetes+backup+incident scope
+```
+
+It also explicitly excludes:
+
+```text
+bootstrap-observer.sh
+Kubernetes RBAC changes
+kubeconfig changes
+Git source configuration changes
+new service/timer creation
+filesystem permission broadening
+```
+
+Dry-run only: no systemd, installed runtime, service execution, or infrastructure mutation occurred.
+
+## Authorization state
+
+```text
+broader infrastructure mutation authorized: false
+incident operator runtime deployment authorized: false
+```
+
+A fresh explicit authorization is required before any `--apply` execution. Prior runtime deployment authorization does not cover this changed unit/module set.
 
 ## Mutation boundary
 
-No runtime deployment or infrastructure mutation has been performed in this slice. Repository preparation does not imply deployment authorization.
+The proposed bounded deployment, if explicitly authorized, is limited to installing the accepted operator projection modules and corrected existing unit, running `daemon-reload`, starting the existing oneshot service once, and verifying the generated artifact scope/ownership.
+
+It does not authorize remediation, Kubernetes changes, permission broadening, new services/timers, new datastores, or unrelated infrastructure mutation.
 
 ## Next gate
 
-Run focused repository tests. If they pass, run only the deployment helper in dry-run mode. Review the exact bounded plan before requesting any fresh deployment authorization.
+Obtain fresh explicit authorization for the bounded incident-operator runtime deployment. Do not run `scripts/deploy-operator-attention-runtime.sh --apply` before that authorization is recorded.
