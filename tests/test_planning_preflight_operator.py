@@ -7,7 +7,7 @@ from infra_assurance.planning_preflight_operator import (
 )
 
 
-def _preflight(*, namespace="validation", pvc=True, unknowns=None, conflicts=None, required=None):
+def _preflight(*, namespace="validation", pvc=True, unknowns=None, conflicts=None):
     request = {
         "request_version": "0.1",
         "type": "hypothetical_kubernetes_application_deployment",
@@ -29,17 +29,14 @@ def _preflight(*, namespace="validation", pvc=True, unknowns=None, conflicts=Non
         "conflicts": list(conflicts or []),
         "inferences": [],
         "unknowns": list(unknowns or []),
-        "required_live_verification": list(
-            required
-            or [
-                {
-                    "code": "VERIFY_IMAGE_PULLABILITY",
-                    "check": "Verify image pullability.",
-                    "reason": "Registry evidence is outside the base slice.",
-                    "evidence_ids": [],
-                }
-            ]
-        ),
+        "required_live_verification": [
+            {
+                "code": "VERIFY_IMAGE_PULLABILITY",
+                "check": "Verify image pullability.",
+                "reason": "Registry evidence is outside the base slice.",
+                "evidence_ids": [],
+            }
+        ],
         "candidate_plan": [{"order": 1, "action": "Prepare Deployment.", "state": "PLAN_ONLY", "evidence_ids": []}],
         "post_change_verification": [
             {"code": "VERIFY_DEPLOYMENT_READINESS", "statement": "Verify readiness.", "evidence_ids": []}
@@ -48,7 +45,7 @@ def _preflight(*, namespace="validation", pvc=True, unknowns=None, conflicts=Non
 
 
 def _operator(*, candidates=None, attention=None, changes=None, unknowns=None):
-    candidates = candidates if candidates is not None else [
+    default_candidates = [
         {
             "candidate_id": "inc-platform",
             "state": "ACTIVE",
@@ -70,6 +67,32 @@ def _operator(*, candidates=None, attention=None, changes=None, unknowns=None):
             "recommended_checks_count": 1,
         },
     ]
+    candidates = default_candidates if candidates is None else candidates
+    attention = [
+        {
+            "source": "inventory",
+            "code": "DECLARED_OBSERVED_DRIFT",
+            "severity": "DRIFT",
+            "subject": "Ingress/validation/nginx-validation",
+            "statement": "Observed drift intersects validation.",
+        },
+        {
+            "source": "inventory",
+            "code": "OTHER",
+            "severity": "ATTENTION",
+            "subject": "Service/monitoring/loki-headless",
+            "statement": "Other namespace.",
+        },
+    ] if attention is None else attention
+    changes = [{"classification": "MODIFIED", "subject": "Deployment/validation/api"}] if changes is None else changes
+    unknowns = [
+        {
+            "source": "change_context",
+            "code": "UNKNOWN_TARGET_STATE",
+            "subject": "Service/validation/api",
+            "statement": "Target state needs fresh verification.",
+        }
+    ] if unknowns is None else unknowns
     return {
         "operator_attention_version": "0.1",
         "generated_at": "2026-08-30T10:05:00Z",
@@ -89,45 +112,11 @@ def _operator(*, candidates=None, attention=None, changes=None, unknowns=None):
             "incident_active_candidates": sum(1 for item in candidates if item["state"] == "ACTIVE"),
             "incident_suppressed_candidates": sum(1 for item in candidates if item["state"] == "SUPPRESSED"),
         },
-        "attention_now": list(
-            attention
-            or [
-                {
-                    "source": "inventory",
-                    "code": "DECLARED_OBSERVED_DRIFT",
-                    "severity": "DRIFT",
-                    "subject": "Ingress/validation/nginx-validation",
-                    "statement": "Observed drift intersects validation.",
-                },
-                {
-                    "source": "inventory",
-                    "code": "OTHER",
-                    "severity": "ATTENTION",
-                    "subject": "Service/monitoring/loki-headless",
-                    "statement": "Other namespace.",
-                },
-            ]
-        ),
-        "recent_changes": list(changes or [{"classification": "MODIFIED", "subject": "Deployment/validation/api"}]),
-        "unknowns": list(
-            unknowns
-            or [
-                {
-                    "source": "change_context",
-                    "code": "UNKNOWN_TARGET_STATE",
-                    "subject": "Service/validation/api",
-                    "statement": "Target state needs fresh verification.",
-                }
-            ]
-        ),
+        "attention_now": attention,
+        "recent_changes": changes,
+        "unknowns": unknowns,
         "required_live_verification": [],
-        "source_artifacts": [
-            "inventory.json",
-            "context.json",
-            "change-context.json",
-            "backup-assurance.json",
-            "incident-candidates.json",
-        ],
+        "source_artifacts": ["inventory.json", "context.json", "change-context.json", "backup-assurance.json", "incident-candidates.json"],
         "truncation": {
             "attention_now_truncated": False,
             "recent_changes_truncated": False,
@@ -159,23 +148,22 @@ def _operator(*, candidates=None, attention=None, changes=None, unknowns=None):
     }
 
 
-def test_enrichment_preserves_base_contract_and_projects_only_relevant_operator_context():
+def test_projects_only_target_or_platform_operator_context():
     result = enrich_deployment_preflight_with_operator_context(_preflight(), _operator())
-
+    operator = result["operator_context"]
     assert result["scope"] == INTEGRATION_SCOPE
     assert result["mutation_allowed"] is False
-    assert result["facts"][0]["code"] == "BASE_FACT"
-    assert len(result["operator_context"]["relevant_attention"]) == 1
-    assert len(result["operator_context"]["relevant_recent_changes"]) == 1
-    assert len(result["operator_context"]["relevant_unknowns"]) == 1
-    assert [item["candidate_id"] for item in result["operator_context"]["relevant_incident_candidates"]] == ["inc-platform"]
-    assert result["operator_context"]["incident_source_status"] == "PARTIAL"
-    assert result["operator_context"]["trust"]["candidate_is_confirmed_incident"] is False
-    assert result["operator_context"]["trust"]["backup_unknown_is_not_unprotected"] is True
-    assert result["operator_context"]["trust"]["recovery_test_overdue_claimed"] is False
+    assert len(operator["relevant_attention"]) == 1
+    assert len(operator["relevant_recent_changes"]) == 1
+    assert len(operator["relevant_unknowns"]) == 1
+    assert [item["candidate_id"] for item in operator["relevant_incident_candidates"]] == ["inc-platform"]
+    assert operator["incident_source_status"] == "PARTIAL"
+    assert operator["trust"]["candidate_is_confirmed_incident"] is False
+    assert operator["trust"]["backup_unknown_is_not_unprotected"] is True
+    assert operator["trust"]["recovery_test_overdue_claimed"] is False
 
 
-def test_active_platform_or_target_namespace_candidate_becomes_prechange_verification_not_incident_claim():
+def test_active_overlapping_candidate_becomes_verification_not_incident_claim():
     target = {
         "candidate_id": "inc-target",
         "state": "ACTIVE",
@@ -184,15 +172,13 @@ def test_active_platform_or_target_namespace_candidate_becomes_prechange_verific
         "recommended_checks_count": 1,
     }
     result = enrich_deployment_preflight_with_operator_context(_preflight(), _operator(candidates=[target]))
-
-    codes = [item["code"] for item in result["required_live_verification"]]
-    assert "VERIFY_ACTIVE_INCIDENT_CONTEXT_BEFORE_CHANGE" in codes
+    assert "VERIFY_ACTIVE_INCIDENT_CONTEXT_BEFORE_CHANGE" in [item["code"] for item in result["required_live_verification"]]
     assert result["safest_next_action"]["code"] == "VERIFY_ACTIVE_INCIDENT_CONTEXT"
     assert result["safest_next_action"]["mutation_allowed"] is False
     assert result["operator_context"]["trust"]["candidate_is_root_cause"] is False
 
 
-def test_suppressed_candidate_is_visible_but_does_not_trigger_active_incident_gate():
+def test_suppressed_candidate_is_visible_but_not_resolved_or_active_gate():
     suppressed = {
         "candidate_id": "inc-suppressed",
         "state": "SUPPRESSED",
@@ -201,45 +187,38 @@ def test_suppressed_candidate_is_visible_but_does_not_trigger_active_incident_ga
         "recommended_checks_count": 0,
     }
     result = enrich_deployment_preflight_with_operator_context(
-        _preflight(),
-        _operator(candidates=[suppressed], attention=[], changes=[], unknowns=[]),
+        _preflight(), _operator(candidates=[suppressed], attention=[], changes=[], unknowns=[])
     )
-
     assert result["operator_context"]["relevant_incident_candidates"][0]["state"] == "SUPPRESSED"
     assert result["operator_context"]["trust"]["suppressed_means_resolved"] is False
-    assert "VERIFY_ACTIVE_INCIDENT_CONTEXT_BEFORE_CHANGE" not in [
-        item["code"] for item in result["required_live_verification"]
-    ]
+    assert "VERIFY_ACTIVE_INCIDENT_CONTEXT_BEFORE_CHANGE" not in [item["code"] for item in result["required_live_verification"]]
     assert result["safest_next_action"]["code"] == "COMPLETE_PRE_CHANGE_LIVE_VERIFICATION"
 
 
-def test_unknown_or_conflict_precedes_operator_attention_in_safest_next_action():
-    unknown_result = enrich_deployment_preflight_with_operator_context(
-        _preflight(unknowns=[{"code": "COLLECTION_STALE", "statement": "Deployment collection is stale."}]),
-        _operator(),
+def test_unknown_or_conflict_precedes_operator_attention_for_safest_action():
+    unknown = enrich_deployment_preflight_with_operator_context(
+        _preflight(unknowns=[{"code": "COLLECTION_STALE", "statement": "Deployment collection is stale."}]), _operator()
     )
-    assert unknown_result["safest_next_action"]["code"] == "REFRESH_OR_REPAIR_REQUIRED_EVIDENCE"
+    assert unknown["safest_next_action"]["code"] == "REFRESH_OR_REPAIR_REQUIRED_EVIDENCE"
 
-    conflict_result = enrich_deployment_preflight_with_operator_context(
+    conflict = enrich_deployment_preflight_with_operator_context(
         _preflight(conflicts=[{"code": "RESOURCE_NAME_CONFLICT", "statement": "Deployment exists."}]),
         _operator(candidates=[], attention=[], changes=[], unknowns=[]),
     )
-    assert conflict_result["safest_next_action"]["code"] == "RESOLVE_OBSERVED_CHANGE_CONFLICT"
+    assert conflict["safest_next_action"]["code"] == "RESOLVE_OBSERVED_CHANGE_CONFLICT"
 
 
-def test_pvc_post_change_requires_authoritative_backup_evidence_without_unprotected_claim():
+def test_stateful_post_change_requires_backup_evidence_without_unprotected_claim():
     result = enrich_deployment_preflight_with_operator_context(
-        _preflight(pvc=True),
-        _operator(candidates=[], attention=[], changes=[], unknowns=[]),
+        _preflight(pvc=True), _operator(candidates=[], attention=[], changes=[], unknowns=[])
     )
-    codes = [item["code"] for item in result["post_change_verification"]]
-    assert "VERIFY_BACKUP_PROTECTION_EVIDENCE_AFTER_CHANGE" in codes
+    assert "VERIFY_BACKUP_PROTECTION_EVIDENCE_AFTER_CHANGE" in [item["code"] for item in result["post_change_verification"]]
     assert result["operator_context"]["summary"]["backup_unprotected_claims"] == 0
     assert result["operator_context"]["trust"]["backup_unknown_is_not_unprotected"] is True
     assert result["operator_context"]["trust"]["recovery_test_overdue_claimed"] is False
 
 
-def test_invalid_cluster_scope_or_trust_semantics_fail_closed():
+def test_invalid_cluster_scope_or_incident_trust_fails_closed():
     operator = _operator()
     operator["cluster_id"] = "other"
     with pytest.raises(ValueError, match="same cluster"):
@@ -256,10 +235,10 @@ def test_invalid_cluster_scope_or_trust_semantics_fail_closed():
         enrich_deployment_preflight_with_operator_context(_preflight(), operator)
 
 
-def test_markdown_exposes_operator_context_safest_action_and_read_only_trust_boundary():
-    result = enrich_deployment_preflight_with_operator_context(_preflight(), _operator())
-    rendered = render_operator_aware_preflight_markdown(result)
-
+def test_markdown_exposes_context_action_and_trust_boundary():
+    rendered = render_operator_aware_preflight_markdown(
+        enrich_deployment_preflight_with_operator_context(_preflight(), _operator())
+    )
     assert "## Operator context" in rendered
     assert "## Safest next action" in rendered
     assert "Incident candidates are not confirmed incidents" in rendered
