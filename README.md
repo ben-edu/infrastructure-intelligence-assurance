@@ -6,40 +6,65 @@ Evidence-first infrastructure context and assurance platform.
 
 Milestones 0–4 are complete within their accepted scopes and live-validation boundaries.
 
-Milestone 5 — Backup and Recovery Assurance is **not complete overall**. Its current authoritative read-only source-discovery phase is complete, while restore verification, integrity verification, retention effectiveness, accepted RPO/RTO evaluation, stronger physical failure-domain assurance, and application/database-consistent backup evidence remain explicitly unresolved or deferred until stronger evidence or controlled mutation is authorized.
+Milestone 5 — Backup and Recovery Assurance is **not complete overall**. Its current authoritative read-only source-discovery phase is complete. Restore verification, integrity verification, retention effectiveness, accepted RPO/RTO evaluation, stronger physical failure-domain assurance, and application/database-consistent backup evidence remain explicitly `UNKNOWN` or deferred until stronger authoritative evidence or controlled mutation is available.
 
-Milestone 6 — IaC Governance is **not complete overall**. Its current read-only governance phase is complete for the authoritative sources and safe observation paths currently available. Accepted evidence covers Terraform roots/workspace discovery, declared/root-module structure, local-state aggregate structure, declared-to-local-state structural relationship, bounded plan metadata, destructive-proposal detection, bounded state-tracked refresh drift signals, and Ansible declared inventory/playbook/role structure plus bounded execution-source investigation. Terraform apply outcome/full live-resource coverage/state authority and Ansible live managed-host coverage/execution outcomes/idempotence/configuration drift remain explicitly `UNKNOWN` until materially stronger evidence or authorized execution is available.
+Milestone 6 — IaC Governance is **not complete overall**. Its current read-only governance phase is complete for the authoritative sources and safe observation paths currently available. Terraform apply outcome/full live-resource coverage/state authority and Ansible live managed-host coverage/execution outcomes/idempotence/configuration drift remain explicitly `UNKNOWN` until materially stronger evidence or authorized execution is available.
 
-The live evidence loop established by earlier milestones continues to run on the management host every five minutes.
+Milestone 7 — Operational Intelligence Layer is **complete within the accepted read-only scope**. The platform now has accepted operator-facing paths for attention, change/drift context, explicit unknown/stale/failed state, backup/recovery assurance gaps, incident-candidate grouping, task-scoped pre-change verification, post-change verification requirements, and a deterministic non-executable safest-next-action.
 
-For exact current execution state and context-window-independent continuation, read:
+Milestone 8 — Reliability and Hardening is **next**.
+
+For context-window-independent continuation, read:
 
 ```text
-HANDOFF.md
 docs/PROJECT_CONTINUITY.md
+HANDOFF.md
+docs/reports/2026-08-30-m7-closure.md
+docs/M8_START_HERE.md
 ```
 
-Project Sources remain authoritative for durable goals, roadmap, architecture/trust principles, and operating rules. `HANDOFF.md` is the current accepted execution checkpoint; if an active project branch/PR contains a newer handoff, prefer that branch version for in-flight work.
+Project Sources remain authoritative for durable goals, roadmap, architecture/trust principles, and operating rules. `HANDOFF.md` is the current execution checkpoint.
 
-## Runtime model
+## Current runtime model
 
 ```text
 Private infrastructure Git
-  -> dedicated read-only deploy key
   -> normalized declared evidence + Git revision
                                   \
 Kubernetes API                     \
-  -> dedicated read-only identity   \
-  -> normalized observed evidence    -> declared-vs-observed drift
-  -> freshness / trust              -> compact change context
-  -> topology / history / diff      -> workload operational inventory
-  -> Prometheus Operator config     -> configuration coverage
-  -> Prometheus HTTP API            -> runtime target / alert evidence
-                                      -> workload inventory enrichment
-                                      -> planning / AI consumption
+  -> normalized observed evidence  \
+  -> freshness / trust              -> declared-vs-observed drift
+  -> topology / history / diff      -> compact change context
+                                      -> workload operational inventory
+Prometheus Operator config          -> configuration coverage
+Prometheus HTTP API                 -> runtime target / alert evidence
+Backup assurance evidence           -> compact backup/recovery assurance gaps
+Incident candidate projection       -> grouped current signal candidates
+                                      -> cross-domain operator attention
+                                      -> task-scoped planning / AI consumption
 ```
 
-Current-state and task artifacts remain separate from immutable history.
+The existing five-minute collector runs under the dedicated `infra-assurance` identity and produces the accepted cross-domain operator projection:
+
+```text
+scope: KUBERNETES_BACKUP_AND_INCIDENT_EXISTING_EVIDENCE_ONLY
+mutation_allowed: False
+```
+
+Installed ordering accepted at M7 closure:
+
+```text
+prometheus_rule_context_integration
+< backup_assurance_foundation
+< operator_attention_backup
+< operator_attention_incident
+```
+
+Derived projections never replace their source evidence.
+
+## Core operational artifacts
+
+Current evidence and derived artifacts include:
 
 ```text
 /var/lib/infra-assurance/evidence/kubernetes.json
@@ -59,18 +84,22 @@ Current-state and task artifacts remain separate from immutable history.
 /var/lib/infra-assurance/evidence/prometheus-runtime.md
 /var/lib/infra-assurance/evidence/inventory.json
 /var/lib/infra-assurance/evidence/inventory.md
+/var/lib/infra-assurance/evidence/backup-assurance.json
+/var/lib/infra-assurance/evidence/incident-candidates.json
+/var/lib/infra-assurance/evidence/operator-attention.json
+/var/lib/infra-assurance/evidence/operator-attention.md
 /var/lib/infra-assurance/evidence/preflight.json
 /var/lib/infra-assurance/evidence/preflight.md
 ```
 
-Bounded Kubernetes history:
+Bounded Kubernetes history remains under:
 
 ```text
 /var/lib/infra-assurance/history/kubernetes/index.json
 /var/lib/infra-assurance/history/kubernetes/snapshots/*.json
 ```
 
-Normalized Git declared state:
+Normalized Git declared state remains under:
 
 ```text
 /var/lib/infra-assurance/declared/current/records.json
@@ -78,7 +107,51 @@ Normalized Git declared state:
 /var/lib/infra-assurance/git/repos/*.git
 ```
 
-The default Kubernetes history retention is 288 snapshots, approximately 24 hours at the current five-minute cadence. This remains replaceable local storage, not a final long-term database decision.
+The current local JSON/Markdown/history storage is replaceable. Long-term lifecycle and platform-backup requirements are M8 concerns, not silently solved assumptions.
+
+## M7 operator intelligence
+
+The accepted operator layer can answer, within source/freshness boundaries:
+
+- what needs attention now;
+- what changed recently;
+- what is unknown or stale;
+- where declared/observed drift is represented;
+- which backup/recovery conclusions remain unsupported or unknown;
+- which current signals are grouped into incident candidates;
+- what must be verified before a change;
+- what the safest next verification/action is.
+
+Important M7 trust semantics:
+
+```text
+incident candidate != confirmed incident
+incident candidate != root cause
+SUPPRESSED != RESOLVED
+backup UNKNOWN != UNPROTECTED
+restore verification UNKNOWN != recovery test overdue
+recommendation != approval
+```
+
+The last accepted installed snapshot before M7 closure observed four incident candidates (`1 ACTIVE`, `3 SUPPRESSED`) with incident source coverage `PARTIAL`. These values are observed evidence, not fixed invariants.
+
+## Planning preflight
+
+The accepted base task-scoped deployment preflight remains read-only and separates:
+
+```text
+facts
+conflicts
+inferences
+unknowns
+required live verification
+candidate plan
+post-change verification
+```
+
+M7 added a repository adapter that enriches the existing preflight with accepted operator-attention context and emits a deterministic `safest_next_action` while keeping `mutation_allowed=false`.
+
+The operator-aware adapter was validated against protected current evidence without deployment. Repository acceptance does not imply authorization to modify the installed management-host runtime.
 
 ## Workload operational inventory
 
@@ -90,200 +163,68 @@ StatefulSet
 DaemonSet
 ```
 
-Each workload entity combines traceable pointers and compact state from existing evidence sources:
+Each workload entity combines traceable pointers and compact state from accepted evidence sources, including current observed state/freshness, safe replica and image fields, declared Git coverage, Service/Ingress/PVC relationships, recent changes, topology/drift attention, Prometheus Operator configuration coverage, and attributable runtime Prometheus signals.
 
-- current observed state and freshness;
-- safe replica/scheduling fields and image references;
-- direct Git declared coverage and workload comparison where available;
-- Service selector-match relationships;
-- composed Ingress route candidates;
-- direct PVC references;
-- latest related snapshot changes;
-- related topology ambiguity and drift attention;
-- Prometheus Operator configuration coverage;
-- current Prometheus runtime target and active-alert signals where attributable.
-
-This inventory is derived state. Kubernetes, Git, Prometheus, history, drift, and topology artifacts remain the supporting source evidence.
-
-A Service-to-workload relationship remains a selector-based inference. An Ingress route candidate composes an observed Ingress-to-Service reference with that inference and does not prove current Pod or EndpointSlice routing.
-
-A workload missing from the configured Git scope is `OUTSIDE_DECLARED_SCOPE`, not automatically unmanaged or drifted. A namespace is not automatically treated as an application or ownership boundary.
-
-## Prometheus Operator configuration coverage
-
-Milestone 3 observes these Prometheus Operator resources read-only:
-
-```text
-Prometheus
-ServiceMonitor
-PodMonitor
-```
-
-For each workload, configuration coverage is classified as:
-
-```text
-OPERATOR_MONITOR_MATCH
-NO_OPERATOR_MONITOR_MATCH
-UNKNOWN
-```
-
-`OPERATOR_MONITOR_MATCH` is evidence of a selected Prometheus Operator configuration path. It is not runtime scrape-health evidence.
-
-`NO_OPERATOR_MONITOR_MATCH` means only that no selected ServiceMonitor/PodMonitor path was derived inside the modeled scope. It does not prove the workload has no other monitoring path.
-
-## Prometheus runtime intelligence
-
-Milestone 4 includes direct read-only Prometheus HTTP API evidence reached through the Kubernetes API Service proxy for:
-
-```text
-monitoring/kube-prom-stack-prometheus:9090
-```
-
-The runtime observer reads:
-
-```text
-/api/v1/targets?state=active
-/api/v1/alerts
-```
-
-It stores only a narrow target and alert projection. Raw scrape URLs, discovered labels, arbitrary labels, alert annotations, metric series, credentials, and Secret values are not persisted.
-
-Workload runtime signal states are:
-
-```text
-PROMETHEUS_TARGETS_UP
-PROMETHEUS_TARGET_DOWN
-ACTIVE_ALERT
-NO_RUNTIME_SIGNAL_MATCH
-UNKNOWN
-```
-
-These are signal states, not generic application-health conclusions.
-
-`PROMETHEUS_TARGETS_UP` means matched Prometheus scrape targets reported `up` at observation time. It does not prove application correctness or end-user availability.
-
-`NO_RUNTIME_SIGNAL_MATCH` means no target or active alert could be attributed through this modeled path. It does not prove absence of monitoring or alerts elsewhere.
-
-Target and alert attribution through a Kubernetes Service retains:
-
-```text
-SERVICE_SELECTOR_MATCH_INFERENCE
-```
-
-The platform therefore does not claim direct live Pod ownership from Service-based attribution.
-
-The additional Kubernetes permission is a namespaced `get` on `services/proxy` in `monitoring`; proxy access is not granted in other namespaces by this Role. Secret access and mutation remain denied.
-
-## Git declared-state source
-
-The first configured source is:
-
-```text
-github.com/ben-edu/api-cluster-infra
-branch: main
-cluster: k3s-main
-```
-
-The source mapping is explicit rather than a recursive YAML scan. BookStack and validation use configured direct manifest paths. FastAPI dev/prod use configured Kustomize targets rendered locally at the exact fetched revision. Helm values and example directories are outside the current declared-state contract.
-
-Authentication uses a dedicated read-only SSH deploy key generated on the management host. The runtime does not reuse a personal SSH key or administrator GitHub credential.
-
-Only these Kubernetes kinds can currently become declared evidence:
-
-```text
-Namespace
-Deployment
-StatefulSet
-DaemonSet
-Service
-Ingress
-PersistentVolumeClaim
-```
-
-`Secret`, `ConfigMap`, and unsupported kinds are not serialized into declared evidence. Raw environment values, Secret payloads, arbitrary ConfigMap payloads, credentials, and connection strings are not emitted.
-
-A failed Git refresh does not make the previous declared bundle current. Drift becomes unknown until the source is observed successfully again.
+Relationship inferences remain explicitly identified. For example, Service selector matching does not prove current EndpointSlice/Pod traffic flow.
 
 ## Trust rules
 
-A failed or stale current Kubernetes collection is never used to claim that a resource disappeared.
+Always preserve:
+
+```text
+DECLARED state != OBSERVED state
+NONE_OBSERVED_IN_BOUNDED_SOURCE != universal absence
+FAILED_TO_OBSERVE != negative evidence
+UNKNOWN != false
+configuration declaration != execution outcome
+infrastructure recovery != application/database-consistent backup
+successful task/result != restore verification
+incident candidate != confirmed incident/root cause
+SUPPRESSED != RESOLVED
+backup UNKNOWN != UNPROTECTED
+recommendation != approval
+```
+
+A failed or stale current collection is never used to claim that a resource disappeared.
 
 Git-declared and live-observed state remain separate evidence planes. A Git source failure, stale declaration, or cluster mismatch cannot become drift by inference.
 
-Observed resources outside the configured declared scope are not automatically classified as drift.
+Prometheus Operator configuration coverage is not promoted to scrape-health evidence. A failed Prometheus runtime query becomes `PARTIAL` or `FAILED_TO_OBSERVE`, never a false zero-target or zero-alert fact.
 
-Prometheus Operator configuration coverage is not promoted to scrape-health evidence.
-
-A failed Prometheus runtime query becomes `PARTIAL` or `FAILED_TO_OBSERVE` and never becomes a false zero-target or zero-alert fact.
-
-Raw Kubernetes Secret values are never collected. The Kubernetes observer has no Secret access and no mutating verbs.
-
-Declared Terraform/Ansible configuration is not promoted to universal live managed-resource or managed-host state. Bounded Terraform provider-read drift signals are state-tracked evidence only, and bounded source absence is not universal absence. Execution declarations are not execution outcomes.
+Raw Kubernetes Secret values are never collected. Sensitive Terraform state, passwords, tokens, private keys, complete sensitive connection strings, raw backup contents, and similar sensitive material must not enter persisted evidence or AI context.
 
 `mutation_allowed` remains `false` unless an explicitly reviewed and authorized slice changes that boundary.
 
-## Install or refresh on the management host
+## M8 — next small step
 
-```bash
-sudo CLUSTER_ID=k3s-main ./scripts/bootstrap-observer.sh
+Do not start M8 with broad hardening construction.
+
+First create a read-only runtime-hardening baseline from current accepted `main`:
+
+```text
+branch: agent/m8-runtime-hardening-baseline
 ```
 
-The five-minute collector refreshes Git declared evidence, Kubernetes evidence, Prometheus Operator configuration coverage, Prometheus runtime evidence, and the derived inventory projections.
+Inspect and classify:
 
-## Query workload inventory
+- systemd service/timer identity and sandbox directives;
+- writable paths and artifact ownership;
+- scheduling cadence and overlap behavior;
+- timeout/restart/failure semantics and failure visibility;
+- installed runtime/code boundaries;
+- atomic-write assumptions;
+- current platform evidence/history backup status.
 
-```bash
-sudo -u infra-assurance iia-inventory summary
-sudo -u infra-assurance iia-inventory list
-sudo -u infra-assurance iia-inventory list --attention-only
-sudo -u infra-assurance iia-inventory list --observability-status OPERATOR_MONITOR_MATCH
-sudo -u infra-assurance iia-inventory list --runtime-state PROMETHEUS_TARGET_DOWN
-sudo -u infra-assurance iia-inventory list --runtime-state ACTIVE_ALERT
-sudo -u infra-assurance iia-inventory list --runtime-state PROMETHEUS_TARGETS_UP
-sudo -u infra-assurance iia-inventory show \
-  --namespace validation \
-  --kind Deployment \
-  --name nginx-validation
+The baseline should distinguish `DECLARED`, `OBSERVED`, `UNKNOWN`, `FAILED_TO_OBSERVE`, `INFERENCE`, and `REQUIRES_CHANGE`, then identify one smallest justified hardening change.
+
+Do not mutate systemd, permissions, scheduling, backup, RBAC, or infrastructure during the baseline slice.
+
+## Validation
+
+Repository regression suite at the final M7 functional checkpoint:
+
+```text
+452 passed in 2.44s
 ```
 
-The inventory CLI reads the generated artifact only and performs no additional infrastructure query.
-
-## Inspect Git source status
-
-```bash
-sudo -u infra-assurance iia-git-source status
-sudo -u infra-assurance iia-git-source public-key
-```
-
-## Inspect history
-
-```bash
-sudo -u infra-assurance iia-k8s-history status
-sudo -u infra-assurance iia-k8s-history list --limit 10
-```
-
-## Run the read-only planning preflight
-
-```bash
-sudo -u infra-assurance iia-k8s-preflight \
-  --request /etc/infra-assurance/examples/hypothetical-app-deployment.json
-```
-
-## Validate locally
-
-```bash
-python3 -m pytest -q
-```
-
-See:
-
-- `HANDOFF.md` for the exact current accepted checkpoint and next step;
-- `docs/PROJECT_CONTINUITY.md` for context-window-independent resume rules;
-- `docs/reports/2026-08-23-m5-read-only-discovery-closure.md` for the Milestone 5 read-only closure boundary;
-- `docs/reports/2026-08-29-m6-read-only-governance-closure.md` for the Milestone 6 current read-only governance closure boundary;
-- `docs/decisions/0008-workload-centric-operational-inventory.md` for the workload inventory boundary;
-- `docs/decisions/0009-prometheus-operator-coverage-is-not-scrape-health.md` for configuration coverage semantics;
-- `docs/decisions/0010-prometheus-runtime-evidence-via-read-only-service-proxy.md` for runtime Prometheus access and trust boundaries;
-- `docs/milestone-3-workload-operational-inventory.md` for the workload inventory slice;
-- `docs/milestone-3-prometheus-operator-coverage.md` for configuration coverage;
-- `docs/milestone-4-prometheus-runtime-intelligence.md` for runtime observability.
+See `docs/reports/2026-08-30-m7-closure.md` for the detailed M7 acceptance boundary and intentionally preserved unknowns.
