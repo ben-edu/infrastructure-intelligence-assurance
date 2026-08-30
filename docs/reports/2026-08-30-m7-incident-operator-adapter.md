@@ -1,7 +1,7 @@
 # Milestone 7 — Incident Operator Adapter
 
 Date: 2026-08-30
-Status: LIVE READ-ONLY PROBE ACCEPTED / FULL-SUITE PENDING
+Status: ACCEPTED / MERGE-READY
 Mode: read-only projection over existing `incident-candidates.json`
 
 ## Goal
@@ -32,20 +32,9 @@ Scope:
 INCIDENT_CANDIDATES_EXISTING_EVIDENCE_ONLY
 ```
 
-The adapter projects only:
-
-- aggregate incident-candidate counts;
-- aggregate attention for incomplete source coverage, active candidates, or unknown candidate state;
-- compact candidate metadata: candidate ID, state, supported scope, alert/event/change/drift/check counts;
-- deduplicated live-verification entries;
-- explicit truncation metadata;
-- trust semantics.
-
-It discards raw alert labels/details, raw Kubernetes Event details, impact-context entity details, change field details, drift field details, rationales, logs, and other source-specific payloads.
+The adapter projects only aggregate candidate counts, compact candidate metadata, aggregate attention, live-verification entries, truncation metadata, and trust semantics. Raw alert labels/details, raw Kubernetes Event details, impact-context entity details, field-level change/drift details, rationales, logs, and other source-specific payloads are discarded.
 
 ## Trust semantics
-
-The adapter preserves:
 
 ```text
 candidate_is_confirmed_incident: False
@@ -59,14 +48,14 @@ A source domain that is not `COMPLETE` produces explicit UNKNOWN attention. Cand
 
 ## Focused validation — ACCEPTED
 
-Executed twice on `mgmt-automation` after switching to the active branch:
+Executed twice on `mgmt-automation`:
 
 ```text
 6 passed in 0.05s
 6 passed in 0.04s
 ```
 
-Accepted interpretation:
+Accepted coverage:
 
 ```text
 compact projection contract: PASS
@@ -77,19 +66,11 @@ candidate truncation: PASS
 trust/fail-closed semantics: PASS
 ```
 
-The repeat run reconfirmed the same six-test focused gate. No runtime or infrastructure mutation was performed.
-
 ## Safe live read-only probe — ACCEPTED
-
-Probe:
-
-```text
-scripts/discovery/m7_incident_operator_adapter_probe.py
-```
 
 Executed with bounded privilege only to read the protected derived artifact. The probe wrote nothing and performed no live infrastructure query.
 
-Accepted safety output:
+Safety:
 
 ```text
 mutation_allowed: False
@@ -101,21 +82,16 @@ candidate_promoted_to_confirmed_incident: False
 root_cause_claimed: False
 ```
 
-The artifact read/adapter execution itself completed successfully:
+Artifact read/adapter execution:
 
 ```text
 source_status: COMPLETE
+incident_source_status: PARTIAL
 cluster_id: k3s-main
 scope: INCIDENT_CANDIDATES_EXISTING_EVIDENCE_ONLY
 ```
 
-The incident-candidate source domains are not all complete:
-
-```text
-incident_source_status: PARTIAL
-```
-
-The exact incomplete source domain was not printed by this allowlisted probe, so no stronger conclusion is recorded. The adapter correctly surfaced this as UNKNOWN attention rather than treating missing candidate evidence as absence.
+The exact incomplete source domain was not printed by the allowlisted probe, so no stronger conclusion is recorded.
 
 Current compact summary:
 
@@ -143,7 +119,7 @@ ACTIVE_INCIDENT_CANDIDATES / SIGNAL / count=4
 Current compact candidate groups:
 
 ```text
-Namespace/keycloak  / ACTIVE / alerts=2 / events=0 / changes=0 / drift=0 / checks=1
+Namespace/keycloak / ACTIVE / alerts=2 / events=0 / changes=0 / drift=0 / checks=1
 Namespace/monitoring / ACTIVE / alerts=5 / events=0 / changes=0 / drift=0 / checks=1
 Namespace/moodle / ACTIVE / alerts=2 / events=1 / changes=0 / drift=0 / checks=2
 Platform/k3s-main / ACTIVE / alerts=2 / events=0 / changes=0 / drift=0 / checks=2
@@ -160,9 +136,9 @@ VERIFY_ALERT_CONDITION_CURRENT -> PROMETHEUS_ALERTMANAGER
 VERIFY_PROMETHEUS_RULE_INPUTS -> PROMETHEUS_RULE_INPUTS
 ```
 
-Repeated verification codes may remain separate because checks are scoped to different candidates. They are not evidence that the same operational action has already been performed.
+Repeated verification codes are candidate-scoped checks, not evidence that verification already occurred.
 
-Accepted trust/truncation state:
+Trust/truncation:
 
 ```text
 candidate_is_confirmed_incident: False
@@ -173,11 +149,19 @@ candidate_groups_truncated: False
 required_live_verification_truncated: False
 ```
 
-## Interpretation
+## Full repository suite — ACCEPTED
+
+Final regression suite on the accepted branch head:
+
+```text
+435 passed in 2.24s
+```
+
+## Accepted interpretation
 
 Current evidence contains four ACTIVE incident candidates grouped conservatively by supported scope. One candidate has a related Warning Event. No exact recent change or exact drift was associated with these candidates in the current source artifact.
 
-These are candidate groupings only. They are not confirmed incidents, root-cause conclusions, or authorization for remediation. Because the incident source status is `PARTIAL`, the set of four candidates is also not a complete negative statement about all possible incidents or signals.
+These are candidate groupings only. They are not confirmed incidents, root-cause conclusions, or authorization for remediation. Because `incident_source_status` is `PARTIAL`, the set of four candidates is not a complete negative statement about all possible incidents or signals.
 
 ## Trust boundary
 
@@ -190,10 +174,8 @@ These are candidate groupings only. They are not confirmed incidents, root-cause
 - candidate grouping is not incident confirmation or root-cause proof;
 - live verification is required before operational action.
 
-## Remaining gate
+## Merge gate
 
-Run the full repository regression suite on the current branch head.
+The contract, live read-only evidence, and full regression suite are accepted. Merge only if the branch scope remains exactly the five intended files and the PR is non-draft and mergeable.
 
-PR/merge is permitted only if the full suite passes and exact branch scope remains the five intended files.
-
-Do not integrate this adapter into installed operator attention until this contract/live-evidence slice is merged and a later runtime-integration slice is separately reviewed.
+Installed operator-attention integration remains a separate later slice requiring separate review and any needed deployment authorization.
