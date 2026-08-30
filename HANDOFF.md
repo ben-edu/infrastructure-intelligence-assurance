@@ -6,7 +6,7 @@ Project Sources remain authoritative. Read `docs/PROJECT_CONTINUITY.md`, then th
 
 ```text
 repository: ben-edu/infrastructure-intelligence-assurance
-accepted main after PR #86: 98cb3702faf6e23a15791ff32c36c7a7bd594c98
+accepted main before this slice: 98cb3702faf6e23a15791ff32c36c7a7bd594c98
 active branch: agent/m7-incident-operator-runtime-integration
 Milestone 7: ACTIVE
 management host: mgmt-automation
@@ -14,6 +14,7 @@ broader infrastructure mutation authorized: false
 incident operator runtime deployment authorized: true
 incident operator runtime deployment performed: true
 installed runtime verification accepted: true
+final repository suite accepted: true
 ```
 
 ## Active slice — incident operator installed-runtime integration
@@ -34,22 +35,16 @@ systemd/infra-assurance-kubernetes.service
 tests/test_operator_attention_incident_runtime_integration.py
 ```
 
-Accepted main baseline before this slice:
-
-```text
-98cb3702faf6e23a15791ff32c36c7a7bd594c98
-```
-
 ## Accepted repository preparation
 
-Focused wiring tests executed twice:
+Focused wiring tests:
 
 ```text
 11 passed in 0.09s
 11 passed in 0.10s
 ```
 
-Dry-run accepted. It covered only the bounded module/unit installation, `daemon-reload`, one execution of the existing oneshot service, and final artifact scope verification. It explicitly excluded bootstrap, Kubernetes RBAC/kubeconfig changes, Git source configuration changes, new services/timers, datastore changes, permission broadening, and remediation.
+Dry-run accepted. It covered only bounded module/unit installation, `daemon-reload`, one execution of the existing oneshot service, and final artifact scope verification. It explicitly excluded bootstrap, Kubernetes RBAC/kubeconfig changes, Git source configuration changes, new services/timers, datastore changes, permission broadening, and remediation.
 
 ## Authorization — ACCEPTED AND BOUNDED
 
@@ -93,7 +88,7 @@ operator_backup_before_incident: True
 correct_order: True
 ```
 
-Runtime identity/sandbox:
+Runtime identity/sandbox and artifact ownership:
 
 ```text
 user_infra_assurance: True
@@ -135,7 +130,7 @@ incident_candidates_with_related_warning_events: 1
 incident_candidates_requiring_live_verification: 2
 ```
 
-Current incident source/trust:
+Trust/truncation:
 
 ```text
 incident_source_status: PARTIAL
@@ -143,62 +138,35 @@ candidate_is_confirmed_incident: False
 candidate_is_root_cause: False
 suppressed_means_resolved: False
 live_verification_required_before_action: True
-```
-
-Current backup trust:
-
-```text
 unknown_is_not_unprotected: True
 recovery_test_overdue_claimed: False
 authoritative_backup_evidence_required_for_unprotected: True
-```
-
-Current truncation:
-
-```text
 attention_now_truncated: False
 required_live_verification_truncated: False
 incident_candidates_truncated: False
 ```
 
-Interpretation:
+The current counts differ from the earlier no-write snapshot: four candidates remain, but one is ACTIVE and three are SUPPRESSED. This is observed evidence change, not a regression. `SUPPRESSED != RESOLVED`; the incident source remains `PARTIAL`.
+
+## Final full repository suite — ACCEPTED
+
+Executed without `sudo` after deployment and installed-content verification:
 
 ```text
-installed order accepted: true
-installed runtime identity/sandbox accepted: true
-final scope accepted: true
-incident candidates confirmed incidents: false
-root cause established: false
-suppressed candidates treated as resolved: false
-incident source completeness: PARTIAL
-backup UNKNOWN treated as UNPROTECTED: false
+445 passed in 2.87s
 ```
 
-The current counts differ from the earlier no-write contract snapshot: four candidates remain, but now one is ACTIVE and three are SUPPRESSED. This is an observed evidence change, not a regression. `SUPPRESSED != RESOLVED`. Counts are not hard runtime invariants.
+## Merge gate — READY
 
-## Exact next gate — FINAL FULL REPOSITORY SUITE
+Before merge:
 
-On `mgmt-automation`:
-
-```bash
-cd ~/projects/infrastructure-intelligence-assurance
-git pull --ff-only origin agent/m7-incident-operator-runtime-integration
-python3 -m pytest -q
-```
-
-Do not use `sudo` for the repository suite and do not use strict interactive shell mode.
-
-If the suite passes:
-
-1. record exact pass count/time in this file and the active report;
-2. compare branch against accepted main `98cb3702faf6e23a15791ff32c36c7a7bd594c98`;
-3. require exactly the five intended files listed above;
-4. verify no temporary/debug/placeholder files;
-5. create a non-draft PR;
-6. verify changed filenames and mergeability;
-7. squash-merge and carry the new accepted main SHA forward.
-
-If the suite fails, do not create a PR; preserve existing tests and trust contracts and investigate the smallest real regression.
+1. compare branch against accepted main `98cb3702faf6e23a15791ff32c36c7a7bd594c98`;
+2. require exactly the five intended files listed above;
+3. verify no temporary/debug/placeholder files;
+4. create a non-draft PR;
+5. verify changed filenames and mergeability;
+6. squash-merge;
+7. carry the new accepted main SHA forward.
 
 ## Preserved M6 boundaries
 
