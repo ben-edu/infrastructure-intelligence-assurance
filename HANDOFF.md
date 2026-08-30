@@ -10,7 +10,7 @@ current accepted main at M8 branch point: b63bed9704832d1e3701ea87dea50e135f2b1f
 Milestone 7: COMPLETE WITHIN ACCEPTED READ-ONLY SCOPE
 Milestone 8: ACTIVE — FIRST READ-ONLY BASELINE SLICE
 active implementation branch: agent/m8-runtime-hardening-baseline
-active pull request: pending creation
+active pull request: #90 (draft; live read-only gate pending)
 open project PRs at branch creation: none
 broader infrastructure mutation authorized: false
 management host: mgmt-automation
