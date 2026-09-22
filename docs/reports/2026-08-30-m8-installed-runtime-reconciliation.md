@@ -1,9 +1,11 @@
 # Milestone 8 — Installed Runtime Module Reconciliation
 
 Date: 2026-08-30
-Status: PREPARED — REVIEWED LIVE APPLY GATE PENDING
+Accepted: 2026-09-22
+Status: ACCEPTED — LIVE RECONCILIATION PASSED
 Branch: `agent/m8-installed-runtime-reconciliation`
 Branch point: `9ef418b9af6fcdd42a82c2b936a40c4428394924`
+Accepted live-gate commit: `f0a3b0a06bf39d96a08e737cee576550a9222026`
 
 ## Goal
 
@@ -105,6 +107,13 @@ Full repository suite:
 
 The reconciliation script also passes Python byte-compilation and `git diff --check` is clean.
 
+Management-host validation at the accepted live-gate commit:
+
+```text
+focused suite: 15 passed in 1.58s
+full repository suite: 471 passed in 4.90s
+```
+
 ## Reviewed live gate
 
 Run from the branch checkout on `mgmt-automation` after the branch/PR is current.
@@ -198,6 +207,56 @@ sudo /usr/bin/python3 scripts/reconcile-installed-runtime-module.py \
 
 Then rerun the post-change baseline and record the failure. Do not delete the backup during this slice.
 
-## Acceptance pending
+## Accepted live result
 
-Do not accept this reconciliation until the focused test, plan, authorized apply, and post-change baseline outputs are reviewed together. Do not extend this change to the timeout, systemd, permissions, scheduling, backup, RBAC, or infrastructure.
+The reviewed gate was executed on `mgmt-automation` from commit
+`f0a3b0a06bf39d96a08e737cee576550a9222026` and satisfied the acceptance
+contract:
+
+```text
+focused validation: 15 passed in 1.58s
+plan_rc: 0
+plan status: CHANGE_REQUIRED
+plan mutation_allowed: false
+plan mutation_performed: false
+target module: __init__.py
+installed before SHA-256: cf4018a1cb490e8dc2e4ae3f74171587db5e467d20b29561a39c5219faa2e89d
+repository SHA-256: 5d125e99237f4fdc5098c5897ab6c3359340e44513e38c619898dbde53b0065e
+apply_rc: 0
+apply status: RECONCILED
+apply mutation_allowed: true
+apply mutation_performed: true
+installed owner/group/mode after apply: root:root 0644
+probe_rc: 0
+post-change baseline status: COMPLETE
+FAILED_TO_OBSERVE: 0
+installed modules matching repository: 35/35
+full repository suite: 471 passed in 4.90s
+```
+
+The apply retained this rollback artifact without exposing file contents:
+
+```text
+rollback token: cf4018a1cb490e8dc2e4ae3f74171587db5e467d20b29561a39c5219faa2e89d
+backup: /var/lib/infra-assurance/runtime-reconciliation/__init__.py.cf4018a1cb490e8dc2e4ae3f74171587db5e467d20b29561a39c5219faa2e89d.bak
+```
+
+Rollback was not required and was not performed. The backup remains retained.
+The plan, apply, and post-change baseline all report no systemd, service-start,
+or infrastructure mutation. All nine baseline safety flags remain false.
+
+The post-change baseline preserves four `UNKNOWN` categories: platform
+evidence/history backup status, external failure visibility, historical overlap
+and missed activations, and ACL/capability/MAC writability. The next selected
+`REQUIRES_CHANGE` is `PIN_EXPLICIT_SERVICE_START_TIMEOUT`, with repository
+declaration `MANAGER_DEFAULT` and observed effective value `infinity`. That
+control is `NOT_IMPLEMENTED` and was neither authorized nor changed in this
+slice.
+
+## Accepted result
+
+The exact installed `__init__.py` reconciliation is accepted. Installed runtime
+code now matches the repository for all 35 modules, with zero observation
+failures. This acceptance does not extend authority to the timeout, systemd,
+permissions, scheduling, backup, RBAC, or infrastructure. Any timeout change
+requires a separate reviewed and explicitly authorized slice.

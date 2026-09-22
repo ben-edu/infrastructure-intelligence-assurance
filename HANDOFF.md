@@ -6,14 +6,15 @@ Project Sources remain authoritative. Read `docs/PROJECT_CONTINUITY.md`, then th
 
 ```text
 repository: ben-edu/infrastructure-intelligence-assurance
-current accepted main: 9ef418b9af6fcdd42a82c2b936a40c4428394924
+accepted main before reconciliation merge: 9ef418b9af6fcdd42a82c2b936a40c4428394924
 Milestone 7: COMPLETE WITHIN ACCEPTED READ-ONLY SCOPE
-Milestone 8: ACTIVE — INSTALLED RUNTIME RECONCILIATION PREPARED
+Milestone 8: ACTIVE — INSTALLED RUNTIME RECONCILIATION ACCEPTED
 active implementation branch: agent/m8-installed-runtime-reconciliation
-active pull request: #92 (ready; live reconciliation gate pending)
+active pull request: #92 (accepted reconciliation review; merge if still open)
 accepted M8 baseline pull request: #91 (merged; replaces closed Draft PR #90)
 open project PRs at reconciliation branch creation: none
 scoped installed __init__.py reconciliation authorized: true
+scoped installed __init__.py reconciliation executed: true
 broader infrastructure mutation authorized: false
 management host: mgmt-automation
 cluster: k3s-main
@@ -227,11 +228,18 @@ branch: agent/m8-installed-runtime-reconciliation
 branch point: 9ef418b9af6fcdd42a82c2b936a40c4428394924
 helper: scripts/reconcile-installed-runtime-module.py
 tests: tests/test_m8_installed_runtime_reconciliation.py
-report status: PREPARED — REVIEWED LIVE APPLY GATE PENDING
-pull request: #92 READY FOR REVIEW
+report status: ACCEPTED — LIVE RECONCILIATION PASSED
+pull request: #92 ACCEPTED RECONCILIATION REVIEW
 focused repository validation: 15 passed in 0.09s
 full repository suite: 471 passed in 1.42s
-management-host mutation performed in this slice: false
+management-host focused validation: 15 passed in 1.58s
+management-host full repository suite: 471 passed in 4.90s
+accepted live-gate commit: f0a3b0a06bf39d96a08e737cee576550a9222026
+accepted live gate: COMPLETE at 2026-09-22T17:22:53.559889Z
+plan/apply/probe return codes: 0/0/0
+management-host mutation performed: exactly installed __init__.py reconciliation
+rollback performed: false
+rollback backup retained: true
 ```
 
 Repository inspection established that `bootstrap-observer.sh` installs the full source tree, while the later bounded operator-runtime deployment helper used an explicit module list that omitted `__init__.py`. The omission is an observed recurrence mechanism consistent with the one-file drift, not confirmed historical root cause because prior execution history remains `UNKNOWN`.
@@ -248,14 +256,29 @@ The prepared change:
 
 The user explicitly authorized proceeding to this next step on 2026-08-30. That authorization is bounded to the reviewed installed `__init__.py` reconciliation and its verification; it is not broader mutation authority.
 
+The accepted live gate observed the old installed SHA-256
+`cf4018a1cb490e8dc2e4ae3f74171587db5e467d20b29561a39c5219faa2e89d`
+and repository SHA-256
+`5d125e99237f4fdc5098c5897ab6c3359340e44513e38c619898dbde53b0065e`.
+Apply returned `RECONCILED`, retained the hash-addressed root-only rollback
+backup, and preserved installed metadata as `root:root 0644`. The post-change
+baseline is `COMPLETE`, has zero `FAILED_TO_OBSERVE`, and reports 35 of 35
+installed modules matching the repository. No systemd, service-start, or
+infrastructure mutation was performed.
+
+The four accepted `UNKNOWN` categories remain platform evidence/history backup
+status, external failure visibility, historical overlap and missed activations,
+and ACL/capability/MAC writability. The next baseline-selected candidate is
+`PIN_EXPLICIT_SERVICE_START_TIMEOUT`; its implementation status is
+`NOT_IMPLEMENTED`, the declared value is `MANAGER_DEFAULT`, and the observed
+effective value is `infinity`. Recommendation is not approval, and that timeout
+was not changed in this slice.
+
 ## Exact next step
 
-1. Review PR `#92`; do not extend its mutation boundary.
-2. On `mgmt-automation`, pull `agent/m8-installed-runtime-reconciliation` and run the focused test from the reconciliation report.
-3. Run the helper without arguments and confirm `CHANGE_REQUIRED`, `mutation_allowed=false`, and the exact `__init__.py` scope.
-4. Run the authorized `--apply` command from the report and retain its `rollback_token`.
-5. Run the M8 baseline probe again and require installed runtime/repository match with zero observation failures.
-6. Run the full repository suite and update the report/HANDOFF with accepted live evidence before merging the slice.
-7. If verification fails, use only the emitted rollback token, rerun the baseline, and record the failure; do not continue to the timeout change.
+1. If PR `#92` is still open, merge the accepted reconciliation without extending its mutation boundary.
+2. Start any explicit service-start-timeout work only as a separate M8 slice from the resulting accepted `main`, after separate review and authorization.
+3. Preserve the current evidence boundary: repository declaration is `MANAGER_DEFAULT`, observed effective timeout is `infinity`, and the control remains `NOT_IMPLEMENTED`.
+4. Do not change the systemd unit, service state, permissions, scheduling, backup, RBAC, or infrastructure under the reconciliation authorization.
 
 Only the exact installed `__init__.py` reconciliation described above is authorized in this slice. Do not change the unit, service/timer state, broader permissions, schedule, backup, RBAC, or infrastructure. Do not reconstruct M7 from chat memory.
