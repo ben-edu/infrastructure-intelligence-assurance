@@ -10,7 +10,7 @@ fi
 if [[ "${1:-}" != "--apply" ]]; then
   cat <<'EOF'
 This deployment helper performs only these bounded mutations:
-- installs the accepted operator-attention modules into /opt/infra-assurance/src/infra_assurance/
+- installs package metadata and the accepted operator-attention modules into /opt/infra-assurance/src/infra_assurance/
 - installs systemd/infra-assurance-kubernetes.service into /etc/systemd/system/infra-assurance-kubernetes.service
 - runs systemctl daemon-reload
 - starts the existing infra-assurance-kubernetes.service once
@@ -35,6 +35,7 @@ JSON_OUT="/var/lib/infra-assurance/evidence/operator-attention.json"
 MARKDOWN_OUT="/var/lib/infra-assurance/evidence/operator-attention.md"
 EXPECTED_SCOPE="KUBERNETES_BACKUP_AND_INCIDENT_EXISTING_EVIDENCE_ONLY"
 MODULES=(
+  __init__.py
   operator_attention.py
   backup_operator_adapter.py
   operator_attention_backup.py
