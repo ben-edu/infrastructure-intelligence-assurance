@@ -6,18 +6,20 @@ Project Sources remain authoritative. Read `docs/PROJECT_CONTINUITY.md`, then th
 
 ```text
 repository: ben-edu/infrastructure-intelligence-assurance
-current accepted main at M8 branch point: b63bed9704832d1e3701ea87dea50e135f2b1f64
+current accepted main: 9ef418b9af6fcdd42a82c2b936a40c4428394924
 Milestone 7: COMPLETE WITHIN ACCEPTED READ-ONLY SCOPE
-Milestone 8: ACTIVE — FIRST READ-ONLY BASELINE SLICE ACCEPTED; MERGE PENDING
-active implementation branch: agent/m8-runtime-hardening-baseline
-active pull request: #91 (ready; baseline merge pending; replaces closed Draft PR #90)
-open project PRs at branch creation: none
+Milestone 8: ACTIVE — INSTALLED RUNTIME RECONCILIATION PREPARED
+active implementation branch: agent/m8-installed-runtime-reconciliation
+active pull request: pending creation
+accepted M8 baseline pull request: #91 (merged; replaces closed Draft PR #90)
+open project PRs at reconciliation branch creation: none
+scoped installed __init__.py reconciliation authorized: true
 broader infrastructure mutation authorized: false
 management host: mgmt-automation
 cluster: k3s-main
 ```
 
-The M8 branch was created directly from current accepted `main`. No unresolved M7 pull request existed at branch creation.
+The first M8 baseline was squash-merged as `9ef418b9af6fcdd42a82c2b936a40c4428394924`. The reconciliation branch was created directly from that accepted `main`, with no other open project pull request.
 
 ## M7 closure
 
@@ -191,7 +193,7 @@ probe: scripts/discovery/m8_runtime_hardening_baseline_probe.py
 tests: tests/test_m8_runtime_hardening_baseline.py
 probe contract: version 0.2 with candidate-specific recommendation evidence
 report status: ACCEPTED — LIVE READ-ONLY GATE PASSED
-pull request: #91 READY FOR REVIEW — REPLACES CLOSED DRAFT PR #90
+pull request: #91 MERGED — REPLACES CLOSED DRAFT PR #90
 focused validation: 11 passed in 0.09s
 full repository suite: 463 passed in 1.04s
 management-host focused validation: 11 passed in 0.22s
@@ -210,13 +212,49 @@ The corrected version 0.2 rerun is accepted. It confirms matching service/timer 
 
 Exactly one smallest justified next change is `RECONCILE_INSTALLED_RUNTIME_MODULES`. It must reconcile installed `__init__.py` through a separate reviewed and explicitly authorized change. No hardening control is implemented in this baseline.
 
+## Active M8 installed runtime reconciliation
+
+Read:
+
+```text
+docs/reports/2026-08-30-m8-installed-runtime-reconciliation.md
+```
+
+Current slice:
+
+```text
+branch: agent/m8-installed-runtime-reconciliation
+branch point: 9ef418b9af6fcdd42a82c2b936a40c4428394924
+helper: scripts/reconcile-installed-runtime-module.py
+tests: tests/test_m8_installed_runtime_reconciliation.py
+report status: PREPARED — REVIEWED LIVE APPLY GATE PENDING
+focused repository validation: 15 passed in 0.09s
+full repository suite: 471 passed in 1.42s
+management-host mutation performed in this slice: false
+```
+
+Repository inspection established that `bootstrap-observer.sh` installs the full source tree, while the later bounded operator-runtime deployment helper used an explicit module list that omitted `__init__.py`. The omission is an observed recurrence mechanism consistent with the one-file drift, not confirmed historical root cause because prior execution history remains `UNKNOWN`.
+
+The prepared change:
+
+- adds `__init__.py` to future bounded operator-runtime deployment sets;
+- plans by hash and metadata without mutation or content projection;
+- applies only the one installed `__init__.py` through a dedicated root-only mode;
+- stores a root-only, hash-addressed rollback copy;
+- uses compile-check, same-directory atomic replacement, file/directory `fsync`, and post-install hash/owner/group/mode verification;
+- automatically restores the previous bytes if post-install verification fails;
+- performs no systemd action, service start, unit/timer change, permission broadening, Kubernetes/RBAC, scheduler, backup-platform, Terraform, Ansible, or infrastructure mutation.
+
+The user explicitly authorized proceeding to this next step on 2026-08-30. That authorization is bounded to the reviewed installed `__init__.py` reconciliation and its verification; it is not broader mutation authority.
+
 ## Exact next step
 
-1. Review and merge replacement PR `#91` after its accepted report and exact four-file scope are verified. Closed Draft PR `#90` was not merged and is superseded only because the connector could not transition its review state.
-2. Start the next M8 slice from the resulting accepted `main`; do not extend the baseline PR with the hardening mutation.
-3. Re-observe the repository/installed `__init__.py` mismatch without projecting source contents or secrets, and identify the bounded installation/deployment step responsible for it.
-4. Propose the smallest reviewed reconciliation and its rollback/verification procedure.
-5. Obtain explicit authorization before changing installed code or any management-host unit, permission, schedule, backup, RBAC, or infrastructure state.
-6. After an authorized reconciliation, rerun the focused tests, installed-runtime hash comparison, and full repository suite before accepting the next slice.
+1. Review the active reconciliation PR once its number is recorded here; do not extend its mutation boundary.
+2. On `mgmt-automation`, pull `agent/m8-installed-runtime-reconciliation` and run the focused test from the reconciliation report.
+3. Run the helper without arguments and confirm `CHANGE_REQUIRED`, `mutation_allowed=false`, and the exact `__init__.py` scope.
+4. Run the authorized `--apply` command from the report and retain its `rollback_token`.
+5. Run the M8 baseline probe again and require installed runtime/repository match with zero observation failures.
+6. Run the full repository suite and update the report/HANDOFF with accepted live evidence before merging the slice.
+7. If verification fails, use only the emitted rollback token, rerun the baseline, and record the failure; do not continue to the timeout change.
 
-Do not change the unit, permissions, schedule, backup, RBAC, installed code, or infrastructure during this baseline gate. Do not reconstruct M7 from chat memory.
+Only the exact installed `__init__.py` reconciliation described above is authorized in this slice. Do not change the unit, service/timer state, broader permissions, schedule, backup, RBAC, or infrastructure. Do not reconstruct M7 from chat memory.
