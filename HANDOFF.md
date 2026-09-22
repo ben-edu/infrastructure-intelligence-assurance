@@ -10,7 +10,7 @@ current accepted main: 9ef418b9af6fcdd42a82c2b936a40c4428394924
 Milestone 7: COMPLETE WITHIN ACCEPTED READ-ONLY SCOPE
 Milestone 8: ACTIVE — INSTALLED RUNTIME RECONCILIATION PREPARED
 active implementation branch: agent/m8-installed-runtime-reconciliation
-active pull request: pending creation
+active pull request: #92 (ready; live reconciliation gate pending)
 accepted M8 baseline pull request: #91 (merged; replaces closed Draft PR #90)
 open project PRs at reconciliation branch creation: none
 scoped installed __init__.py reconciliation authorized: true
@@ -228,6 +228,7 @@ branch point: 9ef418b9af6fcdd42a82c2b936a40c4428394924
 helper: scripts/reconcile-installed-runtime-module.py
 tests: tests/test_m8_installed_runtime_reconciliation.py
 report status: PREPARED — REVIEWED LIVE APPLY GATE PENDING
+pull request: #92 READY FOR REVIEW
 focused repository validation: 15 passed in 0.09s
 full repository suite: 471 passed in 1.42s
 management-host mutation performed in this slice: false
@@ -249,7 +250,7 @@ The user explicitly authorized proceeding to this next step on 2026-08-30. That 
 
 ## Exact next step
 
-1. Review the active reconciliation PR once its number is recorded here; do not extend its mutation boundary.
+1. Review PR `#92`; do not extend its mutation boundary.
 2. On `mgmt-automation`, pull `agent/m8-installed-runtime-reconciliation` and run the focused test from the reconciliation report.
 3. Run the helper without arguments and confirm `CHANGE_REQUIRED`, `mutation_allowed=false`, and the exact `__init__.py` scope.
 4. Run the authorized `--apply` command from the report and retain its `rollback_token`.
