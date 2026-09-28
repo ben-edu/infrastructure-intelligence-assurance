@@ -60,7 +60,7 @@ an exact field or the summary identifies a specific drill-down.
 | File | Use it when | Meaning |
 | --- | --- | --- |
 | `/var/lib/infra-assurance/evidence/operator-attention.md` | First file to read | Prioritized current attention, unknown/stale state, backup gaps, incidents, and required verification |
-| `/var/lib/infra-assurance/evidence/preflight.md` | Before a K3s deployment | Task-scoped facts, conflicts, inferences, unknowns, required live checks, candidate plan, and safest next action |
+| `/var/lib/infra-assurance/evidence/preflight.md` | Before a K3s deployment | Task-scoped facts, conflicts, inferences, unknowns, required live checks, candidate plan, and post-change verification |
 | `/var/lib/infra-assurance/evidence/context.md` | More cluster context is needed | Compact current Kubernetes context with freshness/trust boundaries |
 | `/var/lib/infra-assurance/evidence/inventory.md` | The AI needs workload/service/ingress/PVC relationships | Dynamic operational inventory for supported workload kinds |
 | `/var/lib/infra-assurance/evidence/change-context.md` | Recent changes matter | Bounded recent-change context; zero does not mean no change exists universally |
