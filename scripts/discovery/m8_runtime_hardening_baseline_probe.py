@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 
-VERSION = "0.2"
+VERSION = "0.3"
 SERVICE = "infra-assurance-kubernetes.service"
 TIMER = "infra-assurance-kubernetes.timer"
 RUNTIME_USER = "infra-assurance"
@@ -617,7 +617,7 @@ def _sandbox_drift(declared: dict[str, Any], live: dict[str, Any]) -> bool:
 
 def smallest_change(
     declared: dict[str, Any], live: dict[str, Any], storage: dict[str, Any], code: dict[str, Any]
-) -> dict[str, Any]:
+) -> dict[str, Any] | None:
     service = live.get("service", {})
     timer = live.get("timer", {})
     if service and (
@@ -702,13 +702,25 @@ def smallest_change(
             unexpected_modules=code.get("unexpected_modules", []),
             missing_entrypoint_modules=code.get("missing_entrypoint_modules", []),
         )
-    return _finding(
-        "PIN_EXPLICIT_SERVICE_START_TIMEOUT",
-        "declared+observed",
-        implementation_status="NOT_IMPLEMENTED",
-        declared_timeout=declared["failure"]["timeout_start_sec"],
-        observed_effective_timeout_usec=service.get("timeout_start_usec", "UNKNOWN"),
-    )
+    declared_timeout = declared["failure"]["timeout_start_sec"]
+    observed_timeout = service.get("timeout_start_usec", "UNKNOWN")
+    if declared_timeout == "MANAGER_DEFAULT":
+        return _finding(
+            "PIN_EXPLICIT_SERVICE_START_TIMEOUT",
+            "declared+observed",
+            implementation_status="NOT_IMPLEMENTED",
+            declared_timeout=declared_timeout,
+            observed_effective_timeout_usec=observed_timeout,
+        )
+    if service and observed_timeout != declared_timeout:
+        return _finding(
+            "ALIGN_EFFECTIVE_SERVICE_START_TIMEOUT",
+            "declared+observed",
+            implementation_status="NOT_EFFECTIVE",
+            declared_timeout=declared_timeout,
+            observed_effective_timeout_usec=observed_timeout,
+        )
+    return None
 
 
 def collect(
@@ -862,9 +874,9 @@ def collect(
     ):
         _add(findings, "INFERENCE", "ATOMIC_FILES_NOT_ATOMIC_ARTIFACT_SET", "sequential-chain")
     if declared:
-        findings["REQUIRES_CHANGE"].append(
-            smallest_change(declared, live, storage, code)
-        )
+        selected_change = smallest_change(declared, live, storage, code)
+        if selected_change is not None:
+            findings["REQUIRES_CHANGE"].append(selected_change)
 
     status = "INCOMPLETE" if findings["FAILED_TO_OBSERVE"] else "COMPLETE"
     return {

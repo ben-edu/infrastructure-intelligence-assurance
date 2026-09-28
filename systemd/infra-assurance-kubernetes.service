@@ -7,6 +7,7 @@ Wants=network-online.target
 Type=oneshot
 User=infra-assurance
 Group=infra-assurance
+TimeoutStartSec=4min
 EnvironmentFile=/etc/infra-assurance/collector.env
 Environment=PYTHONPATH=/opt/infra-assurance/src
 ExecStartPre=-/usr/bin/python3 -m infra_assurance.git_declared_observer sync --config /etc/infra-assurance/git-source.json --state-dir /var/lib/infra-assurance/git --declared-dir /var/lib/infra-assurance/declared/current --source-status /var/lib/infra-assurance/declared/source-status.json

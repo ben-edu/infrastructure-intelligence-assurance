@@ -37,7 +37,7 @@ ExecStartPost=/usr/bin/python3 -m infra_assurance.operator_attention_incident
     ]
 
 
-def test_repository_declarations_preserve_manager_default_boundary():
+def test_repository_declarations_pin_bounded_start_timeout():
     module = load_module()
     declared = module.declared_state(Path.cwd())
     assert declared["identity"] == {"user": "infra-assurance", "group": "infra-assurance"}
@@ -46,7 +46,7 @@ def test_repository_declarations_preserve_manager_default_boundary():
     assert declared["sandbox"]["protect_system"] == "strict"
     assert set(declared["sandbox"]["read_write_paths"]) == set(module.WRITABLE_PATHS)
     assert declared["schedule"]["on_unit_active_sec"] == "5min"
-    assert declared["failure"]["timeout_start_sec"] == "MANAGER_DEFAULT"
+    assert declared["failure"]["timeout_start_sec"] == "4min"
     assert declared["failure"]["restart"] == "MANAGER_DEFAULT"
     assert declared["failure"]["on_failure_declared"] is False
     assert declared["runtime"]["explicit_process_lock"] is False
@@ -139,7 +139,7 @@ ReadWritePaths=/var/lib/infra-assurance/evidence /var/lib/infra-assurance/histor
 ReadOnlyPaths=/etc/infra-assurance
 FragmentPath={service_path}
 DropInPaths=
-TimeoutStartUSec=1min 30s
+TimeoutStartUSec=4min
 RuntimeMaxUSec=infinity
 Restart=no
 Result=success
@@ -217,16 +217,15 @@ def _collect_live(tmp_path: Path, monkeypatch, *, sandbox: bool = True):
     return module, result, commands
 
 
-def test_complete_probe_separates_classes_and_selects_one_change(tmp_path: Path, monkeypatch):
+def test_complete_probe_separates_classes_and_has_no_remaining_selected_change(
+    tmp_path: Path, monkeypatch
+):
     module, result, commands = _collect_live(tmp_path, monkeypatch)
     assert result["baseline_status"] == "COMPLETE"
     assert result["mutation_allowed"] is False
     assert tuple(result["findings"]) == module.CLASSES
     assert result["findings"]["FAILED_TO_OBSERVE"] == []
-    assert len(result["findings"]["REQUIRES_CHANGE"]) == 1
-    assert result["findings"]["REQUIRES_CHANGE"][0]["id"] == (
-        "PIN_EXPLICIT_SERVICE_START_TIMEOUT"
-    )
+    assert result["findings"]["REQUIRES_CHANGE"] == []
     observed = {item["id"]: item for item in result["findings"]["OBSERVED"]}
     assert observed["INSTALLED_SERVICE_STATE"]["evidence"]["last_duration_seconds"] == 2.5
     assert observed["INSTALLED_SERVICE_STATE"]["evidence"]["fragment_matches_repository"] is True
@@ -237,6 +236,61 @@ def test_complete_probe_separates_classes_and_selects_one_change(tmp_path: Path,
     assert all(command[:2] == ["systemctl", "show"] for command in commands)
     assert all("Environment" not in " ".join(command) for command in commands)
     assert all("ExecStart" not in " ".join(command) for command in commands)
+
+
+def test_manager_default_timeout_selects_explicit_timeout_candidate():
+    module = load_module()
+    declared = module.declared_state(Path.cwd())
+    declared["failure"]["timeout_start_sec"] = "MANAGER_DEFAULT"
+    live = {
+        "service": {
+            **declared["identity"],
+            **declared["sandbox"],
+            "fragment_matches_repository": True,
+            "timeout_start_usec": "infinity",
+        },
+        "timer": {"fragment_matches_repository": True},
+    }
+    storage = {
+        "state": {},
+        "code": {"runtime_writable_by_posix_mode_count": 0},
+    }
+    code = {"status": "OBSERVED", "installed_runtime_matches_repository": True}
+    change = module.smallest_change(declared, live, storage, code)
+    assert change is not None
+    assert change["id"] == "PIN_EXPLICIT_SERVICE_START_TIMEOUT"
+    assert change["evidence"] == {
+        "implementation_status": "NOT_IMPLEMENTED",
+        "declared_timeout": "MANAGER_DEFAULT",
+        "observed_effective_timeout_usec": "infinity",
+    }
+
+
+def test_effective_timeout_mismatch_remains_requires_change():
+    module = load_module()
+    declared = module.declared_state(Path.cwd())
+    live = {
+        "service": {
+            **declared["identity"],
+            **declared["sandbox"],
+            "fragment_matches_repository": True,
+            "timeout_start_usec": "infinity",
+        },
+        "timer": {"fragment_matches_repository": True},
+    }
+    storage = {
+        "state": {},
+        "code": {"runtime_writable_by_posix_mode_count": 0},
+    }
+    code = {"status": "OBSERVED", "installed_runtime_matches_repository": True}
+    change = module.smallest_change(declared, live, storage, code)
+    assert change is not None
+    assert change["id"] == "ALIGN_EFFECTIVE_SERVICE_START_TIMEOUT"
+    assert change["evidence"] == {
+        "implementation_status": "NOT_EFFECTIVE",
+        "declared_timeout": "4min",
+        "observed_effective_timeout_usec": "infinity",
+    }
 
 
 def test_sandbox_drift_preempts_timeout_candidate(tmp_path: Path, monkeypatch):
