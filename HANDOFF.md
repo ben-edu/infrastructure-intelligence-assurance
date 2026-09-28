@@ -6,21 +6,24 @@ Project Sources remain authoritative. Read `docs/PROJECT_CONTINUITY.md`, then th
 
 ```text
 repository: ben-edu/infrastructure-intelligence-assurance
-accepted main before reconciliation merge: 9ef418b9af6fcdd42a82c2b936a40c4428394924
+current accepted main: 0bb944037ae6ba70c9f7077fea16031effd79af1
 Milestone 7: COMPLETE WITHIN ACCEPTED READ-ONLY SCOPE
-Milestone 8: ACTIVE — INSTALLED RUNTIME RECONCILIATION ACCEPTED
-active implementation branch: agent/m8-installed-runtime-reconciliation
-active pull request: #92 (accepted reconciliation review; merge if still open)
+Milestone 8: ACTIVE — EXPLICIT SERVICE START TIMEOUT PREPARED
+active implementation branch: agent/m8-explicit-service-start-timeout
+active pull request: pending creation
 accepted M8 baseline pull request: #91 (merged; replaces closed Draft PR #90)
-open project PRs at reconciliation branch creation: none
+accepted installed-runtime reconciliation pull request: #92 (merged)
+open project PRs at timeout branch creation: none
 scoped installed __init__.py reconciliation authorized: true
 scoped installed __init__.py reconciliation executed: true
+scoped timeout repository change prepared: true
+management-host timeout mutation performed: false
 broader infrastructure mutation authorized: false
 management host: mgmt-automation
 cluster: k3s-main
 ```
 
-The first M8 baseline was squash-merged as `9ef418b9af6fcdd42a82c2b936a40c4428394924`. The reconciliation branch was created directly from that accepted `main`, with no other open project pull request.
+The first M8 baseline was squash-merged as `9ef418b9af6fcdd42a82c2b936a40c4428394924`. The installed-runtime reconciliation was squash-merged as `0bb944037ae6ba70c9f7077fea16031effd79af1`. The timeout branch was created directly from that accepted `main`, with no other open project pull request.
 
 ## M7 closure
 
@@ -213,7 +216,7 @@ The corrected version 0.2 rerun is accepted. It confirms matching service/timer 
 
 Exactly one smallest justified next change is `RECONCILE_INSTALLED_RUNTIME_MODULES`. It must reconcile installed `__init__.py` through a separate reviewed and explicitly authorized change. No hardening control is implemented in this baseline.
 
-## Active M8 installed runtime reconciliation
+## Accepted M8 installed runtime reconciliation
 
 Read:
 
@@ -244,7 +247,7 @@ rollback backup retained: true
 
 Repository inspection established that `bootstrap-observer.sh` installs the full source tree, while the later bounded operator-runtime deployment helper used an explicit module list that omitted `__init__.py`. The omission is an observed recurrence mechanism consistent with the one-file drift, not confirmed historical root cause because prior execution history remains `UNKNOWN`.
 
-The prepared change:
+The accepted change:
 
 - adds `__init__.py` to future bounded operator-runtime deployment sets;
 - plans by hash and metadata without mutation or content projection;
@@ -274,11 +277,58 @@ and ACL/capability/MAC writability. The next baseline-selected candidate is
 effective value is `infinity`. Recommendation is not approval, and that timeout
 was not changed in this slice.
 
+## Active M8 explicit service start timeout
+
+Read:
+
+```text
+docs/reports/2026-09-28-m8-explicit-service-start-timeout.md
+```
+
+Current slice:
+
+```text
+branch: agent/m8-explicit-service-start-timeout
+branch point: 0bb944037ae6ba70c9f7077fea16031effd79af1
+unit: systemd/infra-assurance-kubernetes.service
+helper: scripts/reconcile-service-start-timeout.py
+tests: tests/test_m8_service_start_timeout.py
+baseline probe: version 0.3
+declared TimeoutStartSec: 4min
+accepted predecessor unit SHA-256: 5bb777fdef10a3a38756924042ad9408134cbf01df034f6542ae053d55f90e0c
+repository unit SHA-256: a2f0c9a489d87d99c5edcf4de097ab45580a41f8877fd6a9afc53a73e64e8558
+report status: PREPARED — REPOSITORY VALIDATED; LIVE GATE PENDING
+focused validation: 31 passed in 0.13s
+additional non-jsonschema regression subset: 292 passed in 1.06s
+management-host timeout mutation performed: false
+```
+
+The selected timeout is below the five-minute timer cadence and approximately
+36 times the last observed successful runtime of 6.629 seconds. It is a bounded
+failure-control value, not an SLA.
+
+The helper defaults to a read-only plan and fails closed on an unexpected unit
+hash, fragment path, drop-in, effective timeout, metadata boundary, or active
+service. Apply is limited to an atomic replacement of the exact service unit,
+a root-only hash-addressed backup, `systemctl daemon-reload`, and post-reload
+verification. It does not start or restart the service, change the timer,
+install runtime modules, broaden permissions, or mutate Kubernetes, backup,
+IaC, or infrastructure state. Automatic restoration is attempted if
+post-change verification fails.
+
+The baseline probe now preserves the timeout recommendation when the manager
+default remains, identifies a declared/effective timeout mismatch, and emits no
+`REQUIRES_CHANGE` item when the accepted priority chain and explicit timeout
+are aligned. The four accepted `UNKNOWN` categories remain explicit.
+
 ## Exact next step
 
-1. If PR `#92` is still open, merge the accepted reconciliation without extending its mutation boundary.
-2. Start any explicit service-start-timeout work only as a separate M8 slice from the resulting accepted `main`, after separate review and authorization.
-3. Preserve the current evidence boundary: repository declaration is `MANAGER_DEFAULT`, observed effective timeout is `infinity`, and the control remains `NOT_IMPLEMENTED`.
-4. Do not change the systemd unit, service state, permissions, scheduling, backup, RBAC, or infrastructure under the reconciliation authorization.
+1. Create/review the timeout pull request without extending its mutation boundary.
+2. On `mgmt-automation`, run the focused tests and complete repository suite from the active branch.
+3. Run the helper in default plan mode and require the exact accepted predecessor hash, `CHANGE_REQUIRED`, `inactive/dead`, zero drop-ins, and effective timeout `infinity`.
+4. Run the bounded `--apply`, retain its rollback token, and require effective timeout `4min` with no service start/restart or timer mutation.
+5. Run baseline probe version `0.3`; require `COMPLETE`, zero `FAILED_TO_OBSERVE`, zero selected `REQUIRES_CHANGE`, matching fragments, 35/35 runtime modules matching, and every safety flag false.
+6. If any apply or verification step fails, use only the emitted rollback token, rerun the baseline, record the failure, and stop.
+7. If the gate passes, record accepted evidence, merge the slice, and prepare M8/project closure within the accepted bounded scope without manufacturing work to eliminate preserved `UNKNOWN` states.
 
-Only the exact installed `__init__.py` reconciliation described above is authorized in this slice. Do not change the unit, service/timer state, broader permissions, schedule, backup, RBAC, or infrastructure. Do not reconstruct M7 from chat memory.
+Only the exact service-unit timeout replacement and manager reload described above belong to this slice. Do not start/restart the service, change timer state, permissions, backup, RBAC, installed runtime modules, IaC, or infrastructure. Do not reconstruct completed work from chat memory.
