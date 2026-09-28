@@ -26,6 +26,19 @@ docs/reports/2026-09-28-m8-project-closure.md
 
 Project Sources remain authoritative for durable goals, roadmap, architecture/trust principles, and operating rules. `HANDOFF.md` is the current execution checkpoint.
 
+## Operator and AI-assisted deployment use
+
+Use [`docs/OPERATOR_AND_AI_DEPLOYMENT_GUIDE.md`](docs/OPERATOR_AND_AI_DEPLOYMENT_GUIDE.md)
+when preparing a new application, website, or service for K3s, Hestia, or the
+hybrid platform. It defines the smallest useful AI context pack from current
+assurance output, `ben-edu/infra-docs`, and the target project's own files.
+
+The guide includes daily checks, the exact read-only K3s preflight command,
+Hestia live-verification requirements, document-selection rules, a reusable AI
+prompt, deployment stop conditions, and post-change verification. This
+repository supplies evidence and planning context; Jenkins and the live
+operator remain the deployment authorities.
+
 ## Current runtime model
 
 ```text
