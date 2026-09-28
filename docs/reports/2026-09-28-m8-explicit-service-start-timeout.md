@@ -4,6 +4,8 @@ Date: 2026-09-28
 Status: PREPARED — REPOSITORY VALIDATED; LIVE GATE PENDING
 Branch: `agent/m8-explicit-service-start-timeout`
 Branch point: `0bb944037ae6ba70c9f7077fea16031effd79af1`
+Pull request: `#93`
+Initial implementation commit: `5bd8f7e58765e96d3d4dd35ebd6bfa182b2958af`
 
 ## Goal
 

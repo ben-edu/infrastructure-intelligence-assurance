@@ -10,7 +10,7 @@ current accepted main: 0bb944037ae6ba70c9f7077fea16031effd79af1
 Milestone 7: COMPLETE WITHIN ACCEPTED READ-ONLY SCOPE
 Milestone 8: ACTIVE — EXPLICIT SERVICE START TIMEOUT PREPARED
 active implementation branch: agent/m8-explicit-service-start-timeout
-active pull request: pending creation
+active pull request: #93 (ready; live gate pending)
 accepted M8 baseline pull request: #91 (merged; replaces closed Draft PR #90)
 accepted installed-runtime reconciliation pull request: #92 (merged)
 open project PRs at timeout branch creation: none
@@ -298,6 +298,7 @@ declared TimeoutStartSec: 4min
 accepted predecessor unit SHA-256: 5bb777fdef10a3a38756924042ad9408134cbf01df034f6542ae053d55f90e0c
 repository unit SHA-256: a2f0c9a489d87d99c5edcf4de097ab45580a41f8877fd6a9afc53a73e64e8558
 report status: PREPARED — REPOSITORY VALIDATED; LIVE GATE PENDING
+pull request: #93 READY; LIVE GATE PENDING
 focused validation: 31 passed in 0.13s
 additional non-jsonschema regression subset: 292 passed in 1.06s
 management-host timeout mutation performed: false
