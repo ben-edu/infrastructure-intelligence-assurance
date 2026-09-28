@@ -12,15 +12,16 @@ Milestone 6 — IaC Governance is **not complete overall**. Its current read-onl
 
 Milestone 7 — Operational Intelligence Layer is **complete within the accepted read-only scope**. The platform now has accepted operator-facing paths for attention, change/drift context, explicit unknown/stale/failed state, backup/recovery assurance gaps, incident-candidate grouping, task-scoped pre-change verification, post-change verification requirements, and a deterministic non-executable safest-next-action.
 
-Milestone 8 — Reliability and Hardening is **next**.
+Milestone 8 — Reliability and Hardening is **complete within the accepted bounded scope**. The runtime baseline is evidence-backed, the one observed installed-module mismatch was reconciled, and the service now has an explicit four-minute start timeout. The final baseline is `COMPLETE`, with zero observation failures and zero selected `REQUIRES_CHANGE` items.
+
+The initial delivery program is **complete within its accepted scope**. This does not promote the explicitly unresolved M5/M6 or M8 evidence gaps into completed capabilities. Further platform backup, restore testing, IaC execution assurance, external failure visibility, or broader runtime hardening is optional future scope requiring a new decision and its own evidence and authorization boundary.
 
 For context-window-independent continuation, read:
 
 ```text
 docs/PROJECT_CONTINUITY.md
 HANDOFF.md
-docs/reports/2026-08-30-m7-closure.md
-docs/M8_START_HERE.md
+docs/reports/2026-09-28-m8-project-closure.md
 ```
 
 Project Sources remain authoritative for durable goals, roadmap, architecture/trust principles, and operating rules. `HANDOFF.md` is the current execution checkpoint.
@@ -50,6 +51,16 @@ The existing five-minute collector runs under the dedicated `infra-assurance` id
 scope: KUBERNETES_BACKUP_AND_INCIDENT_EXISTING_EVIDENCE_ONLY
 mutation_allowed: False
 ```
+
+At the accepted M8 gate, the installed runtime matched the repository (35/35
+modules), the service unit matched the reviewed repository unit, and
+
+```text
+TimeoutStartSec=4min
+```
+
+was effective. The timeout reconciliation did not start or restart the service
+and did not change the timer or infrastructure.
 
 Installed ordering accepted at M7 closure:
 
@@ -107,7 +118,7 @@ Normalized Git declared state remains under:
 /var/lib/infra-assurance/git/repos/*.git
 ```
 
-The current local JSON/Markdown/history storage is replaceable. Long-term lifecycle and platform-backup requirements are M8 concerns, not silently solved assumptions.
+The current local JSON/Markdown/history storage is replaceable. Long-term lifecycle and platform-backup status remain explicitly unresolved future scope, not silently solved assumptions.
 
 ## M7 operator intelligence
 
@@ -195,36 +206,30 @@ Raw Kubernetes Secret values are never collected. Sensitive Terraform state, pas
 
 `mutation_allowed` remains `false` unless an explicitly reviewed and authorized slice changes that boundary.
 
-## M8 — next small step
+## M8 closure
 
-Do not start M8 with broad hardening construction.
+M8 closed through three accepted slices:
 
-First create a read-only runtime-hardening baseline from current accepted `main`:
+1. a read-only runtime-hardening baseline;
+2. exact reconciliation of the observed installed `__init__.py` mismatch;
+3. an explicit four-minute service start timeout with bounded plan/apply/rollback tooling.
 
-```text
-branch: agent/m8-runtime-hardening-baseline
-```
+The final post-change baseline preserves four `UNKNOWN` categories: platform
+evidence/history backup status, external failure visibility, historical overlap
+and missed activations, and ACL/capability/MAC writability. An empty
+`REQUIRES_CHANGE` list does not erase these unknowns or imply universal
+hardening completeness.
 
-Inspect and classify:
-
-- systemd service/timer identity and sandbox directives;
-- writable paths and artifact ownership;
-- scheduling cadence and overlap behavior;
-- timeout/restart/failure semantics and failure visibility;
-- installed runtime/code boundaries;
-- atomic-write assumptions;
-- current platform evidence/history backup status.
-
-The baseline should distinguish `DECLARED`, `OBSERVED`, `UNKNOWN`, `FAILED_TO_OBSERVE`, `INFERENCE`, and `REQUIRES_CHANGE`, then identify one smallest justified hardening change.
-
-Do not mutate systemd, permissions, scheduling, backup, RBAC, or infrastructure during the baseline slice.
+There is no required next implementation slice. Any future expansion must begin
+from a new scoped decision rather than reopening completed work by default.
 
 ## Validation
 
-Repository regression suite at the final M7 functional checkpoint:
+Repository regression suite at the accepted M8 timeout gate:
 
 ```text
-452 passed in 2.44s
+483 passed in 5.94s
 ```
 
-See `docs/reports/2026-08-30-m7-closure.md` for the detailed M7 acceptance boundary and intentionally preserved unknowns.
+See `docs/reports/2026-09-28-m8-project-closure.md` for the complete closure
+boundary, accepted evidence, preserved unknowns, risks, and deferred work.
