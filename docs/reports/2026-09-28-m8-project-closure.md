@@ -1,11 +1,11 @@
 # Milestone 8 and Initial Project Delivery Closure
 
 Date: 2026-09-28
-Status: PREPARED — DOCUMENTATION-ONLY CLOSURE REVIEW
+Status: ACCEPTED — M8 AND INITIAL PROJECT DELIVERY CLOSED
 Branch: `agent/m8-project-closure`
 Branch point: `36c6daaabc9c2c6226cd1cf81ad9f558b90b4413`
-Pull request: to be created
-Project Sources closure update: pending
+Pull request: `#94` (accepted documentation-only closure)
+Project Sources closure update: complete — Delivery Roadmap and Current State
 
 ## Closure decision
 

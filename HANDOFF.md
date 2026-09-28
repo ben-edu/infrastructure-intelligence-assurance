@@ -12,7 +12,7 @@ Milestone 8: COMPLETE WITHIN ACCEPTED BOUNDED RELIABILITY/HARDENING SCOPE
 initial project delivery: COMPLETE WITHIN ACCEPTED SCOPE
 active implementation branch: none
 documentation-only closure branch: agent/m8-project-closure
-closure pull request: to be created
+closure pull request: #94 (accepted documentation-only closure; merge if still open)
 accepted M8 baseline pull request: #91 (merged; replaces closed Draft PR #90)
 accepted installed-runtime reconciliation pull request: #92 (merged)
 accepted explicit-timeout pull request: #93 (merged)
@@ -26,7 +26,7 @@ timer mutation performed: false
 infrastructure mutation performed: false
 broader infrastructure mutation authorized: false
 required operator action: none
-Project Sources closure update: pending
+Project Sources closure update: complete — Delivery Roadmap and Current State
 management host: mgmt-automation
 cluster: k3s-main
 ```
@@ -378,11 +378,10 @@ scoped decision, current evidence, and any separately reviewed authorization.
 
 ## Exact next step
 
-1. Complete the durable Project Sources closure update and record it in this documentation-only branch.
-2. If the closure pull request is still open, merge it without adding implementation changes.
-3. After closure merge, there is no required implementation step or operator action.
-4. Begin future work only from a new scoped decision; re-observe live state where freshness matters and obtain separate authorization before any mutation.
-5. Do not manufacture additional hardening work merely to eliminate preserved `UNKNOWN` states.
+1. If closure PR `#94` is still open, merge it without adding implementation changes.
+2. After closure merge, there is no required implementation step or operator action.
+3. Begin future work only from a new scoped decision; re-observe live state where freshness matters and obtain separate authorization before any mutation.
+4. Do not manufacture additional hardening work merely to eliminate preserved `UNKNOWN` states.
 
 The timeout mutation and all M8 implementation are complete and accepted. Do
 not perform rollback or any additional systemd, service/timer, permission,
