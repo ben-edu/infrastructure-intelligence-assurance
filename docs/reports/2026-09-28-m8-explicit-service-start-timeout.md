@@ -1,11 +1,13 @@
 # Milestone 8 — Explicit Service Start Timeout
 
 Date: 2026-09-28
-Status: PREPARED — REPOSITORY VALIDATED; LIVE GATE PENDING
+Status: ACCEPTED — LIVE GATE PASSED
 Branch: `agent/m8-explicit-service-start-timeout`
 Branch point: `0bb944037ae6ba70c9f7077fea16031effd79af1`
 Pull request: `#93`
 Initial implementation commit: `5bd8f7e58765e96d3d4dd35ebd6bfa182b2958af`
+Accepted live-gate commit: `c0440755e38a3fbe7d96a9728ab988e91d434fdc`
+Accepted live-gate time: `2026-09-28T15:08:41.584347Z`
 
 ## Goal
 
@@ -132,9 +134,9 @@ dependency:
 292 passed in 1.06s
 ```
 
-Both changed Python files pass byte-compilation. The complete repository suite
-remains mandatory on `mgmt-automation`, whose project environment previously
-ran all 471 accepted tests successfully.
+Both changed Python files pass byte-compilation. The management host subsequently
+passed the focused set (`31 passed in 2.68s`) and complete repository suite
+(`483 passed in 5.94s`) from the accepted live-gate commit.
 
 Static systemd validation also passes:
 
@@ -264,10 +266,63 @@ sudo /usr/bin/python3 scripts/reconcile-service-start-timeout.py \
 Then rerun the baseline and record the failure. Do not continue toward M8
 closure after a failed gate.
 
-## Acceptance pending
+## Accepted live result
 
-Do not accept or merge this slice until the focused tests, full suite, read-only
-plan, bounded apply, and post-change baseline are reviewed together. If the gate
-passes with zero selected `REQUIRES_CHANGE`, prepare M8 closure within the
-accepted bounded scope; do not manufacture additional hardening work merely to
-eliminate preserved `UNKNOWN` states.
+The complete reviewed gate passed on `mgmt-automation`:
+
+```text
+commit: c0440755e38a3fbe7d96a9728ab988e91d434fdc
+focused tests: 31 passed in 2.68s
+complete repository suite: 483 passed in 5.94s
+plan/apply/probe return codes: 0/0/0
+plan_contract: PASS
+apply_contract: PASS
+post_change_baseline_contract: PASS
+m8_gate_rc: 0
+```
+
+The read-only plan returned `CHANGE_REQUIRED` for the exact accepted predecessor
+hash. It observed the service as `inactive/dead`, zero drop-ins, effective
+timeout `infinity`, and `root:root 0644` metadata. It performed no mutation.
+
+The bounded apply returned `RECONCILED`:
+
+```text
+before SHA-256: 5bb777fdef10a3a38756924042ad9408134cbf01df034f6542ae053d55f90e0c
+after SHA-256: a2f0c9a489d87d99c5edcf4de097ab45580a41f8877fd6a9afc53a73e64e8558
+effective TimeoutStartUSec: 4min
+unit mutation: true
+daemon-reload: true
+service start: false
+service restart: false
+timer mutation: false
+infrastructure mutation: false
+```
+
+The retained rollback backup is:
+
+```text
+/var/lib/infra-assurance/runtime-reconciliation/infra-assurance-kubernetes.service.5bb777fdef10a3a38756924042ad9408134cbf01df034f6542ae053d55f90e0c.bak
+```
+
+Rollback was neither needed nor performed.
+
+The post-change version `0.3` baseline returned `COMPLETE`. It observed the
+declared and effective timeout as `4min`, matching service/timer fragments,
+35/35 installed modules matching the repository, zero observation failures,
+zero selected `REQUIRES_CHANGE`, and every safety flag false.
+
+The following remain explicitly `UNKNOWN`:
+
+- platform evidence/history backup status;
+- external failure visibility;
+- historical overlap and missed activations;
+- ACL/capability/MAC writability.
+
+## Acceptance
+
+The timeout slice is accepted. Its repository tests, read-only plan, bounded
+apply, and post-change baseline were reviewed together and passed. Zero selected
+`REQUIRES_CHANGE` supports M8 closure within the accepted bounded scope; it is
+not a claim that the preserved `UNKNOWN` states or every possible future
+hardening feature have been eliminated or implemented.

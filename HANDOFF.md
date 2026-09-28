@@ -6,18 +6,21 @@ Project Sources remain authoritative. Read `docs/PROJECT_CONTINUITY.md`, then th
 
 ```text
 repository: ben-edu/infrastructure-intelligence-assurance
-current accepted main: 0bb944037ae6ba70c9f7077fea16031effd79af1
+current accepted main before timeout merge: 0bb944037ae6ba70c9f7077fea16031effd79af1
 Milestone 7: COMPLETE WITHIN ACCEPTED READ-ONLY SCOPE
-Milestone 8: ACTIVE — EXPLICIT SERVICE START TIMEOUT PREPARED
+Milestone 8: ACTIVE — EXPLICIT SERVICE START TIMEOUT ACCEPTED
 active implementation branch: agent/m8-explicit-service-start-timeout
-active pull request: #93 (ready; live gate pending)
+active pull request: #93 (accepted timeout review; merge if still open)
 accepted M8 baseline pull request: #91 (merged; replaces closed Draft PR #90)
 accepted installed-runtime reconciliation pull request: #92 (merged)
 open project PRs at timeout branch creation: none
 scoped installed __init__.py reconciliation authorized: true
 scoped installed __init__.py reconciliation executed: true
 scoped timeout repository change prepared: true
-management-host timeout mutation performed: false
+management-host timeout mutation performed: exact service-unit replacement plus daemon-reload
+service start/restart performed: false
+timer mutation performed: false
+infrastructure mutation performed: false
 broader infrastructure mutation authorized: false
 management host: mgmt-automation
 cluster: k3s-main
@@ -277,7 +280,7 @@ and ACL/capability/MAC writability. The next baseline-selected candidate is
 effective value is `infinity`. Recommendation is not approval, and that timeout
 was not changed in this slice.
 
-## Active M8 explicit service start timeout
+## Accepted M8 explicit service start timeout
 
 Read:
 
@@ -297,11 +300,22 @@ baseline probe: version 0.3
 declared TimeoutStartSec: 4min
 accepted predecessor unit SHA-256: 5bb777fdef10a3a38756924042ad9408134cbf01df034f6542ae053d55f90e0c
 repository unit SHA-256: a2f0c9a489d87d99c5edcf4de097ab45580a41f8877fd6a9afc53a73e64e8558
-report status: PREPARED — REPOSITORY VALIDATED; LIVE GATE PENDING
-pull request: #93 READY; LIVE GATE PENDING
-focused validation: 31 passed in 0.15s
+report status: ACCEPTED — LIVE GATE PASSED
+pull request: #93 ACCEPTED TIMEOUT REVIEW
+accepted live-gate commit: c0440755e38a3fbe7d96a9728ab988e91d434fdc
+management-host focused validation: 31 passed in 2.68s
+management-host full repository suite: 483 passed in 5.94s
 additional non-jsonschema regression subset: 292 passed in 1.06s
-management-host timeout mutation performed: false
+plan/apply/probe return codes: 0/0/0
+accepted live gate: COMPLETE at 2026-09-28T15:08:41.584347Z
+post-change REQUIRES_CHANGE: 0
+management-host timeout mutation performed: exact service-unit replacement plus daemon-reload
+service start/restart performed: false
+timer mutation performed: false
+infrastructure mutation performed: false
+rollback performed: false
+rollback backup retained: true
+rollback backup: /var/lib/infra-assurance/runtime-reconciliation/infra-assurance-kubernetes.service.5bb777fdef10a3a38756924042ad9408134cbf01df034f6542ae053d55f90e0c.bak
 ```
 
 The selected timeout is below the five-minute timer cadence and approximately
@@ -322,14 +336,24 @@ default remains, identifies a declared/effective timeout mismatch, and emits no
 `REQUIRES_CHANGE` item when the accepted priority chain and explicit timeout
 are aligned. The four accepted `UNKNOWN` categories remain explicit.
 
+The accepted live plan observed the exact predecessor unit, `inactive/dead`,
+zero drop-ins, and effective timeout `infinity` without mutation. Apply returned
+`RECONCILED`, installed the exact reviewed unit, retained the root-only backup,
+ran `systemctl daemon-reload`, and made the effective timeout `4min`. It did not
+start or restart the service and did not change the timer or infrastructure.
+The post-change baseline is `COMPLETE`, reports 35/35 installed modules matching
+the repository, zero `FAILED_TO_OBSERVE`, zero selected `REQUIRES_CHANGE`, and
+all safety flags false.
+
 ## Exact next step
 
-1. Create/review the timeout pull request without extending its mutation boundary.
-2. On `mgmt-automation`, run the focused tests and complete repository suite from the active branch.
-3. Run the helper in default plan mode and require the exact accepted predecessor hash, `CHANGE_REQUIRED`, `inactive/dead`, zero drop-ins, and effective timeout `infinity`.
-4. Run the bounded `--apply`, retain its rollback token, and require effective timeout `4min` with no service start/restart or timer mutation.
-5. Run baseline probe version `0.3`; require `COMPLETE`, zero `FAILED_TO_OBSERVE`, zero selected `REQUIRES_CHANGE`, matching fragments, 35/35 runtime modules matching, and every safety flag false.
-6. If any apply or verification step fails, use only the emitted rollback token, rerun the baseline, record the failure, and stop.
-7. If the gate passes, record accepted evidence, merge the slice, and prepare M8/project closure within the accepted bounded scope without manufacturing work to eliminate preserved `UNKNOWN` states.
+1. If PR `#93` is still open, merge the accepted timeout slice without extending its mutation boundary.
+2. Create a documentation-only closure slice from the resulting accepted `main`.
+3. Record M8 and initial project delivery as complete within the accepted bounded scope, including what was built, verified, unknown, risky, and deferred.
+4. Update the durable Project Sources at that milestone boundary.
+5. Do not manufacture additional hardening work merely to eliminate the four preserved `UNKNOWN` states.
 
-Only the exact service-unit timeout replacement and manager reload described above belong to this slice. Do not start/restart the service, change timer state, permissions, backup, RBAC, installed runtime modules, IaC, or infrastructure. Do not reconstruct completed work from chat memory.
+The timeout mutation is complete and accepted. Do not perform rollback or any
+additional systemd, service/timer, permission, backup, RBAC, runtime-module,
+IaC, or infrastructure mutation while recording closure. Do not reconstruct
+completed work from chat memory.
