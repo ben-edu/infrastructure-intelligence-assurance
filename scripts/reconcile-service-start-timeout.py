@@ -421,6 +421,14 @@ def apply_reconciliation(
             _atomic_install(target, restore_payload, uid=uid, gid=gid, mode=0o644)
             _daemon_reload(runner)
             _validate_installed(target, restore_hash, uid=uid, gid=gid)
+            restored = _systemd_state(runner)
+            if (
+                restored["dropin_count"]
+                or restored["fragment_path"] != str(target)
+                or restored["effective_timeout_start_usec"]
+                != PREDECESSOR_EFFECTIVE_TIMEOUT
+            ):
+                raise ReconciliationError("AUTOMATIC_ROLLBACK_VERIFICATION_FAILED")
         except Exception as rollback_error:
             raise ReconciliationError("AUTOMATIC_ROLLBACK_FAILED") from rollback_error
         raise
@@ -504,6 +512,11 @@ def rollback_reconciliation(
             _atomic_install(target, current_payload, uid=uid, gid=gid, mode=0o644)
             _daemon_reload(runner)
             _validate_installed(target, current_hash, uid=uid, gid=gid)
+            recovered = _systemd_state(runner)
+            if recovered["effective_timeout_start_usec"] != state[
+                "effective_timeout_start_usec"
+            ]:
+                raise ReconciliationError("ROLLBACK_RECOVERY_VERIFICATION_FAILED")
         except Exception as restore_error:
             raise ReconciliationError("ROLLBACK_RECOVERY_FAILED") from restore_error
         raise

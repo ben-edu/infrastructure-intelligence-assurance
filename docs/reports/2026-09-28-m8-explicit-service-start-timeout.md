@@ -122,7 +122,7 @@ An empty `REQUIRES_CHANGE` list does not erase preserved `UNKNOWN` findings.
 Focused M8 timeout, baseline, and prior reconciliation tests:
 
 ```text
-31 passed in 0.13s
+31 passed in 0.15s
 ```
 
 Additional tests not importing the unavailable local compiled `rpds`
