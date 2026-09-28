@@ -6,17 +6,18 @@ Project Sources remain authoritative. Read `docs/PROJECT_CONTINUITY.md`, then th
 
 ```text
 repository: ben-edu/infrastructure-intelligence-assurance
-current accepted functional main before closure merge: 36c6daaabc9c2c6226cd1cf81ad9f558b90b4413
+current accepted main after M8 closure: fa682a3c23bf082ba693ba261528bfd14c98a053
 Milestone 7: COMPLETE WITHIN ACCEPTED READ-ONLY SCOPE
 Milestone 8: COMPLETE WITHIN ACCEPTED BOUNDED RELIABILITY/HARDENING SCOPE
 initial project delivery: COMPLETE WITHIN ACCEPTED SCOPE
 active implementation branch: none
-documentation-only closure branch: agent/m8-project-closure
-closure pull request: #94 (accepted documentation-only closure; merge if still open)
+post-closure documentation branch: docs/operator-ai-deployment-guide
+operator-guide pull request: #95 (documentation only; merge if still open)
+closure pull request: #94 (merged)
 accepted M8 baseline pull request: #91 (merged; replaces closed Draft PR #90)
 accepted installed-runtime reconciliation pull request: #92 (merged)
 accepted explicit-timeout pull request: #93 (merged)
-open project PRs at timeout branch creation: none
+open project pull requests before operator-guide work: none
 scoped installed __init__.py reconciliation authorized: true
 scoped installed __init__.py reconciliation executed: true
 scoped timeout repository change prepared: true
@@ -31,7 +32,7 @@ management host: mgmt-automation
 cluster: k3s-main
 ```
 
-The first M8 baseline was squash-merged as `9ef418b9af6fcdd42a82c2b936a40c4428394924`. The installed-runtime reconciliation was squash-merged as `0bb944037ae6ba70c9f7077fea16031effd79af1`. The explicit-timeout slice was squash-merged as `36c6daaabc9c2c6226cd1cf81ad9f558b90b4413`. The documentation-only closure branch was created directly from that accepted functional `main`, with no other open project pull request.
+The first M8 baseline was squash-merged as `9ef418b9af6fcdd42a82c2b936a40c4428394924`. The installed-runtime reconciliation was squash-merged as `0bb944037ae6ba70c9f7077fea16031effd79af1`. The explicit-timeout slice was squash-merged as `36c6daaabc9c2c6226cd1cf81ad9f558b90b4413`. The documentation-only closure was squash-merged as `fa682a3c23bf082ba693ba261528bfd14c98a053`. The post-closure operator-guide branch was created from that final accepted `main`, with no other open project pull request.
 
 ## M7 closure
 
@@ -376,12 +377,41 @@ their explicitly preserved unknown/deferred outcomes. The four M8 unknowns also
 remain unknown. Future work is optional expansion and must start with a new
 scoped decision, current evidence, and any separately reviewed authorization.
 
+## Post-closure operator and AI-assisted deployment guide
+
+Read:
+
+```text
+docs/OPERATOR_AND_AI_DEPLOYMENT_GUIDE.md
+```
+
+This documentation-only addition turns the accepted platform into a repeatable
+operator workflow for new applications, websites, and services. It defines:
+
+```text
+the normal daily artifact to read
+the exact read-only K3s preflight command
+the Hestia live-verification boundary
+which infra-docs files to select by project need
+the minimum ordered context pack to give an AI
+secret and evidence-trust exclusions
+deployment stop conditions
+post-deployment verification
+```
+
+The guide does not add a deployment engine, authorize production change, or
+claim Hestia/Keycloak evidence that the runtime does not collect. Jenkins and
+the live human operator remain the deployment and approval authorities. No
+runtime, systemd, timer, credential, Kubernetes, Hestia, Jenkins, or other
+infrastructure mutation is part of this documentation slice.
+
 ## Exact next step
 
-1. If closure PR `#94` is still open, merge it without adding implementation changes.
-2. After closure merge, there is no required implementation step or operator action.
-3. Begin future work only from a new scoped decision; re-observe live state where freshness matters and obtain separate authorization before any mutation.
-4. Do not manufacture additional hardening work merely to eliminate preserved `UNKNOWN` states.
+1. If operator-guide PR `#95` is still open, merge it without adding implementation changes.
+2. After that documentation merge, there is no required implementation step or operator action.
+3. Use the guide when preparing a new deployment; re-observe live state where freshness matters and obtain separate authorization before any mutation.
+4. Begin future platform work only from a new scoped decision.
+5. Do not manufacture additional hardening work merely to eliminate preserved `UNKNOWN` states.
 
 The timeout mutation and all M8 implementation are complete and accepted. Do
 not perform rollback or any additional systemd, service/timer, permission,
