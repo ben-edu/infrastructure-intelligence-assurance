@@ -117,19 +117,21 @@ For an accepted repository slice:
 6. squash-merge when clean;
 7. carry the new accepted functional checkpoint into the next active handoff or milestone-boundary documents.
 
-## Milestone 7 to Milestone 8 transition
+## M8 and initial project delivery closure
 
-Milestone 7 is closed by `docs/reports/2026-08-30-m7-closure.md` within the accepted read-only operational-intelligence scope.
-
-For the first M8 session, read:
+Milestone 8 and the initial delivery program are closed by:
 
 ```text
-docs/M8_START_HERE.md
+docs/reports/2026-09-28-m8-project-closure.md
 ```
 
-The first M8 slice is a read-only runtime-hardening baseline. It must inspect current identity, sandbox, scheduling, failure semantics, writable paths, artifact ownership, and platform-backup evidence before proposing a concrete mutation.
+`docs/M8_START_HERE.md` is retained as historical transition evidence. It is
+not an instruction to restart M8.
 
-Do not reopen M5/M6/M7 UNKNOWN states merely because a new chat begins. Revisit them only when stronger authoritative evidence or a reviewed M8 hardening requirement makes that necessary.
+There is no required next implementation slice. Do not reopen M5/M6/M7/M8
+unknown or deferred states merely because a new chat begins. Revisit them only
+after a new scoped decision and materially stronger authoritative evidence. Any
+mutation still requires its own reviewed plan and explicit authorization.
 
 ## New-session bootstrap
 
@@ -140,8 +142,9 @@ Read Project Sources.
 Read docs/PROJECT_CONTINUITY.md.
 Read HANDOFF.md from current main.
 Check for an active project PR/branch with a newer HANDOFF.md.
-Read the transition/start document named by HANDOFF.md.
-Continue only the Exact next step unless new evidence justifies changing it.
+Read the closure or transition document named by HANDOFF.md.
+If the project remains closed, do not invent a next slice.
+For new work, define scope and evidence/authorization boundaries before implementation.
 ```
 
 Do not repeat completed discovery merely because previous chat context is unavailable.

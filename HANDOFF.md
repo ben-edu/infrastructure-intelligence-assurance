@@ -6,13 +6,16 @@ Project Sources remain authoritative. Read `docs/PROJECT_CONTINUITY.md`, then th
 
 ```text
 repository: ben-edu/infrastructure-intelligence-assurance
-current accepted main before timeout merge: 0bb944037ae6ba70c9f7077fea16031effd79af1
+current accepted functional main before closure merge: 36c6daaabc9c2c6226cd1cf81ad9f558b90b4413
 Milestone 7: COMPLETE WITHIN ACCEPTED READ-ONLY SCOPE
-Milestone 8: ACTIVE — EXPLICIT SERVICE START TIMEOUT ACCEPTED
-active implementation branch: agent/m8-explicit-service-start-timeout
-active pull request: #93 (accepted timeout review; merge if still open)
+Milestone 8: COMPLETE WITHIN ACCEPTED BOUNDED RELIABILITY/HARDENING SCOPE
+initial project delivery: COMPLETE WITHIN ACCEPTED SCOPE
+active implementation branch: none
+documentation-only closure branch: agent/m8-project-closure
+closure pull request: to be created
 accepted M8 baseline pull request: #91 (merged; replaces closed Draft PR #90)
 accepted installed-runtime reconciliation pull request: #92 (merged)
+accepted explicit-timeout pull request: #93 (merged)
 open project PRs at timeout branch creation: none
 scoped installed __init__.py reconciliation authorized: true
 scoped installed __init__.py reconciliation executed: true
@@ -22,11 +25,13 @@ service start/restart performed: false
 timer mutation performed: false
 infrastructure mutation performed: false
 broader infrastructure mutation authorized: false
+required operator action: none
+Project Sources closure update: pending
 management host: mgmt-automation
 cluster: k3s-main
 ```
 
-The first M8 baseline was squash-merged as `9ef418b9af6fcdd42a82c2b936a40c4428394924`. The installed-runtime reconciliation was squash-merged as `0bb944037ae6ba70c9f7077fea16031effd79af1`. The timeout branch was created directly from that accepted `main`, with no other open project pull request.
+The first M8 baseline was squash-merged as `9ef418b9af6fcdd42a82c2b936a40c4428394924`. The installed-runtime reconciliation was squash-merged as `0bb944037ae6ba70c9f7077fea16031effd79af1`. The explicit-timeout slice was squash-merged as `36c6daaabc9c2c6226cd1cf81ad9f558b90b4413`. The documentation-only closure branch was created directly from that accepted functional `main`, with no other open project pull request.
 
 ## M7 closure
 
@@ -302,6 +307,7 @@ accepted predecessor unit SHA-256: 5bb777fdef10a3a38756924042ad9408134cbf01df034
 repository unit SHA-256: a2f0c9a489d87d99c5edcf4de097ab45580a41f8877fd6a9afc53a73e64e8558
 report status: ACCEPTED — LIVE GATE PASSED
 pull request: #93 ACCEPTED TIMEOUT REVIEW
+timeout merge commit: 36c6daaabc9c2c6226cd1cf81ad9f558b90b4413
 accepted live-gate commit: c0440755e38a3fbe7d96a9728ab988e91d434fdc
 management-host focused validation: 31 passed in 2.68s
 management-host full repository suite: 483 passed in 5.94s
@@ -345,15 +351,40 @@ The post-change baseline is `COMPLETE`, reports 35/35 installed modules matching
 the repository, zero `FAILED_TO_OBSERVE`, zero selected `REQUIRES_CHANGE`, and
 all safety flags false.
 
+## M8 and initial project delivery closure
+
+Read:
+
+```text
+docs/reports/2026-09-28-m8-project-closure.md
+```
+
+Closure decision:
+
+```text
+M8: COMPLETE WITHIN ACCEPTED BOUNDED RELIABILITY/HARDENING SCOPE
+initial project delivery: COMPLETE WITHIN ACCEPTED SCOPE
+required next implementation slice: none
+preserved M8 UNKNOWN categories: 4
+broader infrastructure mutation authorized: false
+```
+
+This closure means the roadmap's initial evidence-first delivery sequence has a
+usable accepted checkpoint. It does not claim that M5 Backup and Recovery
+Assurance or M6 IaC Governance are complete overall, and it does not reinterpret
+their explicitly preserved unknown/deferred outcomes. The four M8 unknowns also
+remain unknown. Future work is optional expansion and must start with a new
+scoped decision, current evidence, and any separately reviewed authorization.
+
 ## Exact next step
 
-1. If PR `#93` is still open, merge the accepted timeout slice without extending its mutation boundary.
-2. Create a documentation-only closure slice from the resulting accepted `main`.
-3. Record M8 and initial project delivery as complete within the accepted bounded scope, including what was built, verified, unknown, risky, and deferred.
-4. Update the durable Project Sources at that milestone boundary.
-5. Do not manufacture additional hardening work merely to eliminate the four preserved `UNKNOWN` states.
+1. Complete the durable Project Sources closure update and record it in this documentation-only branch.
+2. If the closure pull request is still open, merge it without adding implementation changes.
+3. After closure merge, there is no required implementation step or operator action.
+4. Begin future work only from a new scoped decision; re-observe live state where freshness matters and obtain separate authorization before any mutation.
+5. Do not manufacture additional hardening work merely to eliminate preserved `UNKNOWN` states.
 
-The timeout mutation is complete and accepted. Do not perform rollback or any
-additional systemd, service/timer, permission, backup, RBAC, runtime-module,
-IaC, or infrastructure mutation while recording closure. Do not reconstruct
-completed work from chat memory.
+The timeout mutation and all M8 implementation are complete and accepted. Do
+not perform rollback or any additional systemd, service/timer, permission,
+backup, RBAC, runtime-module, IaC, or infrastructure mutation while recording
+closure. Do not reconstruct completed work from chat memory.
